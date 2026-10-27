@@ -2,5 +2,9 @@
   "name": "@svc/capture",
   "version": "0.1.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.32",
+    "@svc/shared": "*"
+  }
 }

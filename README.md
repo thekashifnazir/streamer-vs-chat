@@ -1,6 +1,6 @@
 # Streamer vs Chat
 
-Twitch chat is the boss's brain; the streamer's body is the defence. Day 1 builds the chat plumbing and a Rails HUD preview. [SPEC.md](SPEC.md) governs the game; [docs/HUD.md](docs/HUD.md) governs the layout.
+Twitch chat is the boss's brain; the streamer's body is the defence. Chat plumbing, the Rails HUD preview, and the webcam/keyboard capture page are implemented. See [capture setup and recording](docs/CAPTURE.md). [SPEC.md](SPEC.md) governs the game; [docs/HUD.md](docs/HUD.md) governs the layout.
 
 Requires Node **22.12+** (Node 22 recommended), npm, and the [Twitch CLI](https://dev.twitch.tv/docs/cli/). Install dependencies with `npm install`.
 
@@ -10,7 +10,7 @@ Requires Node **22.12+** (Node 22 recommended), npm, and the [Twitch CLI](https:
 npm run dev:mock
 ```
 
-Starts the Twitch CLI WebSocket mock on 8080, the chat injection shim on 8081, the Node server on 3000, and Vite on 5173. Wait for `channel.chat.message active (SIMULATED)` in the terminal, then open [the overlay](http://localhost:5173/overlay/) or add that URL as an OBS Browser Source at **1920 × 1080**. The centre is transparent for your camera source beneath it. Capture is a placeholder at [the capture page](http://localhost:5173/capture/).
+Starts the Twitch CLI WebSocket mock on 8080, the chat injection shim on 8081, the Node server on 3000, and Vite on 5173. Wait for `channel.chat.message active (SIMULATED)` in the terminal, then open [the overlay](http://localhost:5173/overlay/) or add that URL as an OBS Browser Source at **1920 × 1080**. The centre is transparent for your camera source beneath it. Webcam/keyboard inputs and fixture recording are at [the capture page](http://localhost:5173/capture/).
 
 ```sh
 curl -X POST localhost:8081/inject \
@@ -50,7 +50,7 @@ npm test
 npx tsc --noEmit
 ```
 
-Vitest runs local tests only. Real-login verification is a manual check with your own app and accounts; it is never part of the test suite. `sim`, `demo`, and `build:demo` scripts will arrive on days 3 and 5. No engine, pose, calibration, keyboard gameplay, audio, or round result handling is implemented in this step.
+Vitest runs local tests only. Real-login verification is a manual check with your own app and accounts; it is never part of the test suite. `sim`, `demo`, and `build:demo` scripts will arrive on days 3 and 5. The capture page now supports calibrated pose and keyboard inputs. Combat, audio, and round results still await the engine.
 
 ## Day 1 verification — 27 October 2026
 

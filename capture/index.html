@@ -1,27 +1,39 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Streamer vs Chat · Capture</title>
-    <style>
-      :root { color: #faf8ff; background: #0d0a15; font: 20px/1.6 system-ui, sans-serif; }
-      body { max-width: 760px; margin: 12vh auto; padding: 32px; }
-      .eyebrow { color: #ffdc43; font-size: 16px; letter-spacing: 3px; font-weight: 800; }
-      h1 { font-size: clamp(40px, 7vw, 68px); line-height: 1.05; letter-spacing: -3px; }
-      p { color: #c2bdcd; }
-      a { color: #ffdc43; text-underline-offset: 5px; }
-      .notice { padding: 24px; border-left: 4px solid #ffdc43; background: #ffdc430a; }
-      strong { color: #fff; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <p class="eyebrow">STREAMER VS CHAT · DAY 1</p>
-      <h1>The body is<br />the defence.</h1>
-      <p class="notice"><strong>Capture is scaffolded.</strong><br />Webcam calibration and keyboard controls arrive in a later step. This page does not request camera access or send inputs yet.</p>
-      <p>Use the <a href="/overlay/">Rails overlay</a> as a 1920 × 1080 OBS Browser Source. Keep your webcam in OBS beneath it.</p>
-      <p>Planned controls: J punch · hold K guard · hold A / D lean.</p>
-    </main>
-  </body>
-</html>
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Streamer vs Chat · Capture</title><link rel="stylesheet" href="/capture/src/style.css" /></head>
+<body><main>
+  <header><div><p class="eyebrow">STREAMER VS CHAT · CAPTURE</p><h1>The body is the defence.</h1></div><a href="/overlay/">Open Rails overlay ↗</a></header>
+  <div class="workspace">
+    <section class="camera-panel" aria-label="Mirrored webcam preview">
+      <div class="preview"><video id="camera" autoplay muted playsinline></video><span class="preview-label">MIRRORED CAMERA</span><span id="fps-debug" class="fps-debug">CPU · LITE</span></div>
+      <div class="button-row"><button id="start-camera" class="primary">Start camera</button><button id="stop-camera" disabled>Stop camera</button></div>
+      <p id="camera-status" role="status">Camera is off. Keyboard works without camera access.</p>
+      <p class="hint">Camera stays in this browser. Only input events go to the local server; recording is an explicit download of landmarks and labels.</p>
+    </section>
+    <section class="controls" aria-label="Streamer controls">
+      <div class="status-row"><span class="status-dot"></span><span id="connection-status" role="status">Connecting to local server…</span></div>
+      <label class="field">Play with<select id="input-source"><option value="keyboard">Keyboard</option><option value="pose">Webcam pose</option></select></label>
+      <div class="key-guide"><span><kbd>K</kbd> Hold guard</span><span><kbd>A</kbd><kbd>D</kbd> Hold lean</span><span><kbd>J</kbd> Punch bonus</span></div>
+      <p class="hint">Keyboard and webcam are equal inputs. Guard and lean are the defence; punches add bonus damage.</p>
+      <label class="check"><input type="checkbox" id="no-punch" /> No-punch mode</label>
+      <label class="check safety"><input type="checkbox" id="clear-space" /> My space is clear and I can lean comfortably.</label>
+      <div class="calibration-box">
+        <p class="eyebrow">WEBCAM CALIBRATION</p>
+        <label class="field">Posture<select id="posture"><option value="standing">Standing</option><option value="seated">Seated</option></select></label>
+        <p class="hint">Calibrate each posture separately. Keep your head, shoulders and both wrists in frame. Seated: sit ~1 m further back than feels natural.</p>
+        <button id="start-calibration">Calibrate webcam</button>
+        <progress id="calibration-progress" max="1" value="0" aria-label="Calibration step progress"></progress>
+        <p id="calibration-status" role="status">Relax hands for 3 s, hold guard for 3 s, then confirm both leans.</p>
+      </div>
+      <button id="stop-input" class="stop">STOP <span>Esc</span></button>
+      <button id="resume-input" class="resume">Resume inputs</button>
+      <p class="hint">Stop releases held inputs and sends a stop control to the server.</p>
+    </section>
+  </div>
+  <section class="recording" aria-labelledby="recording-title">
+    <div><p class="eyebrow">LOCAL FIXTURE RECORDER</p><h2 id="recording-title">Record what the camera sees.</h2><p>Use K / A / D / J to label the intended action while recording, including in webcam mode. Downloads contain landmarks and labels, never video.</p></div>
+    <div class="record-controls"><label class="field">Recording name<input id="record-name" type="text" value="webcam-session" maxlength="80" autocomplete="off" /></label><div class="button-row"><button id="record-start">Start recording</button><button id="record-stop" disabled>Stop &amp; download</button></div><p id="record-status" role="status">Not recording.</p></div>
+  </section>
+  <details class="diagnostics"><summary>Input diagnostics</summary><div class="diagnostics-grid"><div><h3>Active input</h3><pre id="input-state">No input yet.</pre></div><div><h3>Pose measurements</h3><pre id="diagnostics">Start the camera to see measurements.</pre></div></div></details>
+  <footer>Keep this Chrome page open for capture. Add <a href="/overlay/">/overlay</a> as a 1920 × 1080 OBS Browser Source, above your webcam.</footer>
+</main><script type="module" src="/capture/src/main.ts"></script></body></html>

@@ -15,3 +15,10 @@ export function parseChatVote(text: string, user: string, at: number, simulated:
   const move = Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined;
   return move ? { kind: 'vote', user, move, at, simulated } : null;
 }
+
+/** Equal input contract for the webcam and keyboard adapters. */
+export type StreamerInput = PoseState | PunchEvent | Control;
+export type InputStatus = {
+  kind: 'input-status'; state: PoseState; stopped: boolean;
+  captureAt: number | null; receivedAt: number; lastPunch: PunchEvent | null;
+};

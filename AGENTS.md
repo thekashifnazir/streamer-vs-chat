@@ -4,7 +4,7 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 ## Commands
 - dev (mock Twitch): npm run dev:mock   # twitch CLI mock + chat shim + server + overlay
 - dev (live Twitch): npm run dev
-- test: npm test   # Day 1 unit tests; recorded-pose-clip tests and balance sim arrive later
+- test: npm test   # unit and recorded-landmark regression tests; balance sim arrives day 3
 - balance: npm run sim   # from day 3; not installed on Day 1. Fails if casual win rate leaves 30-70% or no-punch drops under 30% at 0/3/50/500 viewers
 
 ## Rules
@@ -19,7 +19,7 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - SPEC.md is the source of truth for rules, numbers, event types and acceptance tests. docs/HUD.md Recommended layout (B) and docs/hud-rails.png define the Rails HUD.
 - Node 22 + TypeScript, npm workspaces: server/, overlay/, capture/, shared/. Server/auth/WebSocket port 3000; Vite port 5173 serves /overlay and /capture.
 - All game state belongs on the server. Overlay is a view; capture provides inputs. Pose and keyboard are equal inputs; punches are bonus damage. Future engine is a pure step(state,event,now) reducer, with no internal clock calls.
-- Day 1 only: scaffold, §6 types, two-account Authorization Code auth, channel.chat.message, static Rails HUD and live vote tally, CLI mock plus injection shim. No game engine, pose, sound, sim, demo or build:demo scripts yet.
+- Current scope: Day 1 chat/auth/HUD plumbing plus Day 2 webcam capture, calibration, keyboard inputs, fixture recording and pose regression. No game engine, sound, sim, demo or build:demo scripts yet.
 - Two server-held Twitch tokens: bot user:read:chat user:write:chat user:bot; broadcaster channel:bot clips:edit. bits:read/channel:read:subscriptions and cheer/subscribe/raid subscriptions are day 4 work.
 - Secrets belong in .env and gitignored tokens.json. Never commit tokens or print credentials.
 - Tests must never call real Twitch. Mock CLI listens on 8080, injection shim on 8081. Listener URL ws://127.0.0.1:8081/ws and TWURPLE_MOCK_API_PORT=8081; never connect directly to 8080. Other mock event triggers must use the session and subscription IDs from getCliTestCommand().

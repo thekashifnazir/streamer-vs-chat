@@ -1,0 +1,32 @@
+import { afterEach, expect, it, vi } from 'vitest';
+const mocked=vi.hoisted(()=>({fileset:vi.fn(),create:vi.fn()}));
+vi.mock('@mediapipe/tasks-vision',()=>({FilesetResolver:{forVisionTasks:mocked.fileset},PoseLandmarker:{createFromOptions:mocked.create}}));
+import { PoseCamera } from './camera';
+afterEach(()=>{vi.unstubAllGlobals();vi.clearAllMocks();});
+it('uses lite CPU VIDEO inference on video frame callbacks and releases resources',async()=>{
+  const track={stop:vi.fn(),addEventListener:vi.fn()};
+  const stream={getTracks:()=>[track],getVideoTracks:()=>[track]};
+  const getUserMedia=vi.fn(async()=>stream);
+  vi.stubGlobal('navigator',{mediaDevices:{getUserMedia}});
+  const model={detectForVideo:vi.fn(()=>({landmarks:[[{x:.4,y:.5}]]})),close:vi.fn()};
+  mocked.fileset.mockResolvedValue({});mocked.create.mockResolvedValue(model);
+  let frame:VideoFrameRequestCallback;
+  const video={play:vi.fn(),pause:vi.fn(),srcObject:null,requestVideoFrameCallback:vi.fn(callback=>{frame=callback;return 1;}),cancelVideoFrameCallback:vi.fn()} as unknown as HTMLVideoElement;
+  const onFrame=vi.fn();const camera=new PoseCamera(video,onFrame,vi.fn());
+  expect(await camera.start()).toBe(true);
+  expect(getUserMedia).toHaveBeenCalledWith(expect.objectContaining({audio:false}));
+  expect(mocked.create).toHaveBeenCalledWith({},expect.objectContaining({baseOptions:{modelAssetPath:'/capture/public/models/pose_landmarker_lite.task',delegate:'CPU'},runningMode:'VIDEO',numPoses:1}));
+  frame!(100,{} as VideoFrameCallbackMetadata);
+  expect(model.detectForVideo).toHaveBeenCalledWith(video,100);
+  expect(onFrame.mock.calls[0]?.[0]).toMatchObject({at:100,landmarks:[{x:.4,y:.5}]});
+  camera.stop();expect(track.stop).toHaveBeenCalled();expect(model.close).toHaveBeenCalled();expect(video.srcObject).toBeNull();
+});
+it('stops a late permission result after camera cancellation',async()=>{
+  const track={stop:vi.fn()};
+  let resolve!: (value:unknown)=>void;
+  vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:()=>new Promise(done=>{resolve=done;})}});
+  const video={pause:vi.fn(),requestVideoFrameCallback:vi.fn()} as unknown as HTMLVideoElement;
+  const camera=new PoseCamera(video,vi.fn(),vi.fn());
+  const starting=camera.start();camera.stop();resolve({getTracks:()=>[track]});
+  expect(await starting).toBe(false);expect(track.stop).toHaveBeenCalled();
+});
