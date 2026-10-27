@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest';
+import { createGame, step, drawMove, mulberry32, type GameState } from '../../shared/src/engine.js';
+import type { Move } from '../../shared/src/index.js';
+const advance=(s:GameState,t:number)=>step(s,{kind:'advance'},t);
+const pose=(s:GameState,t:number,guard:boolean,lean:'L'|'R'|null=null)=>step(s,{kind:'pose',guard,lean,at:t,source:'keyboard'},t);
+const punch=(s:GameState,t:number)=>step(s,{kind:'punch',side:'L',at:t,source:'keyboard'},t);
+const vote=(s:GameState,t:number,user:string,move:Move)=>step(s,{kind:'vote',user,move,at:t,simulated:true},t);
+describe('SPEC acceptance1–14',()=>{
+  it('1 latest vote per viewer in each beat',()=>{let s=createGame();s=vote(s,1,'A','JAB');s=vote(s,2,'A','HOOK_L');expect(s.tally.HOOK_L).toBe(1);expect(s.tally.JAB).toBe(0);expect(s.voters).toBe(1);});
+  it('2 weighted draw gives75% JAB with seeded10k trials',()=>{const rng=mulberry32(2026);let n=0;for(let i=0;i<10000;i++)if(drawMove({JAB:3,HOOK_L:1,HOOK_R:0,COMBO:0,SUPER:0},[],rng)==='JAB')n++;expect(n/10000).toBeGreaterThan(.73);expect(n/10000).toBeLessThan(.77);});
+  it('3 prevents a third identical move',()=>{expect(drawMove({JAB:1,HOOK_L:0,HOOK_R:0,COMBO:0,SUPER:0},['JAB','JAB'],mulberry32(0))).not.toBe('JAB');});
+  it('4 gates SUPER on arrival, spends hype, and caps at3',()=>{let s=createGame();s=vote(s,0,'A','SUPER');expect(s.voters).toBe(0);s={...s,hype:100};s=vote(s,1,'A','SUPER');s=advance(s,2400);expect(s.history[0]).toBe('SUPER');expect(s.hype).toBe(0);expect(s.supers_used).toBe(1);s={...s,hype:100,supers_used:3};expect(vote(s,2401,'A','SUPER').voters).toBe(0);});
+  it('5 guard raised300ms before JAB is PERFECT and counters11',()=>{let s=createGame({moves:['JAB']});s=pose(s,2900,true);s=advance(s,3200);expect(s.streamer.hp).toBe(100);expect(s.boss.hp).toBe(124);expect(s.log.resolved[0]!.outcome).toBe('PERFECT');});
+  it('6 guard raised450ms before JAB is BLOCK and counters8',()=>{let s=createGame({moves:['JAB']});s=pose(s,2750,true);s=advance(s,3200);expect(s.boss.hp).toBe(127);expect(s.log.resolved[0]!.outcome).toBe('BLOCK');});
+  it('7 hooks require leaning away',()=>{for(const lean of ['L','R']as const){let s=createGame({moves:['HOOK_L']});s=pose(s,3000,false,lean);s=advance(s,3200);expect(s.log.resolved[0]!.outcome).toBe(lean==='R'?'DODGE':'HIT');expect(s.streamer.hp).toBe(lean==='R'?100:88);}});
+  it('8 split combo guard costs7 and gives no counter',()=>{let s=createGame({moves:['COMBO']});s=pose(s,2000,true);s=pose(s,3350,false);s=advance(s,3500);expect(s.streamer.hp).toBe(93);expect(s.boss.hp).toBe(135);expect(s.counter.open).toBe(false);});
+  it('9 two punches in700ms add3 and ignored attempts do not reset throttle',()=>{let s=createGame({moves:['HOOK_L']});s=pose(s,3000,false,'R');s=punch(s,3300);s=punch(s,3400);s=punch(s,3750);expect(s.boss.hp).toBe(123);expect(punch(s,3900).boss.hp).toBe(123);});
+  it('10 mercy uses prehit hp below30 without rounding',()=>{let s=createGame({moves:['JAB']});s={...s,streamer:{...s.streamer,hp:25}};s=advance(s,3200);expect(s.streamer.hp).toBeCloseTo(20.2);});
+  it('11 timeout compares HP percentages',()=>{let s=createGame({moves:[]});s={...s,streamer:{...s.streamer,hp:40},boss:{...s.boss,hp:60}};expect(advance(s,75000).round.winner).toBe('boss');});
+  it('12 scouting requires sample size and Wilson bound',()=>{for(const n of [11,14]){let s=createGame({roundNumber:2,moves:[]});s={...s,scouting:{...s.scouting,dodges:n===11?Array(11).fill('L'):[...Array(12).fill('L'),'R','R']}};expect(advance(s,0).scouting.card).toBe(n===11?null:'L');}});
+  it('13 exploits have a3-beat cooldown',()=>{let s=createGame({roundNumber:2,moves:Array(5).fill('HOOK_L')});s={...s,scouting:{...s.scouting,dodges:Array(12).fill('L')}};s=advance(s,12000);expect(s.log.telegraphs.map(x=>x.exploit)).toEqual([true,false,false,false,true]);});
+  it('14 viewer pause is ignored; veto cancels immediately and freezes; resume shifts timers',()=>{let s=createGame({moves:['JAB','JAB']});s=step(s,{kind:'control',action:'pause',by:'viewer',authorized:false},2600);expect(s.paused).toBe(false);s=step(s,{kind:'control',action:'veto',by:'mod'},2700);expect(s.paused).toBe(true);s=advance(s,10000);expect(s.streamer.hp).toBe(100);expect(s.log.telegraphs[0]!.vetoed).toBe(true);s=step(s,{kind:'control',action:'resume',by:'mod'},10000);expect(s.paused).toBe(false);expect(advance(s,12000).log.telegraphs).toHaveLength(1);expect(advance(s,12100).log.telegraphs).toHaveLength(2);});
+});

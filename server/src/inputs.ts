@@ -1,3 +1,4 @@
+import { parseSessionCommand } from './game-session';
 import type { InputStatus, PoseState, StreamerInput } from '@svc/shared';
 
 export function parseStreamerInput(value: unknown): StreamerInput | null {
@@ -60,26 +61,41 @@ export class InputStore {
 export class CaptureInputs {
   private owner: import('ws').WebSocket | undefined;
   private store = new InputStore();
+  constructor(private callbacks:{onInput?:(event:StreamerInput,receivedAt:number)=>void;onSession?:(event:import('./game-session').SessionCommand)=>void}={}) {}
+  setStopped(stopped:boolean,now:number):void {
+    if(this.store.snapshot().stopped===stopped)return;
+    const status=this.store.receive({kind:'control',action:stopped?'stop':'resume',by:'capture'},now);
+    if(this.owner?.readyState===1)this.owner.send(JSON.stringify(status));
+  }
   attach(client: import('ws').WebSocket): void {
     const release = () => {
-      if(this.owner === client) { this.store.neutral(Date.now()); this.owner = undefined; }
+      if(this.owner === client) { const now=Date.now();this.store.neutral(now);this.callbacks.onInput?.(this.store.snapshot().state,now);this.owner = undefined; }
     };
     client.on('message', data => {
-      let event;
-      try { event = parseStreamerInput(JSON.parse(data.toString())); } catch { return; }
-      if(!event) return;
+      let raw:unknown;
+      try { raw=JSON.parse(data.toString()); } catch { return; }
+      const event=parseStreamerInput(raw);
+      const session=parseSessionCommand(raw);
+      if(!event&&!session)return;
       if(this.owner && this.owner !== client) {
         client.send(JSON.stringify({kind:'input-error',message:'Another capture page owns inputs. Close it before connecting this page.'}));
         return;
       }
       this.owner = client;
-      client.send(JSON.stringify(this.store.receive(event, Date.now())));
+      const now=Date.now();
+      if(session){this.callbacks.onSession?.(session);return;}
+      const status=this.store.receive(event!,now);
+      if(event!.kind==='control'||event!.kind==='pose'||!status.stopped)this.callbacks.onInput?.(event!,now);
+      client.send(JSON.stringify(status));
     });
     client.on('close', release);
     // ws reports malformed/oversized frames as errors: reject the client, not the server.
     client.on('error', () => {release();client.terminate();});
   }
   expire(now: number): void {
-    if(this.store.expire(now) && this.owner?.readyState === 1) this.owner.send(JSON.stringify(this.store.snapshot()));
+    if(this.store.expire(now)) {
+      this.callbacks.onInput?.(this.store.snapshot().state,now);
+      if(this.owner?.readyState===1)this.owner.send(JSON.stringify(this.store.snapshot()));
+    }
   }
 }

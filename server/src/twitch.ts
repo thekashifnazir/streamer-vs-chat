@@ -1,8 +1,9 @@
 import { ApiClient } from '@twurple/api';
 import type { AuthProvider, AccessTokenWithUserId } from '@twurple/auth';
 import { EventSubWsListener } from '@twurple/eventsub-ws';
+import type { ChatRole } from './chat-controls';
 
-export type IncomingChat = { user: string; text: string; simulated: boolean };
+export type IncomingChat = { user: string; text: string; simulated: boolean; role:ChatRole };
 export const MOCK_BOT_ID = '9001';
 export const MOCK_BROADCASTER_ID = '9002';
 
@@ -57,12 +58,29 @@ export function createTwitchSession(options: {
   listener.onUserSocketDisconnect((_userId, error) => {
     if (error) console.error('[eventsub] Socket disconnected; Twurple will reconnect.');
   });
-  // Day 1: intentionally no cheer/subscription/raid subscriptions or outgoing chat.
+  // Chat only today; cheer/subscription/raid remain day4.
   listener.onChannelChatMessage(broadcasterId, botId, (event) => {
-    const message = { user: event.chatterId, text: event.messageText, simulated: options.mock };
+    const role:ChatRole=event.chatterId===broadcasterId?'broadcaster':Object.hasOwn(event.badges??{},'moderator')?'mod':'viewer';
+    const message = { user: event.chatterId, text: event.messageText, simulated: options.mock,role };
     console.log(`[chat ${options.mock ? 'SIMULATED' : 'LIVE'}] ${event.chatterName}: ${event.messageText}`);
     options.onMessage(message);
   });
   listener.start();
-  return { stop: () => listener.stop() };
+  return {
+    stop:()=>listener.stop(),
+    async viewers():Promise<number> {
+      if(options.mock)return 0;
+      const stream=await apiClient.streams.getStreamByUserId(broadcasterId);
+      return stream?.viewers??0;
+    },
+    async sendRoundResult(text:string,simulated:boolean):Promise<void> {
+      if(simulated!==options.mock)throw new Error('Refusing simulated results on live Twitch or live results on the mock transport');
+      if(options.mock) {
+        const response=await fetch('http://127.0.0.1:8081/results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,simulated:true}),signal:AbortSignal.timeout(5000)});
+        if(!response.ok)throw new Error(`Local result shim returned${response.status}`);
+        return;
+      }
+      await apiClient.asUser(botId,ctx=>ctx.chat.sendChatMessage(broadcasterId,text));
+    },
+  };
 }

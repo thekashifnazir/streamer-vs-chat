@@ -31,3 +31,31 @@ it('rejects oversized capture frames without crashing and releases capture owner
     await new Promise<void>(resolve=>http.close(()=>resolve()));
   }
 });
+
+it('clears game defence after a stopped capture disconnects and a moderator resumes',async()=>{
+  const {GameSession}=await import('./game-session');
+  const game=new GameSession({mock:true,sendResult:async()=>{}});
+  let channel:CaptureInputs;
+  channel=new CaptureInputs({onInput:(event,at)=>game.input(event,at),onSession:event=>game.command(event)});
+  const http=createServer();const ws=new WebSocketServer({server:http});
+  let serverClosed:Promise<unknown[]>;
+  ws.on('connection',client=>{channel.attach(client);serverClosed=once(client,'close');});
+  http.listen(0,'127.0.0.1');await once(http,'listening');
+  const client=new WebSocket(`ws://127.0.0.1:${(http.address() as AddressInfo).port}`);
+  try {
+    await once(client,'open');
+    client.send(JSON.stringify({kind:'session',action:'start'}));
+    let message=once(client,'message');
+    client.send(JSON.stringify({kind:'pose',guard:true,lean:'R',at:1,source:'keyboard'}));await message;
+    expect(game.state.input.guard).toBe(true);
+    game.chat({user:'mod',role:'mod',text:'!pause',simulated:true});
+    channel.setStopped(game.frozen,Date.now());
+    client.close();await serverClosed!;
+    game.chat({user:'mod',role:'mod',text:'!resume',simulated:true});
+    expect(game.state.input).toMatchObject({guard:false,lean:null});
+  } finally {
+    game.close();client.terminate();for(const peer of ws.clients)peer.terminate();
+    await new Promise<void>(resolve=>ws.close(()=>resolve()));
+    await new Promise<void>(resolve=>http.close(()=>resolve()));
+  }
+});

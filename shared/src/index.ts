@@ -4,8 +4,8 @@ export type ChatVote = { kind: 'vote'; user: string; move: Move; at: number; sim
 export type PoseState = { kind: 'pose'; guard: boolean; lean: 'L'|'R'|null; at: number; source: 'pose'|'keyboard' };
 export type PunchEvent = { kind: 'punch'; side: 'L'|'R'; at: number; source: 'pose'|'keyboard' };
 export type Control = { kind: 'control'; action: 'pause'|'resume'|'veto'|'stop'; by: string };
-// The engine's state shape arrives with the engine. Keep Tick generic until then.
-export type Tick<GameState> = { kind: 'tick'; state: GameState };
+export type { GameState, EngineEvent } from './engine';
+export type Tick<GameState=import('./engine').GameState> = { kind: 'tick'; state: GameState };
 export type Telegraph = { kind: 'telegraph'; move: Move; landsAt: number; exploit?: string };
 export type Resolved = { kind: 'resolved'; move: Move; outcome: 'HIT'|'BLOCK'|'PERFECT'|'DODGE'|'CHIP'; dmg: number; counterDmg: number };
 export type TallySnapshot = { kind: 'tally'; tally: Record<Move, number>; voters: number; simulated: boolean };

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { pathToFileURL } from 'node:url';
+import type { AddressInfo } from 'node:net';
 import { WebSocket, WebSocketServer } from 'ws';
 
 type Subscription = {
@@ -29,6 +30,7 @@ function json(response: ServerResponse, status: number, data: unknown) {
 export function createMockShim(upstreamPort = 8080) {
   const sessions = new Map<string, WebSocket>();
   const subscriptions = new Map<string, Subscription>();
+  const results:{text:string;simulated:true;at:number}[]=[];
   const sockets = new WebSocketServer({ noServer: true });
   const upstreamSockets = new Set<WebSocket>();
 
@@ -47,10 +49,22 @@ export function createMockShim(upstreamPort = 8080) {
       json(response, 200, { simulated: true, sessions: sessions.size, subscriptions: [...subscriptions.values()] });
       return;
     }
+    if(pathname==='/results') {
+      if(request.method==='GET'){json(response,200,{simulated:true,results});return;}
+      if(request.method==='POST') {
+        const input=JSON.parse(await bodyOf(request)) as Record<string,unknown>;
+        if(input.simulated!==true||typeof input.text!=='string'||input.text.length>500){json(response,400,{error:'Only simulated round results up to500 characters are accepted'});return;}
+        results.push({text:input.text,simulated:true,at:Date.now()});if(results.length>100)results.shift();
+        console.log(`[bot SIMULATED] ${input.text}`);json(response,200,{simulated:true,accepted:true});return;
+      }
+      json(response,405,{error:'Use GET or POST'});return;
+    }
     if (pathname === '/inject' && request.method === 'POST') {
       const input = JSON.parse((await bodyOf(request)) || '{}') as Record<string, unknown>;
       const text = input.text ?? input.message ?? '!jab';
-      const user = input.user ?? 'simulated-viewer';
+      const user = input.user ?? (input.role==='broadcaster'?'9002':'simulated-viewer');
+      const role=input.role??'viewer';
+      if(!['viewer','mod','broadcaster'].includes(String(role))){json(response,400,{error:'role must be viewer, mod or broadcaster'});return;}
       if (typeof text !== 'string' || typeof user !== 'string' || !user || text.length > 500) {
         json(response, 400, { error: 'Use {"text":"!jab","user":"viewer-id"}' });
         return;
@@ -72,7 +86,7 @@ export function createMockShim(upstreamPort = 8080) {
               broadcaster_user_login: 'simulated_broadcaster', broadcaster_user_name: 'Simulated Broadcaster',
               chatter_user_id: user, chatter_user_login: user, chatter_user_name: user,
               message_id: randomUUID(), message: { text, fragments: [{ type: 'text', text, cheermote: null, emote: null, mention: null }] },
-              color: '#FFC857', badges: [], message_type: 'text', cheer: null, reply: null, channel_points_custom_reward_id: null,
+              color: '#FFC857', badges: role==='mod'?[{set_id:'moderator',id:'1',info:''}]:role==='broadcaster'?[{set_id:'broadcaster',id:'1',info:''}]:[], message_type: 'text', cheer: null, reply: null, channel_points_custom_reward_id: null,
             },
           },
         }));
@@ -131,15 +145,28 @@ export function createMockShim(upstreamPort = 8080) {
   server.on('upgrade', (request, socket, head) => {
     if (new URL(request.url ?? '/', 'http://127.0.0.1').pathname !== '/ws') { socket.destroy(); return; }
     sockets.handleUpgrade(request, socket, head, (downstream) => {
-      const upstream = new WebSocket(`ws://127.0.0.1:${upstreamPort}${request.url}`);
+      const target=new URL(request.url??'/ws','http://127.0.0.1');
+      const resumeFrom=target.searchParams.get('shim_resume');target.searchParams.delete('shim_resume');
+      const upstream = new WebSocket(`ws://127.0.0.1:${upstreamPort}${target.pathname}${target.search}`);
       upstreamSockets.add(upstream);
       let sessionId: string | undefined;
+      let reconnecting=false;
       upstream.on('message', (data, isBinary) => {
         try {
           const envelope = JSON.parse(data.toString());
           if (envelope.metadata?.message_type === 'session_welcome') {
             sessionId = envelope.payload.session.id as string;
             sessions.set(sessionId, downstream);
+            if(resumeFrom)for(const sub of subscriptions.values())if(sub.transport.session_id===resumeFrom)sub.transport.session_id=sessionId;
+          }
+          if(envelope.metadata?.message_type==='session_reconnect'&&sessionId) {
+            reconnecting=true;
+            const next=new URL(envelope.payload.session.reconnect_url);
+            const resumed=new URL(`ws://127.0.0.1:${(server.address() as AddressInfo).port}/ws${next.search}`);
+            resumed.searchParams.set('shim_resume',sessionId);
+            envelope.payload.session.reconnect_url=resumed.toString();
+            if(downstream.readyState===WebSocket.OPEN)downstream.send(JSON.stringify(envelope));
+            return;
           }
         } catch { /* Forward upstream frames unchanged. */ }
         if (downstream.readyState === WebSocket.OPEN) downstream.send(data, { binary: isBinary });
@@ -150,8 +177,8 @@ export function createMockShim(upstreamPort = 8080) {
       const cleanup = () => {
         upstreamSockets.delete(upstream);
         if (sessionId) {
-          sessions.delete(sessionId);
-          for (const [id, sub] of subscriptions) if (sub.transport.session_id === sessionId) subscriptions.delete(id);
+          if(sessions.get(sessionId)===downstream)sessions.delete(sessionId);
+          if(!reconnecting)for(const [id,sub]of subscriptions)if(sub.transport.session_id===sessionId)subscriptions.delete(id);
         }
       };
       upstream.on('error', () => downstream.close(1011, 'CLI mock unavailable'));

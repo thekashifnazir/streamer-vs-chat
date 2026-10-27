@@ -66,6 +66,9 @@ function connect() {
       const message=JSON.parse(String(event.data));
       if(message.kind==='input-status') {
         element('input-state').textContent=`SERVER · ${message.stopped?'STOPPED':'READY'}\n${message.state.source.toUpperCase()} · GUARD ${message.state.guard?'ON':'OFF'} · LEAN ${message.state.lean??'—'}\n${message.lastPunch?`LAST BONUS PUNCH ${message.lastPunch.side}`:'NO BONUS PUNCH YET'}`;
+      } else if(message.kind==='tick') {
+        const game=message.state;
+        element('game-status').textContent=!message.started?'Press START MATCH when ready.':game.match.winner?`MATCH OVER: ${game.match.winner.toUpperCase()} wins. Press START MATCH to play again.`:game.paused?'GAME PAUSED: Resume inputs or !resume.':game.round.over?`ROUND ${game.round.number} OVER: ${game.round.winner.toUpperCase()} wins.`:`ROUND ${game.round.number} · ${Math.ceil(game.round.remaining_ms/1000)} s`;
       } else if(message.kind==='input-error') connectionStatus.textContent=message.message;
     } catch { /* Ignore unrelated/malformed messages. */ }
   });
@@ -161,3 +164,12 @@ window.addEventListener('beforeunload',()=>{
   disposed=true;window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();socket?.close();
 });
 updateKeyboard();connect();
+
+function sessionCommand(action:'start'|'next-round') {
+  if(!allowed()){element('game-status').textContent='Confirm your clear space and Resume inputs before starting.';return;}
+  if(source.value==='pose'&&!calibration.snapshot.ready){element('game-status').textContent='Finish webcam calibration, or select Keyboard.';return;}
+  if(socket?.readyState!==WebSocket.OPEN){element('game-status').textContent='Connect to the local server first.';return;}
+  socket.send(JSON.stringify({kind:'session',action}));
+}
+element('start-match').addEventListener('click',()=>sessionCommand('start'));
+element('next-round').addEventListener('click',()=>sessionCommand('next-round'));

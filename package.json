@@ -14,7 +14,8 @@
   "scripts": {
     "dev": "tsx scripts/dev.ts",
     "dev:mock": "tsx scripts/dev-mock.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sim": "tsx scripts/sim.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
