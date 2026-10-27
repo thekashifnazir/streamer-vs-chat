@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "mode": "standing",
+  "intervals": [
+    {
+      "event": "guard",
+      "start": 300,
+      "end": 45300
+    },
+    {
+      "event": "lean_L",
+      "start": 5305.5,
+      "end": 11315.899999976158
+    },
+    {
+      "event": "lean_R",
+      "start": 15317.599999904633,
+      "end": 21318.599999904633
+    },
+    {
+      "event": "lean_L",
+      "start": 25320.299999952316,
+      "end": 31321.899999976158
+    },
+    {
+      "event": "lean_R",
+      "start": 35330.39999997616,
+      "end": 41331.699999928474
+    },
+    {
+      "event": "lean_L",
+      "start": 49333.59999990463,
+      "end": 54339.199999928474
+    },
+    {
+      "event": "lean_R",
+      "start": 54339.199999928474,
+      "end": 59340
+    }
+  ],
+  "events": [],
+  "note": "Guard interval corrected to 0.3-45.3 s (scripted schedule); the recorded guard label was cut at 15.0 s by a lost-focus key release. Leans as recorded.",
+  "label_source": "cue",
+  "onset_verified": false
+}

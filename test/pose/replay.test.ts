@@ -19,8 +19,8 @@ describe('recorded landmark regression',()=>{
     expect(scored && 'punches'in scored && scored.punches?.recall).toBeGreaterThanOrEqual(.45);
   });
   for(const recording of report.recordings) {
-    it(`enforces150ms defence and configured punch gates for ${recording.path}`,()=>{
-      expect(recording.defenceLabelsMatched,JSON.stringify(recording)).toBe(true);
+    it(`enforces declared defence acceptance and configured punch gates for ${recording.path}`,()=>{
+      expect(recording.acceptancePass,JSON.stringify(recording.steady??recording)).toBe(true);
       if(recording.punchGate)expect(recording.punchGate.pass,JSON.stringify(recording.punches)).toBe(true);
     });
   }

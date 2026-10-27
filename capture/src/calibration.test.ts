@@ -52,3 +52,15 @@ test('missing head or a paused camera cannot complete a hold', () => {
   expect(calibration.snapshot.message).toContain('head');
   expect(calibration.snapshot.progress).toBe(0);
 });
+
+test('lean confirmation uses the same raised-arm gate as runtime and accepts relaxed hanging arms', () => {
+  const calibration=createCalibration();
+  calibration.start('standing',0);
+  for(let at=0;at<=3000;at+=100)calibration.update(frame(),at);
+  for(let at=3100;at<=6100;at+=100)calibration.update(frame(.25),at);
+  expect(calibration.snapshot.stage).toBe('lean-left');
+  for(let at=6200;at<=6400;at+=100)calibration.update(frame(.85,.7),at);
+  expect(calibration.snapshot.stage).toBe('lean-right');
+  for(let at=6500;at<=6700;at+=100)calibration.update(frame(.85,-.7),at);
+  expect(calibration.snapshot.ready).toBe(true);
+});

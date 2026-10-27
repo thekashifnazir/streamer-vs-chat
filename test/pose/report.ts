@@ -2,11 +2,23 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { basename, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { heldIntervalReport, legacyPunchScore, medianGuard, replayFixture, scoreRecordedFixture, type Fixture, type Labels, type PunchGate } from './replay.js';
+import { scoreSteadySegments, type SteadyProfile } from './steady-state';
 const fixtureRoot=fileURLToPath(new URL('../fixtures/',import.meta.url));
+function steadyProfiles(root:string):Record<string,SteadyProfile> {
+  try {return JSON.parse(readFileSync(resolve(root,'pose-regressions.json'),'utf8'));}
+  catch(error) {if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;return {};}
+}
+function scoreWithProfile(fixture:Fixture,labels:Labels,gate:PunchGate|undefined,profile:SteadyProfile|undefined) {
+  const strict=scoreRecordedFixture(fixture,labels,gate);
+  const steady=profile?scoreSteadySegments(fixture,labels,profile):null;
+  return {...strict,strictTimingAcceptancePass:strict.strictTimingAcceptancePass,steady,
+    acceptancePass:labels.label_source==='cue'&&steady?steady.pass&&(strict.punchGate?.pass??true):strict.acceptancePass};
+}
 export function discoverRecordedFixtures(root=fixtureRoot) {
   let gates:Record<string,PunchGate>={};
   try {gates=JSON.parse(readFileSync(resolve(root,'gates.json'),'utf8'));}
   catch(error) {if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}
+  const profiles=steadyProfiles(root);
   const files:string[]=[];
   function visit(directory:string) {
     for(const entry of readdirSync(directory,{withFileTypes:true})) {
@@ -19,10 +31,11 @@ export function discoverRecordedFixtures(root=fixtureRoot) {
   return files.sort().flatMap(path=>{
     const fixture=JSON.parse(readFileSync(path,'utf8')) as Fixture;
     if(fixture.version!==1)return [];
-    const labelPath=path.replace(/\.landmarks\.json$/,'.labels.json');
-    const labels=JSON.parse(readFileSync(labelPath,'utf8')) as Labels;
     const id=basename(path,'.landmarks.json');
-    return [{id,path:relative(root,path),...scoreRecordedFixture(fixture,labels,gates[id])}];
+    const profile=profiles[id];
+    const labelPath=profile?resolve(root,profile.labels):path.replace(/\.landmarks\.json$/,'.labels.json');
+    const labels=JSON.parse(readFileSync(labelPath,'utf8')) as Labels;
+    return [{id,path:relative(root,path),...scoreWithProfile(fixture,labels,gates[id],profile)}];
   });
 }
 export function recordedFixtureReport() {
@@ -60,7 +73,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   if(process.argv[2]&&process.argv[3]) {
     const gates=JSON.parse(readFileSync(resolve(fixtureRoot,'gates.json'),'utf8')) as Record<string,PunchGate>;
     const id=basename(process.argv[2],'.landmarks.json');
-    const report=scoreRecordedFixture(JSON.parse(readFileSync(resolve(process.argv[2]),'utf8')),JSON.parse(readFileSync(resolve(process.argv[3]),'utf8')),gates[id]);
+    const report=scoreWithProfile(JSON.parse(readFileSync(resolve(process.argv[2]),'utf8')),JSON.parse(readFileSync(resolve(process.argv[3]),'utf8')),gates[id],steadyProfiles(fixtureRoot)[id]);
     console.log(JSON.stringify(report,null,2));
     if(!report.acceptancePass)process.exitCode=1;
   } else if(process.argv[2]) {

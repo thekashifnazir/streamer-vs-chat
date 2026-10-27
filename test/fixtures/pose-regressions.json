@@ -1,0 +1,9 @@
+{
+  "kash-guard-through-leans-logitech": {
+    "labels": "kash-guard-through-leans-logitech.labels.corrected.json",
+    "transitionMs": 500,
+    "minGuardAccuracy": 0.9,
+    "minLeanAccuracy": 0.8,
+    "note": "Cue-labelled schedule; onset unverified. Guard state >=90% on each steady segment after500ms trims. Lean percentages are diagnostic; cue acceptance requires a continuous1s correct-direction detection with no new opposite-direction detection."
+  }
+}

@@ -40,7 +40,8 @@ describe('raw landmark classifier', () => {
   it('freezes held lean during the300ms punch gate then restarts dwell', () => {
     const c=new PoseClassifier({guardThreshold:0});
     c.update(frame(.7),0); c.update(frame(.7),200);
-    expect(c.update(frame(-.7,1.7),300).state.lean).toBe('L');
+    const raisedPunch=frame(-.7,1.7); raisedPunch[15]!.y-=.13;
+    expect(c.update(raisedPunch,300).state.lean).toBe('L');
     c.update(frame(-.7),500);
     expect(c.update(frame(-.7),599).state.lean).toBe('L');
     expect(c.update(frame(-.7),600).state.lean).toBe(null);
@@ -83,5 +84,53 @@ describe('raw landmark classifier', () => {
     c.setGuardThreshold(1);
     expect(c.update(frame(),230).state.guard).toBe(false);
     expect(()=>c.setGuardThreshold(NaN)).toThrow();
+  });
+});
+
+describe('body-relative guard and raised-arm punch gate', () => {
+  function rotate(points:Landmark[],angle:number):Landmark[] {
+    const cos=Math.cos(angle),sin=Math.sin(angle);
+    return points.map(p=>({...p,x:.5+(p.x-.5)*cos-(p.y-.5)*sin,y:.5+(p.x-.5)*sin+(p.y-.5)*cos}));
+  }
+  function hands(up:boolean):Landmark[] {
+    const lm=frame();
+    lm[15]={x:.57,y:up?.38:.92,visibility:1};lm[16]={x:.43,y:up?.38:.92,visibility:1};
+    return lm;
+  }
+  it('retains calibrated guard through rigid leans in either direction', () => {
+    const upright=hands(true);
+    const original=measurePose(upright)!;
+    for(const angle of [-.8,-.5,.5,.8]) {
+      const leaned=rotate(upright,angle);
+      expect(measurePose(leaned)!.g).toBeCloseTo(original.g);
+      expect(measurePose(leaned)!.wristsNearBody).toBe(true);
+      const c=new PoseClassifier({guardThreshold:original.g-.05});
+      c.update(upright,0);
+      expect(c.update(leaned,100).state.guard).toBe(true);
+      expect(c.update(leaned,300).state.guard).toBe(true);
+      expect(c.update(leaned,300).state.lean).toBe(angle>0?'L':'R');
+    }
+  });
+  it('releases guard when either wrist drops in the tilted body frame', () => {
+    const c=new PoseClassifier({guardThreshold:.5});
+    const up=rotate(hands(true),.7);c.update(up,0);
+    const dropped=hands(true);dropped[16]!.y=.9;
+    expect(c.update(rotate(dropped,.7),100).state.guard).toBe(false);
+  });
+  it('does not freeze a new lean merely because relaxed wrists hang far below shoulders', () => {
+    for(const angle of [-.8,.8]) {
+      const c=new PoseClassifier({guardThreshold:.3});
+      const leaned=rotate(hands(false),angle);
+      const metrics=measurePose(leaned)!;
+      expect(Math.max(metrics.leftExtension,metrics.rightExtension)).toBeGreaterThan(1.6);
+      expect(metrics.punchExtended).toBe(false);
+      expect(c.update(leaned,0).state.lean).toBe(null);
+      expect(c.update(leaned,200).state.lean).toBe(angle>0?'L':'R');
+      expect(c.update(leaned,200).state.guard).toBe(false);
+    }
+  });
+  it('continues to gate a raised sideways extension while excluding arms dropping from guard', () => {
+    const raised=frame(0,1.8);expect(measurePose(raised)!.punchExtended).toBe(true);
+    expect(measurePose(hands(false))!.punchExtended).toBe(false);
   });
 });

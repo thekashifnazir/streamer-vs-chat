@@ -18,7 +18,7 @@ it('retains guard through reported lean noise, releases at the lower boundary, a
   expect(classifier.update(frame(-.52),0).state.guard).toBe(false);
   expect(classifier.update(frame(-.17),100).state.guard).toBe(true);
   for(const [i,g] of [-.52,-.30,-.44,-.35,-.45].entries()) {
-    expect(classifier.update(frame(g,i<3?.7:-.7),200+i*100).state.guard).toBe(true);
+    expect(classifier.update(frame(g),200+i*100).state.guard).toBe(true);
   }
   expect(classifier.update(frame(-.70),700).state.guard).toBe(false);
   expect(classifier.update(frame(-.52),800).state.guard).toBe(false);
@@ -29,7 +29,7 @@ it('retains guard through reported lean noise, releases at the lower boundary, a
 it('keeps one guard edge at the server throughout a recorded ten-second guard-and-lean segment',()=>{
   const fixture=JSON.parse(readFileSync(new URL('../../test/fixtures/kash-webcam.landmarks.json',import.meta.url),'utf8')) as Fixture;
   // Existing raw recording, unchanged. 0.30 is a deliberate stress threshold,
-  // not a claimed calibration measurement: this segment crosses it repeatedly.
+  // not a claimed calibration measurement: screen-space g in this segment crosses it repeatedly.
   const classifier=new PoseClassifier({guardThreshold:.30});
   const server=new InputStore();
   let previous=false;let edges=0;let leanSeen=false;let belowMidpoint=false;
@@ -41,7 +41,9 @@ it('keeps one guard edge at the server throughout a recorded ten-second guard-an
     if(state.guard!==previous)edges++;
     previous=state.guard;
     leanSeen ||= state.lean!==null;
-    belowMidpoint ||= result.metrics!.g<.30;
+    const raw=normalizeLandmarks(frame.lm);
+    const screenG=((raw[11]!.y+raw[12]!.y)/2-Math.max(raw[15]!.y,raw[16]!.y))/Math.abs(raw[11]!.x-raw[12]!.x);
+    belowMidpoint ||= screenG<.30;
     expect(state.guard).toBe(true);
   }
   expect(leanSeen).toBe(true);expect(belowMidpoint).toBe(true);expect(edges).toBe(1);

@@ -1,9 +1,10 @@
+import { scoreCueDirections } from './cue';
 import { PoseClassifier, measurePose, type Landmark } from '../../capture/src/classifier.js';
 
 export type Frame = {t:number;lm: Array<Landmark | number[]> | null};
-export type Fixture = {version?:number;calibration?:{guardThreshold:number|null};frames:Frame[]};
+export type Fixture = {version?:number;calibration?:{guardThreshold:number|null;guardMetric?:string};frames:Frame[]};
 export type Labels = {
-  version?:number; labeller?:string;
+  version?:number; label_source?:'key'|'cue'; onset_verified?:boolean; labeller?:string;
   events?:Array<{t?:number;t_ms?:number;event?:string;type?:string;side?:string}>;
   intervals?:Array<{start:number;end:number;event?:string;type?:string}>;
 };
@@ -88,8 +89,10 @@ export function scoreRecordedFixture(fixture:Fixture,labels:Labels,punchGate?:Pu
   const defence=scoreEvents(replay.events.filter(isDefence),expected.filter(isDefence));
   const punches=scoreEvents(replay.events.filter(e=>e.event.endsWith('_punch')),expected.filter(e=>e.event.endsWith('_punch')));
   const defenceLabelsMatched=defence.matched===defence.expected;
+  const cue=labels.label_source==='cue'?scoreCueDirections(replay,labels):null;
   const gate=punchGate?{...punchGate,pass:punches.recall>=punchGate.minRecall&&punches.precision>=punchGate.minPrecision}:null;
-  return {toleranceMs:150,observedHorizon:{first,last},notScored,overall,perEvent,defence,punches,
+  return {labelSource:labels.label_source??'key',onsetVerified:labels.onset_verified??null,cue,toleranceMs:150,observedHorizon:{first,last},notScored,overall,perEvent,defence,punches,
     allLabelsMatched:overall.matched===overall.expected,defenceLabelsMatched,punchGate:gate,
-    acceptancePass:defenceLabelsMatched&&(gate?.pass??true)};
+    strictTimingAcceptancePass:defenceLabelsMatched&&(gate?.pass??true),
+    acceptancePass:(cue?cue.pass:defenceLabelsMatched)&&(gate?.pass??true)};
 }

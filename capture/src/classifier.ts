@@ -1,12 +1,16 @@
 import type { PoseState, PunchEvent } from '@svc/shared';
 
 export type Landmark = { x: number; y: number; z?: number; visibility?: number };
+export const GUARD_METRIC = 'shoulder-normal-v1' as const;
 export type PoseMetrics = {
   g: number;
   tilt: number;
   shoulderWidth: number;
   leftExtension: number;
   rightExtension: number;
+  leftWristHeight: number;
+  rightWristHeight: number;
+  punchExtended: boolean;
   wristsNearBody: boolean;
 };
 
@@ -19,14 +23,33 @@ export function measurePose(landmarks: Landmark[]): PoseMetrics | null {
   const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
   // A near-profile/collapsed estimate cannot provide a stable normalization.
   if (shoulderWidth < 0.04) return null;
+  const dx = leftShoulder.x - rightShoulder.x;
+  const dy = leftShoulder.y - rightShoulder.y;
+  const shoulderLength = Math.hypot(dx, dy);
+  // Project each wrist against its own shoulder onto the torso's upward normal.
+  // Dividing by shoulder-axis length makes this invariant under a rigid lean.
+  const height = (wrist: Landmark, shoulder: Landmark) => (
+    dy * Math.sign(dx) * (wrist.x - shoulder.x) - Math.abs(dx) * (wrist.y - shoulder.y)
+  ) / (shoulderLength * shoulderLength);
+  const leftWristHeight = height(leftWrist, leftShoulder);
+  const rightWristHeight = height(rightWrist, rightShoulder);
+  const leftExtension = Math.hypot(leftWrist.x - leftShoulder.x, leftWrist.y - leftShoulder.y) / shoulderWidth;
+  const rightExtension = Math.hypot(rightWrist.x - rightShoulder.x, rightWrist.y - rightShoulder.y) / shoulderWidth;
+  const along = (wrist: Landmark) => (
+    dx * (wrist.x - (leftShoulder.x + rightShoulder.x) / 2) +
+    dy * (wrist.y - (leftShoulder.y + rightShoulder.y) / 2)
+  ) / (shoulderLength * shoulderLength);
   return {
     shoulderWidth,
-    // Conservative horizontal envelope; vertical placement remains calibrated.
-    wristsNearBody: [leftWrist, rightWrist].every(wrist => Math.abs(wrist.x - (leftShoulder.x + rightShoulder.x) / 2) <= 1.5 * shoulderWidth),
-    g: ((leftShoulder.y + rightShoulder.y) / 2 - Math.max(leftWrist.y, rightWrist.y)) / shoulderWidth,
-    tilt: (leftShoulder.y - rightShoulder.y) / shoulderWidth,
-    leftExtension: Math.hypot(leftWrist.x - leftShoulder.x, leftWrist.y - leftShoulder.y) / shoulderWidth,
-    rightExtension: Math.hypot(rightWrist.x - rightShoulder.x, rightWrist.y - rightShoulder.y) / shoulderWidth,
+    // The same body-relative envelope rejects wide arms without penalizing lean.
+    wristsNearBody: [leftWrist, rightWrist].every(wrist => Math.abs(along(wrist)) <= 1.5),
+    g: Math.min(leftWristHeight, rightWristHeight),
+    tilt: dy / shoulderWidth,
+    leftExtension, rightExtension, leftWristHeight, rightWristHeight,
+    // A hanging wrist can be >1.6S from its shoulder for an entire lean. Only a
+    // raised extension can be a punch-like interruption of held lean input.
+    punchExtended: (leftExtension > 1.6 && leftWristHeight >= -0.5) ||
+      (rightExtension > 1.6 && rightWristHeight >= -0.5),
   };
 }
 
@@ -71,7 +94,7 @@ export class PoseClassifier {
       this.reset(); this.lastAt = at;
       return { state: { kind: 'pose', guard: false, lean: null, at, source: 'pose' }, punches, metrics };
     }
-    if (metrics.leftExtension > 1.6 || metrics.rightExtension > 1.6) this.leanGateUntil = at + 300;
+    if (metrics.punchExtended) this.leanGateUntil = at + 300;
     if (at < this.leanGateUntil) {
       // Freeze the held lean, but discard partially accumulated dwell time.
       this.candidate = null;

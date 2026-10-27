@@ -76,19 +76,19 @@ export function createCalibration(options: { onChange?: (snapshot: CalibrationSn
               next('guard', 'Guard was not above neutral. Raise both wrists and hold for 3 seconds again.');
             } else {
               publish({ guardThreshold: (neutral + guard) / 2 });
-              next('lean-left', 'Lean LEFT (A) and hold. Keep your hands close to your shoulders.');
+              next('lean-left', 'Lean LEFT (A) and hold. Keep your hands comfortable.');
             }
           }
         }
       } else {
         const left = snapshot.stage === 'lean-left';
-        const extended = metrics.leftExtension > 1.6 || metrics.rightExtension > 1.6;
+        const extended = metrics.punchExtended;
         const correct = left ? metrics.tilt >= 0.5 : metrics.tilt <= -0.5;
         if (!correct || extended) since = null;
         else since ??= at;
-        publish({ progress: since === null ? 0 : Math.min(1, (at - since) / 200), message: extended ? 'Bring your hands near your shoulders, then lean.' : `Lean ${left ? 'LEFT (A)' : 'RIGHT (D)'} and hold for 200 ms.` });
+        publish({ progress: since === null ? 0 : Math.min(1, (at - since) / 200), message: extended ? 'Finish the raised arm extension, then lean.' : `Lean ${left ? 'LEFT (A)' : 'RIGHT (D)'} and hold for 200 ms.` });
         if (since !== null && at - since >= 200) {
-          if (left) next('lean-right', 'Lean RIGHT (D) and hold. Keep your hands close to your shoulders.');
+          if (left) next('lean-right', 'Lean RIGHT (D) and hold. Keep your hands comfortable.');
           else publish({ stage: 'ready', ready: true, progress: 1, message: `${snapshot.mode === 'seated' ? 'Seated' : 'Standing'} calibration ready. Guard and both leans confirmed.` });
         }
       }
