@@ -36,6 +36,7 @@ const freshPunch = (): PunchTracker => ({ armed: false, peak: 0, peakAt: 0 });
 /** Stateful input classifier only; this never owns health, votes, or combat rules. */
 export class PoseClassifier {
   private guardThreshold: number;
+  private guard = false;
   private lean: PoseState['lean'] = null;
   private candidate: PoseState['lean'] = null;
   private candidateSince = 0;
@@ -54,6 +55,7 @@ export class PoseClassifier {
     this.reset();
   }
   reset() {
+    this.guard = false;
     this.lean = null; this.candidate = null; this.candidateSince = 0;
     this.leanGateUntil = -Infinity; this.lastAt = -Infinity; this.lastPunchAt = -Infinity;
     this.punches = { L: freshPunch(), R: freshPunch() };
@@ -96,6 +98,11 @@ export class PoseClassifier {
       }
       if (extension < 1.2) { tracker.armed = true; tracker.peak = 0; }
     }
-    return { state: { kind: 'pose', guard: metrics.g > this.guardThreshold && metrics.wristsNearBody, lean: this.lean, at, source: 'pose' }, punches, metrics };
+    // Engage at the calibrated midpoint; retain a held guard through lean noise.
+    // Tracking/framing loss still clears immediately, without a debounce delay.
+    this.guard = metrics.wristsNearBody && (this.guard
+      ? metrics.g >= this.guardThreshold - 0.25
+      : metrics.g > this.guardThreshold);
+    return { state: { kind: 'pose', guard: this.guard, lean: this.lean, at, source: 'pose' }, punches, metrics };
   }
 }

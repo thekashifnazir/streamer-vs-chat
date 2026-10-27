@@ -23,7 +23,7 @@ The required 200 ms lean dwell can itself produce a label mismatch if a key is p
 
 ## Classifier details
 
-Guard uses the calibrated midpoint threshold for `(shoulder midpoint y - lower wrist y) / shoulder width`, plus a conservative horizontal envelope: both wrists must be within 1.5 shoulder widths of the shoulder midpoint. That horizontal margin is an implementation choice to reject outstretched arms; it is not a measured calibration constant. Shoulder width is the absolute raw shoulder x gap. Visibility below 0.5, missing/non-finite landmarks, or a width below 0.04 clears held input.
+Guard engages above the calibrated midpoint and releases only below midpoint minus 0.25 (hysteresis) for `(shoulder midpoint y - lower wrist y) / shoulder width`, plus a conservative horizontal envelope: both wrists must be within 1.5 shoulder widths of the shoulder midpoint. That horizontal margin is an implementation choice to reject outstretched arms; it is not a measured calibration constant. Shoulder width is the absolute raw shoulder x gap. Visibility below 0.5, missing/non-finite landmarks, or a width below 0.04 clears held input.
 
 Raw positive shoulder tilt maps to anatomical left; negative tilt maps to right. Lean onset requires continuous time beyond ±0.5 for 200 ms, with release at ±0.25. Wrist extension beyond 1.6 shoulder widths freezes lean changes until 300 ms after it ceases; pending dwell is discarded. Lost tracking, backwards timestamps, gaps over 250 ms and explicit reset clear temporal state.
 

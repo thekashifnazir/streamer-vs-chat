@@ -5,6 +5,7 @@ import { createCalibration } from './calibration';
 import { createKeyboard } from './keyboard';
 import { PoseCamera } from './camera';
 import { FixtureRecorder, saveJson } from './recorder';
+import { NO_POSE_MESSAGE, trackingMessage } from './tracking-status';
 
 const element = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const source=element<HTMLSelectElement>('input-source');
@@ -85,7 +86,7 @@ const camera=new PoseCamera(video,sample=>{
   const metrics=result.metrics;
   const framed=inFrame();
   const seatedTooClose=posture.value==='seated'&&metrics&&metrics.shoulderWidth>.20;
-  cameraStatus.textContent=!framed?'Keep head, shoulders and both wrists in frame.':seatedTooClose?'Sit about 1 m further back: shoulders should span at most 20% of the frame.':'Head, shoulders and wrists in frame.';
+  cameraStatus.textContent=trackingMessage(metrics!==null,framed,!!seatedTooClose);
   // Clear space and calibration gate webcam input; keyboard remains independent.
   lastPose=calibrated.ready&&framed&&!seatedTooClose?result.state:neutral(sample.at);
   lastPose.source='pose';
@@ -94,8 +95,8 @@ const camera=new PoseCamera(video,sample=>{
     if(calibrated.ready&&framed&&!seatedTooClose)for(const punch of result.punches)emit(punch);
   }
   recorder.frame(landmarks,sample.at);
-  element('fps-debug').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms`;
-  element('diagnostics').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms inference\n${metrics?`g ${metrics.g.toFixed(2)} · tilt ${metrics.tilt.toFixed(2)} · S ${metrics.shoulderWidth.toFixed(3)}`:'NO POSE'}\n${calibrated.guardThreshold===null?'CALIBRATION REQUIRED':`guard threshold ${calibrated.guardThreshold.toFixed(2)}`}\n${(performance.now()-sample.at).toFixed(1)} ms frame → input`;
+  element('fps-debug').textContent=metrics?`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms`:NO_POSE_MESSAGE;
+  element('diagnostics').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms inference\n${metrics?`g ${metrics.g.toFixed(2)} · tilt ${metrics.tilt.toFixed(2)} · S ${metrics.shoulderWidth.toFixed(3)}`:NO_POSE_MESSAGE}\n${calibrated.guardThreshold===null?'CALIBRATION REQUIRED':`guard threshold ${calibrated.guardThreshold.toFixed(2)}`}\n${(performance.now()-sample.at).toFixed(1)} ms frame → input`;
   if(recorder.recording)recordStatus.textContent=`Recording ${recorder.frameCount} frames · K/A/D/J supply labels in either input mode.`;
 },message=>{stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());});
 
@@ -150,6 +151,11 @@ const heartbeat=window.setInterval(()=>{
   if(source.value==='keyboard')emit({kind:'pose',...keyboard.physical,source:'keyboard',at});
   else if(cameraRunning&&at-lastFrameAt<500)emit({...lastPose,at});
   else transmit(neutral(at));
+  if(cameraRunning&&at-lastFrameAt>=500) {
+    cameraStatus.textContent=NO_POSE_MESSAGE;
+    element('fps-debug').textContent=NO_POSE_MESSAGE;
+    element('diagnostics').textContent=NO_POSE_MESSAGE;
+  }
 },100);
 window.addEventListener('beforeunload',()=>{
   disposed=true;window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();socket?.close();
