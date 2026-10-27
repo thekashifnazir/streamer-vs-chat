@@ -5,7 +5,7 @@ export type RecordingLabels = {
   version:1; label_source:'key'; mode:'standing'|'seated'; intervals:{event:LabelEvent;start:number;end:number}[];
   events:{event:'left_punch';t:number}[];
 };
-export type CalibrationEvidence = {leanThresholds?:LeanThresholds;leanPeaks?:LeanThresholds;guardMedians?:{neutral:number;resting:number;guard:number}};
+export type CalibrationEvidence = {guardReleaseBand?:number;neutralSwayP95?:number;leanFloor?:number;leanThresholds?:LeanThresholds;leanPeaks?:LeanThresholds;guardMedians?:{neutral:number;resting:number;guard:number}};
 export class FixtureRecorder {
   private startAt = 0;
   private active = false;

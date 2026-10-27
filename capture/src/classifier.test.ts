@@ -5,6 +5,8 @@ function frame(tilt = 0, leftExtension = .6, rightExtension = .6): Landmark[] {
   lm[11] = {x:.6,y:.5 + tilt*.1,visibility:1}; lm[12] = {x:.4,y:.5 - tilt*.1,visibility:1};
   lm[15] = {x:.6+leftExtension*.2,y:lm[11]!.y,visibility:1};
   lm[16] = {x:.4-rightExtension*.2,y:lm[12]!.y,visibility:1};
+  lm[13]={x:.7,y:.85,visibility:1};lm[14]={x:.3,y:.85,visibility:1};
+  lm[23]={x:.56,y:1.05,visibility:1};lm[24]={x:.44,y:1.05,visibility:1};
   return lm;
 }
 describe('raw landmark classifier', () => {
@@ -95,7 +97,9 @@ describe('body-relative guard and raised-arm punch gate', () => {
   function hands(up:boolean):Landmark[] {
     const lm=frame();
     lm[15]={x:.57,y:up?.38:.92,visibility:1};lm[16]={x:.43,y:up?.38:.92,visibility:1};
-    return lm;
+    lm[13]={x:.7,y:.85,visibility:1};lm[14]={x:.3,y:.85,visibility:1};
+  lm[23]={x:.56,y:1.05,visibility:1};lm[24]={x:.44,y:1.05,visibility:1};
+  return lm;
   }
   it('retains calibrated guard through rigid leans in either direction', () => {
     const upright=hands(true);

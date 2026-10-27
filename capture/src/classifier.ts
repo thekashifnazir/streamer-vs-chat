@@ -3,9 +3,19 @@ import type { PoseState, PunchEvent } from '@svc/shared';
 export type Landmark = { x: number; y: number; z?: number; visibility?: number };
 export const GUARD_METRIC = 'shoulder-normal-v1' as const;
 export const GUARD_MIN_ON = -0.5;
+/** Compatibility only for old recordings without calibration spread. */
 export const GUARD_HYSTERESIS = 0.25;
+export const GUARD_BAND_FRACTION = 0.25;
+export type GuardMedians = {neutral:number;resting:number;guard:number};
+export function computeGuardReleaseBand(medians:Pick<GuardMedians,'neutral'|'guard'>):number {
+  const spread=medians.guard-medians.neutral;
+  if(!Number.isFinite(medians.guard)||!Number.isFinite(medians.neutral)||spread<=0) {
+    throw new Error('Guard calibration spread must be finite and positive');
+  }
+  return GUARD_BAND_FRACTION*spread;
+}
 export type LeanThresholds = {L:number;R:number};
-export type PoseCalibration = {guardThreshold:number;leanThresholds?:LeanThresholds};
+export type PoseCalibration = {guardThreshold:number;leanThresholds?:LeanThresholds;guardReleaseBand?:number;guardMedians?:GuardMedians;neutralSwayP95?:number};
 export type PoseMetrics = {
   g: number;
   tilt: number;
@@ -16,6 +26,7 @@ export type PoseMetrics = {
   rightWristHeight: number;
   punchExtended: boolean;
   wristsNearBody: boolean;
+  guardAnatomy: boolean;
 };
 
 /** Uses raw, unmirrored MediaPipe indices. Mirroring belongs to presentation only. */
@@ -43,8 +54,16 @@ export function measurePose(landmarks: Landmark[]): PoseMetrics | null {
     dx * (wrist.x - (leftShoulder.x + rightShoulder.x) / 2) +
     dy * (wrist.y - (leftShoulder.y + rightShoulder.y) / 2)
   ) / (shoulderLength * shoulderLength);
+  // Raw unmirrored image anatomy: y increases downwards. Hips may be inferred
+  // below the image in seated/waist-up framing; require finite coordinates, not
+  // in-frame hips. Missing anatomy fails guard without disabling shoulder lean.
+  const anatomy=[landmarks[13],landmarks[14],landmarks[23],landmarks[24]];
+  const anatomyKnown=anatomy.every(point=>point&&Number.isFinite(point.x)&&Number.isFinite(point.y));
+  const midTorso=anatomyKnown?((leftShoulder.y+rightShoulder.y)/2+(landmarks[23]!.y+landmarks[24]!.y)/2)/2:NaN;
+  const guardAnatomy=anatomyKnown&&leftWrist.y<landmarks[13]!.y&&rightWrist.y<landmarks[14]!.y&&
+    leftWrist.y<midTorso&&rightWrist.y<midTorso;
   return {
-    shoulderWidth,
+    shoulderWidth,guardAnatomy,
     // The same body-relative envelope rejects wide arms without penalizing lean.
     wristsNearBody: [leftWrist, rightWrist].every(wrist => Math.abs(along(wrist)) <= 1.5),
     g: Math.min(leftWristHeight, rightWristHeight),
@@ -63,6 +82,7 @@ const freshPunch = (): PunchTracker => ({ armed: false, peak: 0, peakAt: 0 });
 /** Stateful input classifier only; this never owns health, votes, or combat rules. */
 export class PoseClassifier {
   private guardThreshold = GUARD_MIN_ON;
+  private guardReleaseBand = GUARD_HYSTERESIS;
   private leanThresholds:LeanThresholds = {L:.5,R:.5};
   private guard = false;
   private lean: PoseState['lean'] = null;
@@ -74,18 +94,23 @@ export class PoseClassifier {
   private punches = { L: freshPunch(), R: freshPunch() };
 
   constructor(calibration:PoseCalibration) { this.setCalibration(calibration); }
-  setCalibration({guardThreshold,leanThresholds={L:.5,R:.5}}:PoseCalibration) {
+  setCalibration({guardThreshold,leanThresholds={L:.5,R:.5},guardReleaseBand,guardMedians,neutralSwayP95=0}:PoseCalibration) {
     if(!Number.isFinite(guardThreshold))throw new Error('Guard calibration must be finite');
     if(![leanThresholds.L,leanThresholds.R].every(value=>Number.isFinite(value)&&value>=.3)) {
       throw new Error('Lean thresholds must be finite magnitudes of at least0.3');
     }
+    const band=guardReleaseBand??(guardMedians?computeGuardReleaseBand(guardMedians):GUARD_HYSTERESIS);
+    if(!Number.isFinite(band)||band<=0)throw new Error('Guard release band must be finite and positive');
+    if(!Number.isFinite(neutralSwayP95)||neutralSwayP95<0)throw new Error('Neutral sway must be finite and nonnegative');
+    const floor=Math.max(.3,1.5*neutralSwayP95);
     // A relaxed/waist pose must never become guard through a low calibration.
     this.guardThreshold=Math.max(GUARD_MIN_ON,guardThreshold);
-    this.leanThresholds={...leanThresholds};
+    this.guardReleaseBand=band;
+    this.leanThresholds={L:Math.max(floor,leanThresholds.L),R:Math.max(floor,leanThresholds.R)};
     this.reset();
   }
   setGuardThreshold(value:number) {
-    this.setCalibration({guardThreshold:value,leanThresholds:this.leanThresholds});
+    this.setCalibration({guardThreshold:value,leanThresholds:this.leanThresholds,guardReleaseBand:this.guardReleaseBand});
   }
   reset() {
     this.guard = false;
@@ -133,8 +158,8 @@ export class PoseClassifier {
     }
     // Engage at the calibrated upper threshold; retain a held guard through lean noise.
     // Tracking/framing loss still clears immediately, without a debounce delay.
-    this.guard = metrics.wristsNearBody && (this.guard
-      ? metrics.g >= this.guardThreshold - GUARD_HYSTERESIS
+    this.guard = metrics.wristsNearBody && metrics.guardAnatomy && (this.guard
+      ? metrics.g >= this.guardThreshold - this.guardReleaseBand
       : metrics.g > this.guardThreshold);
     return { state: { kind: 'pose', guard: this.guard, lean: this.lean, at, source: 'pose' }, punches, metrics };
   }

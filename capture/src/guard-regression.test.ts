@@ -11,6 +11,8 @@ function frame(g:number,tilt=0):Landmark[] {
   lm[12]={x:.4,y:.5-tilt*.1,visibility:1};
   lm[15]={x:.6,y:.5-g*.2,visibility:1};
   lm[16]={x:.4,y:.5-g*.2,visibility:1};
+  lm[13]={x:.65,y:.85,visibility:1};lm[14]={x:.35,y:.85,visibility:1};
+  lm[23]={x:.55,y:1.05,visibility:1};lm[24]={x:.45,y:1.05,visibility:1};
   return lm;
 }
 it('retains guard through reported lean noise, releases at the lower boundary, and rearms at midpoint',()=>{

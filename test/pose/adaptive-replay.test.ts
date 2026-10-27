@@ -4,7 +4,7 @@ import type { Landmark } from '../../capture/src/classifier';
 import { scoreRecordedFixture } from './replay';
 it('replays recorded per-side thresholds and keeps waist-resting hands off',()=>{
   const recorder=new FixtureRecorder();
-  const evidence={leanThresholds:{L:.3,R:.528},leanPeaks:{L:.45,R:.88},guardMedians:{neutral:-2.9,resting:-1.3,guard:.5}};
+  const evidence={leanThresholds:{L:.3,R:.528},leanPeaks:{L:.45,R:.88},guardMedians:{neutral:-2.9,resting:-1.3,guard:.5},guardReleaseBand:.85,neutralSwayP95:.12,leanFloor:.3};
   recorder.start(1000,'standing',-1.2,{guard:false,lean:null},evidence);
   evidence.leanThresholds.L=.9; // The recording owns a snapshot of its calibration.
   const points:Landmark[]=Array.from({length:33},()=>({x:.5,y:.5,visibility:1}));
@@ -21,6 +21,9 @@ it('replays recorded per-side thresholds and keeps waist-resting hands off',()=>
   expect(recording.landmarks.calibration.guardMedians).toEqual(evidence.guardMedians);
   const report=scoreRecordedFixture(recording.landmarks,recording.labels);
   expect(report.acceptancePass).toBe(true);
+  expect(report.calibrationUsed.guardThreshold).toBe(-.5);
+  expect(report.calibrationUsed.guardReleaseBand).toBe(.85);
+  expect(report.calibrationUsed.neutralSwayP95).toBe(.12);
   expect(report.perEvent.guard_on).toBeUndefined();
   expect(scoreRecordedFixture({...recording.landmarks,calibration:{guardThreshold:-1.2}},recording.labels).acceptancePass).toBe(false);
 });
