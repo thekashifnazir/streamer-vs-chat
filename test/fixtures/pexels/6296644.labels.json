@@ -1,0 +1,31 @@
+{
+  "clip": "pexels-6296644",
+  "source": "https://www.pexels.com/video/man-shadow-boxing-6296644/",
+  "license": "https://www.pexels.com/license/",
+  "file": "clips/small/6296644.mp4",
+  "fps": 30, "duration_ms": 11900,
+  "labeller": "Devin (human-style, from 10 fps contact sheets; timestamps are punch peak = max arm extension)",
+  "label_resolution_ms": 100,
+  "side_convention": "image-left / image-right as seen in the unmirrored clip",
+  "events": [
+    {"t": 200,   "type": "jab",  "side": "image-right"},
+    {"t": 800,   "type": "hook", "side": "image-right"},
+    {"t": 2400,  "type": "jab",  "side": "image-right", "note": "high, uppercut-ish"},
+    {"t": 2900,  "type": "jab",  "side": "image-right"},
+    {"t": 4000,  "type": "jab",  "side": "image-right"},
+    {"t": 4700,  "type": "hook", "side": "image-right"},
+    {"t": 5800,  "type": "jab",  "side": "image-right"},
+    {"t": 7250,  "type": "jab",  "side": "image-right"},
+    {"t": 7900,  "type": "jab",  "side": "image-right"},
+    {"t": 8600,  "type": "jab",  "side": "image-right"},
+    {"t": 11100, "type": "jab",  "side": "image-right"}
+  ],
+  "intervals": [
+    {"start": 1200, "end": 2100, "type": "guard"},
+    {"start": 5400, "end": 5500, "type": "guard"},
+    {"start": 6400, "end": 7000, "type": "guard"},
+    {"start": 9600, "end": 10300, "type": "guard"}
+  ],
+  "leans": [],
+  "notes": "No clear slips/leans in this clip, so lean is not scored here. Bystanders spar in the background (good false-person test)."
+}

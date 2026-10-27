@@ -1,0 +1,21 @@
+{
+  "clip": "pexels-5752495",
+  "source": "https://www.pexels.com/video/man-throwing-punches-in-the-air-5752495/",
+  "license": "https://www.pexels.com/license/",
+  "file": "clips/small/5752495.mp4",
+  "fps": 30, "duration_ms": 10100,
+  "labeller": "Devin, from 10 fps contact sheets. Punches go straight at the camera (depth-only), so peaks are low-confidence (+-100 ms)",
+  "label_resolution_ms": 100,
+  "side_convention": "image-left / image-right as seen in the unmirrored clip",
+  "events": [
+    {"t": 500,  "type": "jab"}, {"t": 1100, "type": "jab"}, {"t": 1300, "type": "jab"},
+    {"t": 1900, "type": "jab"}, {"t": 2400, "type": "jab"}, {"t": 2800, "type": "jab"},
+    {"t": 3200, "type": "jab"}, {"t": 3700, "type": "jab"}, {"t": 4100, "type": "jab"},
+    {"t": 4500, "type": "jab"}, {"t": 5100, "type": "jab"}, {"t": 5800, "type": "jab"},
+    {"t": 6500, "type": "jab"}, {"t": 6700, "type": "jab"}, {"t": 7300, "type": "jab"},
+    {"t": 7700, "type": "jab"}, {"t": 8100, "type": "jab"}, {"t": 8300, "type": "hook"},
+    {"t": 8800, "type": "jab"}, {"t": 9200, "type": "jab"}, {"t": 9900, "type": "jab"}
+  ],
+  "intervals": [{"start": 0, "end": 10100, "type": "guard", "note": "hands stay at the face between punches; guard is the resting stance"}],
+  "leans": []
+}

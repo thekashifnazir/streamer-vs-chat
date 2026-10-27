@@ -1,0 +1,368 @@
+{
+  "format": "streamer-vs-chat-golden/1",
+  "file": "damage",
+  "vectors": [
+    {
+      "id": "dmg-counter-window-edges",
+      "spec_ref": "§2 Counter (700 ms window, +1.5 inside, 1 outside)",
+      "description": "Three DODGEs in a row (lean R held through three HOOK_Ls). One punch per window at +699 (inside, +1.5), +700 (outside, +1), +701 (outside, +1).",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 3899,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 6300,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 8701,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3899,
+          "path": "boss.hp",
+          "approx": 124.5
+        },
+        {
+          "t_ms": 6299,
+          "path": "counter.open",
+          "equals": true
+        },
+        {
+          "t_ms": 6300,
+          "path": "counter.open",
+          "equals": false
+        },
+        {
+          "t_ms": 6300,
+          "path": "boss.hp",
+          "approx": 114.5
+        },
+        {
+          "t_ms": 8701,
+          "path": "boss.hp",
+          "approx": 104.5
+        }
+      ],
+      "assumes": [
+        "Q1"
+      ]
+    },
+    {
+      "id": "dmg-two-punches-in-window",
+      "spec_ref": "§7 test 9; §2 Counter",
+      "description": "After a DODGE, punches at +100 and +550 add 1.5 each (3 total). A third at +600 is inside 450 ms of the last accepted punch and is ignored.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 3300,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 3750,
+          "type": "punch",
+          "value": "L"
+        },
+        {
+          "t_ms": 3800,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "boss.hp",
+          "approx": 126
+        },
+        {
+          "t_ms": 3750,
+          "path": "boss.hp",
+          "approx": 123
+        },
+        {
+          "t_ms": 3900,
+          "path": "boss.hp",
+          "approx": 123
+        }
+      ],
+      "assumes": [
+        "Q2"
+      ]
+    },
+    {
+      "id": "dmg-throttle-450",
+      "spec_ref": "§2 Counter (punches throttled to one per 450 ms; 1 outside a window)",
+      "description": "No attacks. Punch at 1000 -> boss -1. Punch at 1449 is 449 ms later -> ignored. Punch at 1450 (450 ms after the last accepted) -> boss -1.",
+      "seed": 0,
+      "initial_state": {
+        "moves": []
+      },
+      "events": [
+        {
+          "t_ms": 1000,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 1449,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 1450,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 1000,
+          "path": "boss.hp",
+          "approx": 134
+        },
+        {
+          "t_ms": 1449,
+          "path": "boss.hp",
+          "approx": 134
+        },
+        {
+          "t_ms": 1450,
+          "path": "boss.hp",
+          "approx": 133
+        }
+      ],
+      "assumes": [
+        "Q2"
+      ]
+    },
+    {
+      "id": "dmg-throttle-carries-into-window",
+      "spec_ref": "§2 Counter",
+      "description": "The throttle ignores window boundaries: punch 100 ms before a DODGE (outside, -1), then +200 (300 ms after it, ignored), then +350 (450 ms after it, inside, -1.5).",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 3100,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 3400,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 3550,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3100,
+          "path": "boss.hp",
+          "approx": 134
+        },
+        {
+          "t_ms": 3200,
+          "path": "boss.hp",
+          "approx": 125
+        },
+        {
+          "t_ms": 3400,
+          "path": "boss.hp",
+          "approx": 125
+        },
+        {
+          "t_ms": 3550,
+          "path": "boss.hp",
+          "approx": 123.5
+        }
+      ],
+      "assumes": [
+        "Q2"
+      ]
+    },
+    {
+      "id": "dmg-chip-no-window-block-window",
+      "spec_ref": "§2 Counter (only BLOCK, PERFECT or DODGE open the window)",
+      "description": "CHIP (guard vs HOOK_L) does no counter and opens no window: a punch 100 ms later does 1. Guard still held for the next JAB -> BLOCK (-8), and a punch 100 ms later does 1.5.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "HOOK_L",
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 3300,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 5700,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 97
+        },
+        {
+          "t_ms": 3200,
+          "path": "boss.hp",
+          "approx": 135
+        },
+        {
+          "t_ms": 3300,
+          "path": "boss.hp",
+          "approx": 134
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].outcome",
+          "equals": "BLOCK"
+        },
+        {
+          "t_ms": 5600,
+          "path": "boss.hp",
+          "approx": 126
+        },
+        {
+          "t_ms": 5700,
+          "path": "boss.hp",
+          "approx": 124.5
+        }
+      ]
+    },
+    {
+      "id": "dmg-mercy-boundary-30",
+      "spec_ref": "§1 Low-HP mercy (below 30 HP takes ×0.6)",
+      "description": "At exactly 30 HP the mercy is off: an undefended JAB does 8 (-> 22). Now below 30, the next JAB does 4.8 (-> 17.2).",
+      "seed": 0,
+      "initial_state": {
+        "streamer.hp": 30,
+        "moves": [
+          "JAB",
+          "JAB"
+        ]
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 22
+        },
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].dmg",
+          "approx": 8
+        },
+        {
+          "t_ms": 5600,
+          "path": "streamer.hp",
+          "approx": 17.2
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].dmg",
+          "approx": 4.8
+        }
+      ],
+      "assumes": [
+        "Q3"
+      ]
+    },
+    {
+      "id": "dmg-mercy-hit-and-chip",
+      "spec_ref": "§7 test 10; §1 Low-HP mercy (HIT and CHIP)",
+      "description": "At 25 HP an undefended JAB does 8×0.6 = 4.8 (-> 20.2, test 10). Then a guarded HOOK_L chips 3×0.6 = 1.8 (-> 18.4).",
+      "seed": 0,
+      "initial_state": {
+        "streamer.hp": 25,
+        "moves": [
+          "JAB",
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 4000,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 20.2
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].outcome",
+          "equals": "CHIP"
+        },
+        {
+          "t_ms": 5600,
+          "path": "streamer.hp",
+          "approx": 18.4
+        }
+      ],
+      "assumes": [
+        "Q3"
+      ]
+    }
+  ]
+}

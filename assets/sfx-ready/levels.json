@@ -1,0 +1,211 @@
+{
+ "hands-up": {
+  "source": "sfx/hands-up-sting_kenney_jingles_HIT03.ogg",
+  "trim_start_s": 0.01,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -6.3,
+  "rms_dbfs": -18.0,
+  "peak_dbfs": -7.1,
+  "dur_s": 0.74,
+  "kb": 63
+ },
+ "block": {
+  "source": "sfx/block-thud_kenney_impactPunch_medium_001.ogg",
+  "trim_start_s": 0.0,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -7.8,
+  "rms_dbfs": -18.0,
+  "peak_dbfs": -5.9,
+  "dur_s": 0.405,
+  "kb": 34
+ },
+ "perfect": {
+  "source": "sfx/perfect-clang_kenney_impactBell_heavy_002.ogg",
+  "trim_start_s": 0.0,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -2.1,
+  "rms_dbfs": -20.0,
+  "peak_dbfs": -2.7,
+  "dur_s": 0.698,
+  "kb": 60
+ },
+ "counter": {
+  "source": "sfx/counter-hit_kenney_impactPunch_heavy_004.ogg",
+  "trim_start_s": 0.012,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -5.4,
+  "rms_dbfs": -17.0,
+  "peak_dbfs": -3.4,
+  "dur_s": 0.535,
+  "kb": 46
+ },
+ "counter-accent": {
+  "source": "sfx/counter-hit-accent_kenney_jingles_HIT00.ogg",
+  "trim_start_s": 0.012,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -10.2,
+  "rms_dbfs": -22.0,
+  "peak_dbfs": -11.2,
+  "dur_s": 0.277,
+  "kb": 23
+ },
+ "hit-taken": {
+  "source": "sfx/punch-hit_kenney_impactPunch_heavy_002.ogg",
+  "trim_start_s": 0.01,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -6.0,
+  "rms_dbfs": -17.0,
+  "peak_dbfs": -3.9,
+  "dur_s": 0.462,
+  "kb": 39
+ },
+ "punch-bonus": {
+  "source": "sfx/punch-hit_kenney_impactPunch_heavy_000.ogg",
+  "trim_start_s": 0.015,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -7.0,
+  "rms_dbfs": -19.0,
+  "peak_dbfs": -4.9,
+  "dur_s": 0.651,
+  "kb": 56
+ },
+ "dodge": {
+  "source": "sfx/dodge-whoosh_freesound_420668_SypherZent.mp3",
+  "trim_start_s": 0.03,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": 0.2,
+  "rms_dbfs": -20.0,
+  "peak_dbfs": -9.0,
+  "dur_s": 0.147,
+  "kb": 12
+ },
+ "ko-bell": {
+  "source": "sfx/ko-bell_freesound_520998_Mateusz_Chenc.mp3",
+  "trim_start_s": 0.07,
+  "trim_end_s": 4.0,
+  "fade_out_s": 1.2,
+  "gain_db": 0.7,
+  "rms_dbfs": -20.2,
+  "peak_dbfs": -1.0,
+  "dur_s": 3.93,
+  "kb": 338
+ },
+ "round-1": {
+  "source": "sfx/round-start_kenney_vo_round_1.ogg",
+  "trim_start_s": 0.105,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -5.1,
+  "rms_dbfs": -17.0,
+  "peak_dbfs": -6.1,
+  "dur_s": 1.252,
+  "kb": 107
+ },
+ "round-2": {
+  "source": "sfx/round-start_kenney_vo_round_2.ogg",
+  "trim_start_s": 0.085,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -4.0,
+  "rms_dbfs": -17.0,
+  "peak_dbfs": -5.4,
+  "dur_s": 1.379,
+  "kb": 118
+ },
+ "final-round": {
+  "source": "sfx/round-start_kenney_vo_final_round.ogg",
+  "trim_start_s": 0.105,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -4.1,
+  "rms_dbfs": -17.0,
+  "peak_dbfs": -5.6,
+  "dur_s": 1.592,
+  "kb": 137
+ },
+ "fight": {
+  "source": "sfx/round-start_kenney_vo_fight.ogg",
+  "trim_start_s": 0.115,
+  "trim_end_s": null,
+  "fade_out_s": 0.08,
+  "gain_db": -4.1,
+  "rms_dbfs": -17.0,
+  "peak_dbfs": -4.5,
+  "dur_s": 0.818,
+  "kb": 70
+ },
+ "you-win": {
+  "source": "sfx/result_kenney_vo_you_win.ogg",
+  "trim_start_s": 0.065,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -4.4,
+  "rms_dbfs": -17.0,
+  "peak_dbfs": -5.4,
+  "dur_s": 1.205,
+  "kb": 103
+ },
+ "you-lose": {
+  "source": "sfx/result_kenney_vo_you_lose.ogg",
+  "trim_start_s": 0.09,
+  "trim_end_s": null,
+  "fade_out_s": 0.08,
+  "gain_db": -5.3,
+  "rms_dbfs": -17.0,
+  "peak_dbfs": -6.5,
+  "dur_s": 1.308,
+  "kb": 112
+ },
+ "hype-cheer": {
+  "source": "sfx/crowd-cheer_freesound_221567_AlaskaRobotics.mp3",
+  "trim_start_s": 0.08,
+  "trim_end_s": 4.5,
+  "fade_out_s": 1.5,
+  "gain_db": -10.5,
+  "rms_dbfs": -24.0,
+  "peak_dbfs": -8.9,
+  "dur_s": 4.42,
+  "kb": 380
+ },
+ "super-charge": {
+  "source": "sfx/super-charge_kenney_powerUp1.ogg",
+  "trim_start_s": 0.09,
+  "trim_end_s": null,
+  "fade_out_s": 0.05,
+  "gain_db": -9.2,
+  "rms_dbfs": -20.0,
+  "peak_dbfs": -9.8,
+  "dur_s": 1.119,
+  "kb": 96
+ },
+ "vote-tick": {
+  "source": "sfx/vote-tick_kenney_tick_002.ogg",
+  "trim_start_s": 0.0,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -7.3,
+  "rms_dbfs": -26.0,
+  "peak_dbfs": -13.6,
+  "dur_s": 0.023,
+  "kb": 2
+ },
+ "music-battle-loop": {
+  "source": "music/bed_oga_8-bit-battle-loop_Wolfgang_.ogg",
+  "trim_start_s": 0.0,
+  "trim_end_s": null,
+  "fade_out_s": 0.0,
+  "gain_db": -7.8,
+  "rms_dbfs": -24.0,
+  "peak_dbfs": -8.8,
+  "dur_s": 26.655,
+  "kb": 2295
+ }
+}

@@ -1,0 +1,203 @@
+{
+ "frames": {
+  "hookr_windup_1": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 761,
+    "h": 816
+   },
+   "rotated": false,
+   "trimmed": true,
+   "spriteSourceSize": {
+    "x": 239,
+    "y": 137,
+    "w": 761,
+    "h": 816
+   },
+   "sourceSize": {
+    "w": 1080,
+    "h": 972
+   },
+   "anchor": {
+    "x": 0.5,
+    "y": 0.963
+   },
+   "duration": 680,
+   "note": "telegraph hold"
+  },
+  "hurt_0": {
+   "frame": {
+    "x": 765,
+    "y": 0,
+    "w": 739,
+    "h": 808
+   },
+   "rotated": false,
+   "trimmed": true,
+   "spriteSourceSize": {
+    "x": 220,
+    "y": 145,
+    "w": 739,
+    "h": 808
+   },
+   "sourceSize": {
+    "w": 1080,
+    "h": 972
+   },
+   "anchor": {
+    "x": 0.5,
+    "y": 0.963
+   },
+   "duration": 140,
+   "note": "counter impact"
+  },
+  "hurt_1": {
+   "frame": {
+    "x": 1508,
+    "y": 0,
+    "w": 742,
+    "h": 804
+   },
+   "rotated": false,
+   "trimmed": true,
+   "spriteSourceSize": {
+    "x": 252,
+    "y": 149,
+    "w": 742,
+    "h": 804
+   },
+   "sourceSize": {
+    "w": 1080,
+    "h": 972
+   },
+   "anchor": {
+    "x": 0.5,
+    "y": 0.963
+   },
+   "duration": 200,
+   "note": "recoil, then idle"
+  },
+  "ko_1": {
+   "frame": {
+    "x": 0,
+    "y": 820,
+    "w": 751,
+    "h": 731
+   },
+   "rotated": false,
+   "trimmed": true,
+   "spriteSourceSize": {
+    "x": 165,
+    "y": 212,
+    "w": 751,
+    "h": 731
+   },
+   "sourceSize": {
+    "w": 1080,
+    "h": 972
+   },
+   "anchor": {
+    "x": 0.5,
+    "y": 0.963
+   },
+   "duration": 180,
+   "note": "fall"
+  },
+  "ko_2": {
+   "frame": {
+    "x": 755,
+    "y": 820,
+    "w": 838,
+    "h": 683
+   },
+   "rotated": false,
+   "trimmed": true,
+   "spriteSourceSize": {
+    "x": 121,
+    "y": 260,
+    "w": 838,
+    "h": 683
+   },
+   "sourceSize": {
+    "w": 1080,
+    "h": 972
+   },
+   "anchor": {
+    "x": 0.5,
+    "y": 0.963
+   },
+   "duration": 0,
+   "note": "hold"
+  },
+  "super_hit": {
+   "frame": {
+    "x": 2254,
+    "y": 0,
+    "w": 832,
+    "h": 803
+   },
+   "rotated": false,
+   "trimmed": true,
+   "spriteSourceSize": {
+    "x": 124,
+    "y": 169,
+    "w": 832,
+    "h": 803
+   },
+   "sourceSize": {
+    "w": 1080,
+    "h": 972
+   },
+   "anchor": {
+    "x": 0.5,
+    "y": 0.963
+   },
+   "duration": 300,
+   "note": "lands"
+  },
+  "super_windup_0": {
+   "frame": {
+    "x": 3090,
+    "y": 0,
+    "w": 594,
+    "h": 773
+   },
+   "rotated": false,
+   "trimmed": true,
+   "spriteSourceSize": {
+    "x": 238,
+    "y": 180,
+    "w": 594,
+    "h": 773
+   },
+   "sourceSize": {
+    "w": 1080,
+    "h": 972
+   },
+   "anchor": {
+    "x": 0.5,
+    "y": 0.963
+   },
+   "duration": 160,
+   "note": "crouch"
+  }
+ },
+ "meta": {
+  "app": "docs/assets/boss/src/pack.py",
+  "version": "1",
+  "image": "boss-sheet@2x-1.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 4096,
+   "h": 1551
+  },
+  "scale": "1",
+  "related_multi_packs": [
+   "boss-sheet@2x-0.json"
+  ],
+  "pivot": "anchor = floor point between his boots; identical for every frame",
+  "durations": "suggested ms per frame; 0 = hold the last frame",
+  "license": "CC0-1.0"
+ }
+}

@@ -1,0 +1,558 @@
+{
+  "format": "streamer-vs-chat-golden/1",
+  "file": "votes",
+  "vectors": [
+    {
+      "id": "vote-latest-wins",
+      "spec_ref": "§1 Votes (one vote per viewer per beat, latest wins); §7 test 1",
+      "description": "Viewer A sends !jab then !hookl in one beat. The tally counts A once, as HOOK_L, and with one counted vote the draw must pick HOOK_L.",
+      "seed": 1,
+      "initial_state": {},
+      "events": [
+        {
+          "t_ms": 500,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 1500,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!hookl"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2399,
+          "path": "tally.HOOK_L",
+          "equals": 1
+        },
+        {
+          "t_ms": 2399,
+          "path": "tally.JAB",
+          "equals": 0
+        },
+        {
+          "t_ms": 2399,
+          "path": "voters",
+          "equals": 1
+        },
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].move",
+          "equals": "HOOK_L"
+        },
+        {
+          "t_ms": 2400,
+          "path": "tally.HOOK_L",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "vote-several-viewers",
+      "spec_ref": "§1 Votes",
+      "description": "A: !jab then !hookr. B: !combo. C: !combo then !jab. D sends chat that isn't a command ('hello', 'jab', '!jabx'). Tally JAB 1, HOOK_R 1, COMBO 1; 3 voters.",
+      "seed": 1,
+      "initial_state": {},
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 200,
+          "type": "vote",
+          "viewer": "B",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 300,
+          "type": "vote",
+          "viewer": "C",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 400,
+          "type": "vote",
+          "viewer": "D",
+          "value": "hello"
+        },
+        {
+          "t_ms": 500,
+          "type": "vote",
+          "viewer": "D",
+          "value": "jab"
+        },
+        {
+          "t_ms": 600,
+          "type": "vote",
+          "viewer": "D",
+          "value": "!jabx"
+        },
+        {
+          "t_ms": 900,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!hookr"
+        },
+        {
+          "t_ms": 1200,
+          "type": "vote",
+          "viewer": "C",
+          "value": "!jab"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2399,
+          "path": "tally.JAB",
+          "equals": 1
+        },
+        {
+          "t_ms": 2399,
+          "path": "tally.HOOK_R",
+          "equals": 1
+        },
+        {
+          "t_ms": 2399,
+          "path": "tally.COMBO",
+          "equals": 1
+        },
+        {
+          "t_ms": 2399,
+          "path": "tally.HOOK_L",
+          "equals": 0
+        },
+        {
+          "t_ms": 2399,
+          "path": "voters",
+          "equals": 3
+        }
+      ]
+    },
+    {
+      "id": "vote-window-boundary",
+      "spec_ref": "§1 Beat timeline (votes in beat N drawn at the end of beat N)",
+      "description": "A votes !jab at 2399 (beat 0) and !hookr at 2400 (beat 1). Beat 0 draws JAB; the 2400 vote belongs to beat 1, which draws HOOK_R.",
+      "seed": 1,
+      "initial_state": {},
+      "events": [
+        {
+          "t_ms": 2399,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 2400,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!hookr"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].move",
+          "equals": "JAB"
+        },
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].lands_at",
+          "equals": 3200
+        },
+        {
+          "t_ms": 2400,
+          "path": "tally.HOOK_R",
+          "equals": 1
+        },
+        {
+          "t_ms": 4800,
+          "path": "log.telegraphs[1].move",
+          "equals": "HOOK_R"
+        }
+      ],
+      "assumes": [
+        "Q1"
+      ]
+    },
+    {
+      "id": "vote-draw-10k",
+      "spec_ref": "§7 test 2; README 'Weighted draw'",
+      "description": "10,000 draws from JAB 3 / HOOK_L 1 with mulberry32(2026): JAB share 75% ±2%. The exact count and first 10 picks pin the procedure across implementations.",
+      "seed": 2026,
+      "initial_state": {},
+      "events": [],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "share.JAB",
+          "approx": 0.75,
+          "tol": 0.02
+        },
+        {
+          "t_ms": "end",
+          "path": "count.JAB",
+          "equals": 7411
+        },
+        {
+          "t_ms": "end",
+          "path": "count.HOOK_L",
+          "equals": 2589
+        },
+        {
+          "t_ms": "end",
+          "path": "first10",
+          "equals": [
+            "JAB",
+            "JAB",
+            "JAB",
+            "JAB",
+            "JAB",
+            "JAB",
+            "JAB",
+            "HOOK_L",
+            "JAB",
+            "JAB"
+          ]
+        }
+      ],
+      "kind": "draw",
+      "draws": {
+        "n": 10000,
+        "counts": {
+          "JAB": 3,
+          "HOOK_L": 1
+        }
+      }
+    },
+    {
+      "id": "vote-weighted-not-plurality",
+      "spec_ref": "§1 Votes (weighted draw by vote share, not the most-voted)",
+      "description": "JAB 3 / HOOK_L 1 with seed 4: the first rng value is 0.92364, x = floor(0.92364×4) = 3, which falls in HOOK_L's slot, so the minority move is picked.",
+      "seed": 4,
+      "initial_state": {},
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "B",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "C",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "D",
+          "value": "!hookl"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].move",
+          "equals": "HOOK_L"
+        }
+      ]
+    },
+    {
+      "id": "vote-autopilot-and-zero-viewer-hype",
+      "spec_ref": "§1 Votes (0 voters: uniform JAB/HOOK_L/HOOK_R/COMBO); §1 Hype (+6 with 0 viewers)",
+      "description": "No votes, viewers 0, seed 42. rng 0.60111 -> floor(×4) = 2 -> HOOK_R; rng 0.44826 -> 1 -> HOOK_L. Hype gains 6 per beat.",
+      "seed": 42,
+      "initial_state": {
+        "viewers": 0
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].move",
+          "equals": "HOOK_R"
+        },
+        {
+          "t_ms": 4800,
+          "path": "log.telegraphs[1].move",
+          "equals": "HOOK_L"
+        },
+        {
+          "t_ms": 2400,
+          "path": "hype",
+          "approx": 6
+        },
+        {
+          "t_ms": 4800,
+          "path": "hype",
+          "approx": 12
+        }
+      ]
+    },
+    {
+      "id": "vote-no-triple-repeat",
+      "spec_ref": "§1 Votes (no move 3 beats in a row; swap to a uniform pick of the other three); §7 test 3",
+      "description": "A votes !jab in beats 0, 1 and 2. Beats 0 and 1 are JAB. Beat 2 draws JAB again (rng call 3), so it is swapped: rng call 4 = 0.14620 -> floor(×3) = 0 -> HOOK_L from [HOOK_L, HOOK_R, COMBO].",
+      "seed": 0,
+      "initial_state": {},
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 2500,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 4900,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].move",
+          "equals": "JAB"
+        },
+        {
+          "t_ms": 4800,
+          "path": "log.telegraphs[1].move",
+          "equals": "JAB"
+        },
+        {
+          "t_ms": 7200,
+          "path": "log.telegraphs[2].move",
+          "not_in": [
+            "JAB"
+          ]
+        },
+        {
+          "t_ms": 7200,
+          "path": "log.telegraphs[2].move",
+          "equals": "HOOK_L"
+        }
+      ]
+    },
+    {
+      "id": "vote-super-gate-and-spend",
+      "spec_ref": "§1 SUPER and Hype; §7 test 4",
+      "description": "Hype 99.9 (< 100): A's !super is dropped from the tally (0 voters, autopilot). The beat's +6 caps hype at 100. Next beat A's !super counts, is the only vote, so SUPER fires: hype -> 0, supers_used -> 1, and 25 lands at 5600.",
+      "seed": 42,
+      "initial_state": {
+        "hype": 99.9,
+        "viewers": 0
+      },
+      "events": [
+        {
+          "t_ms": 500,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!super"
+        },
+        {
+          "t_ms": 3000,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!super"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2399,
+          "path": "tally.SUPER",
+          "equals": 0
+        },
+        {
+          "t_ms": 2399,
+          "path": "voters",
+          "equals": 0
+        },
+        {
+          "t_ms": 2400,
+          "path": "hype",
+          "approx": 100
+        },
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].move",
+          "equals": "HOOK_R"
+        },
+        {
+          "t_ms": 4799,
+          "path": "tally.SUPER",
+          "equals": 1
+        },
+        {
+          "t_ms": 4800,
+          "path": "log.telegraphs[1].move",
+          "equals": "SUPER"
+        },
+        {
+          "t_ms": 4800,
+          "path": "hype",
+          "approx": 0
+        },
+        {
+          "t_ms": 4800,
+          "path": "supers_used",
+          "equals": 1
+        },
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 88
+        },
+        {
+          "t_ms": 5600,
+          "path": "streamer.hp",
+          "approx": 63
+        }
+      ],
+      "assumes": [
+        "Q4"
+      ]
+    },
+    {
+      "id": "vote-super-cap",
+      "spec_ref": "§1 SUPER (max 3 per round); §7 test 4",
+      "description": "3 supers already fired, hype 100: A's !super is dropped, so the beat is autopilot (seed 42 -> HOOK_R) and supers_used stays 3.",
+      "seed": 42,
+      "initial_state": {
+        "hype": 100,
+        "supers_used": 3,
+        "viewers": 1
+      },
+      "events": [
+        {
+          "t_ms": 500,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!super"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2399,
+          "path": "tally.SUPER",
+          "equals": 0
+        },
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].move",
+          "not_in": [
+            "SUPER"
+          ]
+        },
+        {
+          "t_ms": 2400,
+          "path": "log.telegraphs[0].move",
+          "equals": "HOOK_R"
+        },
+        {
+          "t_ms": 2400,
+          "path": "supers_used",
+          "equals": 3
+        }
+      ]
+    },
+    {
+      "id": "vote-hype-big-chat",
+      "spec_ref": "§1 Hype (12·log2(1+voters) / max(1, log2(1+viewers)/3))",
+      "description": "500 viewers, 3 voters: 12·log2(4) / (log2(501)/3) = 24 / 2.98955 = 8.02795.",
+      "seed": 1,
+      "initial_state": {
+        "viewers": 500
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "B",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "C",
+          "value": "!combo"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2400,
+          "path": "hype",
+          "approx": 8.027949,
+          "tol": 1e-05
+        }
+      ]
+    },
+    {
+      "id": "vote-hype-cap",
+      "spec_ref": "§1 Hype (capped at 100)",
+      "description": "3 viewers, all 3 vote: the gain is 12·log2(4) / max(1, 0.667) = 24, so hype 90 -> 100 (capped), and a beat with no voters adds 0.",
+      "seed": 1,
+      "initial_state": {
+        "hype": 90,
+        "viewers": 3
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "B",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "C",
+          "value": "!hookr"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2400,
+          "path": "hype",
+          "approx": 100
+        },
+        {
+          "t_ms": 4800,
+          "path": "hype",
+          "approx": 100
+        }
+      ]
+    }
+  ]
+}

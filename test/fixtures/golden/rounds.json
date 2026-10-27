@@ -1,0 +1,410 @@
+{
+  "format": "streamer-vs-chat-golden/1",
+  "file": "rounds",
+  "vectors": [
+    {
+      "id": "round-timeout-boss-on-percent",
+      "spec_ref": "§1 Round; §7 test 11",
+      "description": "No attacks. At 75 s, streamer 40/100 (40%) vs boss 60/135 (44.4%): the boss wins on HP %, though raw HP is higher for the boss too.",
+      "seed": 0,
+      "initial_state": {
+        "streamer.hp": 40,
+        "boss.hp": 60,
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 74999,
+          "path": "round.over",
+          "equals": false
+        },
+        {
+          "t_ms": 75000,
+          "path": "round.over",
+          "equals": true
+        },
+        {
+          "t_ms": "end",
+          "path": "round.winner",
+          "equals": "boss"
+        },
+        {
+          "t_ms": "end",
+          "path": "round.end_reason",
+          "equals": "timeout"
+        },
+        {
+          "t_ms": "end",
+          "path": "round.ended_at",
+          "equals": 75000
+        }
+      ]
+    },
+    {
+      "id": "round-timeout-percent-not-raw",
+      "spec_ref": "§1 Round; §7 test 11 ('as a percentage, not as raw HP')",
+      "description": "Streamer 45/100 (45%) vs boss 60/135 (44.4%): raw HP favours the boss, but HP % gives it to the streamer.",
+      "seed": 0,
+      "initial_state": {
+        "streamer.hp": 45,
+        "boss.hp": 60,
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "round.winner",
+          "equals": "streamer"
+        }
+      ]
+    },
+    {
+      "id": "round-timeout-tie-streamer",
+      "spec_ref": "§1 Round (a tie goes to the streamer)",
+      "description": "Streamer 40/100 vs boss 54/135: both exactly 40%. Compare as streamer.hp × boss.max_hp vs boss.hp × streamer.max_hp (5400 = 5400) to avoid float noise. Tie -> streamer.",
+      "seed": 0,
+      "initial_state": {
+        "streamer.hp": 40,
+        "boss.hp": 54,
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "round.winner",
+          "equals": "streamer"
+        }
+      ]
+    },
+    {
+      "id": "round-ko-mid-beat-punch",
+      "spec_ref": "§1 Round (KO ends it early)",
+      "description": "Boss at 1 HP. A punch at 1000 (outside any window, -1) KOs it mid-beat. Nothing after counts: no telegraph is drawn and the later vote and punch are ignored.",
+      "seed": 0,
+      "initial_state": {
+        "boss.hp": 1
+      },
+      "events": [
+        {
+          "t_ms": 1000,
+          "type": "punch",
+          "value": "R"
+        },
+        {
+          "t_ms": 1500,
+          "type": "vote",
+          "viewer": "A",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 2000,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 1000,
+          "path": "round.over",
+          "equals": true
+        },
+        {
+          "t_ms": 1000,
+          "path": "round.winner",
+          "equals": "streamer"
+        },
+        {
+          "t_ms": 1000,
+          "path": "round.ended_at",
+          "equals": 1000
+        },
+        {
+          "t_ms": 1000,
+          "path": "round.end_reason",
+          "equals": "ko"
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs.length",
+          "equals": 0
+        },
+        {
+          "t_ms": "end",
+          "path": "boss.hp",
+          "approx": 0
+        },
+        {
+          "t_ms": "end",
+          "path": "tally.JAB",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "round-ko-by-counter-at-zero",
+      "spec_ref": "§1 Round; §2 Counter (BLOCK 8)",
+      "description": "Boss at 8 HP. A blocked JAB counters for 8 -> boss exactly 0 -> KO at the landing (3200). Round 1 of a fresh match: round_wins 1-0, no match winner yet.",
+      "seed": 0,
+      "initial_state": {
+        "boss.hp": 8,
+        "moves": [
+          "JAB",
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "round.winner",
+          "equals": "streamer"
+        },
+        {
+          "t_ms": 3200,
+          "path": "round.ended_at",
+          "equals": 3200
+        },
+        {
+          "t_ms": 3200,
+          "path": "boss.hp",
+          "approx": 0
+        },
+        {
+          "t_ms": "end",
+          "path": "match.round_wins.streamer",
+          "equals": 1
+        },
+        {
+          "t_ms": "end",
+          "path": "match.winner",
+          "equals": null
+        }
+      ],
+      "assumes": [
+        "Q5"
+      ]
+    },
+    {
+      "id": "round-streamer-ko-decides-match",
+      "spec_ref": "§1 Round (KO; best of 3)",
+      "description": "Round 3 at 1-1. Streamer at 4 HP takes an undefended JAB (8×0.6 = 4.8) -> KO at 3200. The boss takes the round and the match; a later punch is ignored.",
+      "seed": 0,
+      "initial_state": {
+        "streamer.hp": 4,
+        "round.number": 3,
+        "match.round_wins": {
+          "streamer": 1,
+          "boss": 1
+        },
+        "moves": [
+          "JAB",
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 4000,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "round.winner",
+          "equals": "boss"
+        },
+        {
+          "t_ms": 3200,
+          "path": "round.ended_at",
+          "equals": 3200
+        },
+        {
+          "t_ms": "end",
+          "path": "boss.hp",
+          "approx": 135
+        },
+        {
+          "t_ms": "end",
+          "path": "log.resolved.length",
+          "equals": 1
+        },
+        {
+          "t_ms": "end",
+          "path": "match.round_wins.boss",
+          "equals": 2
+        },
+        {
+          "t_ms": "end",
+          "path": "match.winner",
+          "equals": "boss"
+        }
+      ]
+    },
+    {
+      "id": "round-ko-mid-combo",
+      "spec_ref": "§2 row 2 (2 hits 300 ms apart, 7 each); §1 mercy",
+      "description": "Streamer at 5 HP, undefended COMBO: hit 1 (7×0.6 = 4.2) leaves 0.8 at 3200; hit 2 at 3500 KOs.",
+      "seed": 0,
+      "initial_state": {
+        "streamer.hp": 5,
+        "moves": [
+          "COMBO"
+        ]
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 0.8
+        },
+        {
+          "t_ms": 3200,
+          "path": "round.over",
+          "equals": false
+        },
+        {
+          "t_ms": 3500,
+          "path": "round.winner",
+          "equals": "boss"
+        },
+        {
+          "t_ms": 3500,
+          "path": "round.ended_at",
+          "equals": 3500
+        }
+      ],
+      "assumes": [
+        "Q3"
+      ]
+    },
+    {
+      "id": "round-thirty-attacks",
+      "spec_ref": "§1 Beat timeline + Round (75 s)",
+      "description": "Scripted JAB every beat, guard held from t=0 (all BLOCK). The last hit that fits lands at 72,800 (drawn at 72,000): 30 attacks. Boss HP raised to 1000 so it survives; streamer wins 100% vs 76%.",
+      "seed": 0,
+      "initial_state": {
+        "boss.hp": 1000,
+        "boss.max_hp": 1000,
+        "moves": [
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 0,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs.length",
+          "equals": 30
+        },
+        {
+          "t_ms": "end",
+          "path": "log.resolved.length",
+          "equals": 30
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[29].at",
+          "equals": 72000
+        },
+        {
+          "t_ms": "end",
+          "path": "log.resolved[29].at",
+          "equals": 72800
+        },
+        {
+          "t_ms": "end",
+          "path": "boss.hp",
+          "approx": 760
+        },
+        {
+          "t_ms": "end",
+          "path": "round.winner",
+          "equals": "streamer"
+        }
+      ],
+      "assumes": [
+        "Q1"
+      ]
+    },
+    {
+      "id": "round-best-of-3-streamer",
+      "spec_ref": "§1 Round (best of 3)",
+      "description": "Round 2 with the streamer 1-0 up. No attacks; full HP both sides is a 100% vs 100% tie -> streamer. Streamer takes the match 2-0.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "match.round_wins": {
+          "streamer": 1,
+          "boss": 0
+        },
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "round.winner",
+          "equals": "streamer"
+        },
+        {
+          "t_ms": "end",
+          "path": "match.round_wins.streamer",
+          "equals": 2
+        },
+        {
+          "t_ms": "end",
+          "path": "match.winner",
+          "equals": "streamer"
+        }
+      ]
+    }
+  ]
+}

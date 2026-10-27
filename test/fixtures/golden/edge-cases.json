@@ -1,0 +1,218 @@
+{
+  "format": "streamer-vs-chat-golden/1",
+  "file": "edge-cases",
+  "vectors": [
+    {
+      "id": "edge-guard-at-landing-ms",
+      "spec_ref": "§2 (decided on the input state when the hit lands); README 'Same-millisecond order'",
+      "description": "Guard goes up at exactly 3200, the JAB's landing time. The engine resolves before inputs at the same ms, so it's a HIT.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 3200,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 92
+        }
+      ],
+      "assumes": [
+        "Q1"
+      ]
+    },
+    {
+      "id": "edge-ko-same-ms",
+      "spec_ref": "§1 Round (KO); README 'Same-millisecond order'",
+      "description": "Streamer at 4 HP, boss at 1 HP. An undefended JAB lands at 3200 and a punch arrives at 3200. The hit resolves first and KOs the streamer, so the punch is ignored: boss wins.",
+      "seed": 0,
+      "initial_state": {
+        "streamer.hp": 4,
+        "boss.hp": 1,
+        "moves": [
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 3200,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "round.winner",
+          "equals": "boss"
+        },
+        {
+          "t_ms": "end",
+          "path": "boss.hp",
+          "approx": 1
+        }
+      ],
+      "assumes": [
+        "Q1"
+      ]
+    },
+    {
+      "id": "edge-input-at-round-end",
+      "spec_ref": "§1 Round (75 s); README 'Same-millisecond order'",
+      "description": "No attacks. A punch at exactly 75,000 comes after the timeout, so it is ignored.",
+      "seed": 0,
+      "initial_state": {
+        "moves": []
+      },
+      "events": [
+        {
+          "t_ms": 75000,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "boss.hp",
+          "approx": 135
+        },
+        {
+          "t_ms": "end",
+          "path": "round.ended_at",
+          "equals": 75000
+        }
+      ],
+      "assumes": [
+        "Q1"
+      ]
+    },
+    {
+      "id": "edge-veto-mod-jab",
+      "spec_ref": "§7 test 14 (!veto from a mod: freeze + cancel the telegraphed attack)",
+      "description": "A plain viewer's !veto at 2600 is ignored. A mod's !veto at 2800, inside the JAB's telegraph: the game freezes and the JAB never lands (no damage). No resume is sent, so nothing else happens.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "JAB",
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2600,
+          "type": "control",
+          "viewer": "randomviewer",
+          "role": "viewer",
+          "value": "veto"
+        },
+        {
+          "t_ms": 2700,
+          "type": "control",
+          "viewer": "mod1",
+          "role": "mod",
+          "value": "veto"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2600,
+          "path": "paused",
+          "equals": false
+        },
+        {
+          "t_ms": 2700,
+          "path": "paused",
+          "equals": true
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[0].vetoed",
+          "equals": true
+        },
+        {
+          "t_ms": "end",
+          "path": "streamer.hp",
+          "approx": 100
+        },
+        {
+          "t_ms": "end",
+          "path": "log.resolved.length",
+          "equals": 0
+        }
+      ],
+      "assumes": [
+        "Q7"
+      ]
+    },
+    {
+      "id": "edge-veto-no-counter",
+      "spec_ref": "§7 test 14 (!veto: no counter either way)",
+      "description": "Lean R held for a HOOK_L that would be a DODGE (boss -9). The broadcaster vetoes it during the telegraph: no damage, no counter, and a punch after the veto is ignored while frozen.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 3000,
+          "type": "control",
+          "viewer": "kashruns",
+          "role": "broadcaster",
+          "value": "veto"
+        },
+        {
+          "t_ms": 3300,
+          "type": "punch",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[0].vetoed",
+          "equals": true
+        },
+        {
+          "t_ms": "end",
+          "path": "boss.hp",
+          "approx": 135
+        },
+        {
+          "t_ms": "end",
+          "path": "streamer.hp",
+          "approx": 100
+        },
+        {
+          "t_ms": "end",
+          "path": "counter.open",
+          "equals": false
+        }
+      ],
+      "assumes": [
+        "Q7"
+      ]
+    }
+  ]
+}

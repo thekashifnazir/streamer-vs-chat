@@ -1,0 +1,465 @@
+{
+  "format": "streamer-vs-chat-golden/1",
+  "file": "scouting",
+  "vectors": [
+    {
+      "id": "scout-11-of-11",
+      "spec_ref": "§4; §7 test 12",
+      "description": "11 left dodges out of 11 (round 2): n < 12 -> no card.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L"
+        ],
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "scouting.card",
+          "equals": null
+        },
+        {
+          "t_ms": 0,
+          "path": "scouting.n",
+          "equals": 11
+        }
+      ]
+    },
+    {
+      "id": "scout-12-of-14",
+      "spec_ref": "§4; §7 test 12",
+      "description": "12 left of 14: share 85.7%, Wilson LB 0.6470 ≥ 0.60 -> card L.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "R",
+          "R"
+        ],
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "scouting.card",
+          "equals": "L"
+        }
+      ]
+    },
+    {
+      "id": "scout-wilson-pass-10-of-12",
+      "spec_ref": "§4 (share ≥ 65%, n ≥ 12, Wilson LB z=1.645 ≥ 0.60)",
+      "description": "Boundary: 10 left of 12: share 83.3%, LB 0.60077 -> card L.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "R",
+          "R"
+        ],
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "scouting.card",
+          "equals": "L"
+        }
+      ]
+    },
+    {
+      "id": "scout-wilson-fail-9-of-12",
+      "spec_ref": "§4",
+      "description": "Boundary: 9 left of 12: share 75% clears 65% but LB 0.51264 < 0.60 -> no card. The Wilson bound, not the share, is what blocks it.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "R",
+          "R",
+          "R"
+        ],
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "scouting.card",
+          "equals": null
+        }
+      ]
+    },
+    {
+      "id": "scout-round-1-gate",
+      "spec_ref": "§4 (from round 2)",
+      "description": "12 of 12 left in round 1 -> no card yet.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 1,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L"
+        ],
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "scouting.card",
+          "equals": null
+        }
+      ]
+    },
+    {
+      "id": "scout-live-12th-dodge",
+      "spec_ref": "§4 (habit = dodge leans on hooks and supers)",
+      "description": "Log starts at 10 L. Lean L held: DODGE a HOOK_R (n=11, still no card), then DODGE a SUPER (n=12, 12/12) -> card L at 5600.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L"
+        ],
+        "moves": [
+          "HOOK_R",
+          "SUPER"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "lean",
+          "value": "L"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "scouting.n",
+          "equals": 11
+        },
+        {
+          "t_ms": 3200,
+          "path": "scouting.card",
+          "equals": null
+        },
+        {
+          "t_ms": 5599,
+          "path": "scouting.card",
+          "equals": null
+        },
+        {
+          "t_ms": 5600,
+          "path": "scouting.card",
+          "equals": "L"
+        },
+        {
+          "t_ms": 5600,
+          "path": "scouting.n",
+          "equals": 12
+        }
+      ]
+    },
+    {
+      "id": "scout-exploit-cooldown",
+      "spec_ref": "§4 (3-beat cooldown); §7 test 13",
+      "description": "Card L is live (12/12). Five HOOK_Ls in a row (scripted, undefended): the exploit fires on beat 0, can't on beats 1-3, fires again on beat 4. It adds no damage (12 per hit).",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L"
+        ],
+        "moves": [
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L"
+        ]
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[0].exploit",
+          "equals": true
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[1].exploit",
+          "equals": false
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[2].exploit",
+          "equals": false
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[3].exploit",
+          "equals": false
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[4].exploit",
+          "equals": true
+        },
+        {
+          "t_ms": 12800,
+          "path": "streamer.hp",
+          "approx": 40
+        }
+      ]
+    },
+    {
+      "id": "scout-exploit-move-left",
+      "spec_ref": "§4 (a left-leaner's card lights !hookl)",
+      "description": "Card L: HOOK_R, JAB, COMBO and SUPER aren't the exploit; HOOK_L is.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L"
+        ],
+        "moves": [
+          "HOOK_R",
+          "JAB",
+          "COMBO",
+          "SUPER",
+          "HOOK_L"
+        ]
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[0].exploit",
+          "equals": false
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[1].exploit",
+          "equals": false
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[2].exploit",
+          "equals": false
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[3].exploit",
+          "equals": false
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[4].exploit",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "scout-right-leaner",
+      "spec_ref": "§4 (a right-leaner's card lights !hookr)",
+      "description": "2 L / 12 R -> card R. HOOK_L isn't the exploit; HOOK_R is.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "R",
+          "R",
+          "R",
+          "R",
+          "R",
+          "R",
+          "R",
+          "R",
+          "R",
+          "R",
+          "R",
+          "R"
+        ],
+        "moves": [
+          "HOOK_L",
+          "HOOK_R"
+        ]
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "scouting.card",
+          "equals": "R"
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[0].exploit",
+          "equals": false
+        },
+        {
+          "t_ms": "end",
+          "path": "log.telegraphs[1].exploit",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "scout-fix-at-62-5",
+      "spec_ref": "§4 (fixed when the dominant side's share of the last 8 leans ≤ 62.5%; +10 HP)",
+      "description": "Card L from 12 L, streamer at 95. Three HOOK_Ls dodged leaning R. Last 8 = 7L1R (87.5%), 6L2R (75%): still live. 5L3R = 62.5% -> fixed: card removed, +10 HP capped at 100.",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "streamer.hp": 95,
+        "scouting.dodges": [
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L",
+          "L"
+        ],
+        "moves": [
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "lean",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 5600,
+          "path": "scouting.card",
+          "equals": "L"
+        },
+        {
+          "t_ms": 5600,
+          "path": "scouting.fixes",
+          "equals": 0
+        },
+        {
+          "t_ms": 8000,
+          "path": "scouting.card",
+          "equals": null
+        },
+        {
+          "t_ms": 8000,
+          "path": "scouting.fixes",
+          "equals": 1
+        },
+        {
+          "t_ms": 8000,
+          "path": "streamer.hp",
+          "approx": 100
+        }
+      ],
+      "assumes": [
+        "Q6"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,884 @@
+{
+  "format": "streamer-vs-chat-golden/1",
+  "file": "defence",
+  "vectors": [
+    {
+      "id": "def-jab-row",
+      "spec_ref": "§2 row 1 (JAB); §7 tests 5, 6",
+      "description": "Every JAB cell: guard 300 ms before -> PERFECT (test 5), guard 450 ms before -> BLOCK (test 6), lean L only -> HIT, lean R only -> HIT, nothing -> HIT, guard + lean -> guard decides (BLOCK).",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2900,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 3500,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 5150,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 5900,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 7500,
+          "type": "lean",
+          "value": "L"
+        },
+        {
+          "t_ms": 8300,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 9900,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 10700,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 14000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 14000,
+          "type": "lean",
+          "value": "L"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].outcome",
+          "equals": "PERFECT"
+        },
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].dmg",
+          "approx": 0
+        },
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].counter_dmg",
+          "equals": 11
+        },
+        {
+          "t_ms": 3200,
+          "path": "boss.hp",
+          "approx": 124
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].outcome",
+          "equals": "BLOCK"
+        },
+        {
+          "t_ms": 5600,
+          "path": "boss.hp",
+          "approx": 116
+        },
+        {
+          "t_ms": 8000,
+          "path": "log.resolved[2].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 8000,
+          "path": "streamer.hp",
+          "approx": 92
+        },
+        {
+          "t_ms": 10400,
+          "path": "log.resolved[3].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 12800,
+          "path": "log.resolved[4].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 12800,
+          "path": "log.resolved[4].dmg",
+          "approx": 8
+        },
+        {
+          "t_ms": 12800,
+          "path": "streamer.hp",
+          "approx": 76
+        },
+        {
+          "t_ms": 15200,
+          "path": "log.resolved[5].outcome",
+          "equals": "BLOCK"
+        },
+        {
+          "t_ms": 15200,
+          "path": "boss.hp",
+          "approx": 108
+        },
+        {
+          "t_ms": 15200,
+          "path": "streamer.hp",
+          "approx": 76
+        }
+      ]
+    },
+    {
+      "id": "def-jab-perfect-edge",
+      "spec_ref": "§2 row 1 (PERFECT if guard went up ≤400 ms before landing)",
+      "description": "PERFECT window edges, timed from the latest guard raise: up, down, up again exactly 400 ms before -> PERFECT; next beat raised 401 ms before -> BLOCK.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "JAB",
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 1000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 2500,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 2800,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 3500,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 5199,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].outcome",
+          "equals": "PERFECT"
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].outcome",
+          "equals": "BLOCK"
+        },
+        {
+          "t_ms": 5600,
+          "path": "boss.hp",
+          "approx": 116
+        }
+      ]
+    },
+    {
+      "id": "def-combo-row",
+      "spec_ref": "§2 row 2 (COMBO, 2 hits 300 ms apart); §2 note (COMBO PERFECT, landsAt = first hit)",
+      "description": "COMBO cells: guard up 1200 ms before and held over both hits -> BLOCK (boss -8); guard up 300 ms before the first hit -> PERFECT (boss -11); lean only -> both hits land (14); nothing -> 14.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "COMBO",
+          "COMBO",
+          "COMBO",
+          "COMBO"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 3700,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 5300,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 6100,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 7000,
+          "type": "lean",
+          "value": "L"
+        },
+        {
+          "t_ms": 8500,
+          "type": "lean",
+          "value": null
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3500,
+          "path": "log.resolved[0].outcome",
+          "equals": "BLOCK"
+        },
+        {
+          "t_ms": 3500,
+          "path": "streamer.hp",
+          "approx": 100
+        },
+        {
+          "t_ms": 3500,
+          "path": "boss.hp",
+          "approx": 127
+        },
+        {
+          "t_ms": 5900,
+          "path": "log.resolved[1].outcome",
+          "equals": "PERFECT"
+        },
+        {
+          "t_ms": 5900,
+          "path": "boss.hp",
+          "approx": 116
+        },
+        {
+          "t_ms": 8300,
+          "path": "log.resolved[2].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 8300,
+          "path": "streamer.hp",
+          "approx": 86
+        },
+        {
+          "t_ms": 10700,
+          "path": "log.resolved[3].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 10700,
+          "path": "log.resolved[3].dmg",
+          "approx": 14
+        },
+        {
+          "t_ms": 10700,
+          "path": "streamer.hp",
+          "approx": 72
+        },
+        {
+          "t_ms": 10700,
+          "path": "boss.hp",
+          "approx": 116
+        }
+      ]
+    },
+    {
+      "id": "def-combo-split",
+      "spec_ref": "§7 test 8; §2 row 2 (each hit 7, no counter if either hit lands)",
+      "description": "Guard up for hit 1 then dropped before hit 2 -> hit 2 lands for 7 and there is no counter. Next beat: guard down for hit 1, up for hit 2 -> hit 1 lands for 7, no counter.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "COMBO",
+          "COMBO"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 3350,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 5700,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 100
+        },
+        {
+          "t_ms": 3500,
+          "path": "streamer.hp",
+          "approx": 93
+        },
+        {
+          "t_ms": 3500,
+          "path": "boss.hp",
+          "approx": 135
+        },
+        {
+          "t_ms": 3500,
+          "path": "log.resolved[0].dmg",
+          "approx": 7
+        },
+        {
+          "t_ms": 3500,
+          "path": "log.resolved[0].counter_dmg",
+          "equals": 0
+        },
+        {
+          "t_ms": 5600,
+          "path": "streamer.hp",
+          "approx": 86
+        },
+        {
+          "t_ms": 5900,
+          "path": "streamer.hp",
+          "approx": 86
+        },
+        {
+          "t_ms": 5900,
+          "path": "boss.hp",
+          "approx": 135
+        },
+        {
+          "t_ms": 5900,
+          "path": "log.resolved[1].counter_dmg",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "def-hookl-row",
+      "spec_ref": "§2 row 3 (HOOK_L); §2 note (guard + lean); §7 test 7",
+      "description": "HOOK_L cells: guard -> CHIP 3; lean R -> DODGE (boss -9, test 7); lean L -> HIT 12 (test 7); nothing -> HIT 12; guard + lean R -> DODGE; guard + lean L -> CHIP.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 3500,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 5000,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 5900,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 7500,
+          "type": "lean",
+          "value": "L"
+        },
+        {
+          "t_ms": 8300,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 12000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 12000,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 13200,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 13200,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 14500,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 14500,
+          "type": "lean",
+          "value": "L"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].outcome",
+          "equals": "CHIP"
+        },
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 97
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].outcome",
+          "equals": "DODGE"
+        },
+        {
+          "t_ms": 5600,
+          "path": "boss.hp",
+          "approx": 126
+        },
+        {
+          "t_ms": 5600,
+          "path": "streamer.hp",
+          "approx": 97
+        },
+        {
+          "t_ms": 8000,
+          "path": "log.resolved[2].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 8000,
+          "path": "streamer.hp",
+          "approx": 85
+        },
+        {
+          "t_ms": 10400,
+          "path": "log.resolved[3].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 10400,
+          "path": "streamer.hp",
+          "approx": 73
+        },
+        {
+          "t_ms": 12800,
+          "path": "log.resolved[4].outcome",
+          "equals": "DODGE"
+        },
+        {
+          "t_ms": 12800,
+          "path": "boss.hp",
+          "approx": 117
+        },
+        {
+          "t_ms": 15200,
+          "path": "log.resolved[5].outcome",
+          "equals": "CHIP"
+        },
+        {
+          "t_ms": 15200,
+          "path": "streamer.hp",
+          "approx": 70
+        },
+        {
+          "t_ms": 15200,
+          "path": "boss.hp",
+          "approx": 117
+        }
+      ]
+    },
+    {
+      "id": "def-hookr-row",
+      "spec_ref": "§2 row 4 (HOOK_R); §2 note (guard + lean)",
+      "description": "Mirror of HOOK_L: guard -> CHIP 3; lean L -> DODGE; lean R -> HIT 12; nothing -> HIT; guard + lean L -> DODGE; guard + lean R -> CHIP.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "HOOK_R",
+          "HOOK_R",
+          "HOOK_R",
+          "HOOK_R",
+          "HOOK_R",
+          "HOOK_R"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 3500,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 5000,
+          "type": "lean",
+          "value": "L"
+        },
+        {
+          "t_ms": 5900,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 7500,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 8300,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 12000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 12000,
+          "type": "lean",
+          "value": "L"
+        },
+        {
+          "t_ms": 13200,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 13200,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 14500,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 14500,
+          "type": "lean",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].outcome",
+          "equals": "CHIP"
+        },
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 97
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].outcome",
+          "equals": "DODGE"
+        },
+        {
+          "t_ms": 5600,
+          "path": "boss.hp",
+          "approx": 126
+        },
+        {
+          "t_ms": 8000,
+          "path": "log.resolved[2].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 8000,
+          "path": "streamer.hp",
+          "approx": 85
+        },
+        {
+          "t_ms": 10400,
+          "path": "log.resolved[3].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 10400,
+          "path": "streamer.hp",
+          "approx": 73
+        },
+        {
+          "t_ms": 12800,
+          "path": "log.resolved[4].outcome",
+          "equals": "DODGE"
+        },
+        {
+          "t_ms": 12800,
+          "path": "boss.hp",
+          "approx": 117
+        },
+        {
+          "t_ms": 15200,
+          "path": "log.resolved[5].outcome",
+          "equals": "CHIP"
+        },
+        {
+          "t_ms": 15200,
+          "path": "streamer.hp",
+          "approx": 70
+        }
+      ]
+    },
+    {
+      "id": "def-super-row",
+      "spec_ref": "§2 row 5 (SUPER); §2 note (guard + lean)",
+      "description": "SUPER cells: guard -> CHIP 10; lean L -> DODGE; lean R -> DODGE; nothing -> HIT 25; guard + lean R -> DODGE. Moves are scripted, so the super gate and cap don't apply.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "SUPER",
+          "SUPER",
+          "SUPER",
+          "SUPER",
+          "SUPER"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 3500,
+          "type": "guard",
+          "value": false
+        },
+        {
+          "t_ms": 5000,
+          "type": "lean",
+          "value": "L"
+        },
+        {
+          "t_ms": 5900,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 7500,
+          "type": "lean",
+          "value": "R"
+        },
+        {
+          "t_ms": 8300,
+          "type": "lean",
+          "value": null
+        },
+        {
+          "t_ms": 12000,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 12000,
+          "type": "lean",
+          "value": "R"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].outcome",
+          "equals": "CHIP"
+        },
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "approx": 90
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].outcome",
+          "equals": "DODGE"
+        },
+        {
+          "t_ms": 5600,
+          "path": "boss.hp",
+          "approx": 126
+        },
+        {
+          "t_ms": 8000,
+          "path": "log.resolved[2].outcome",
+          "equals": "DODGE"
+        },
+        {
+          "t_ms": 8000,
+          "path": "boss.hp",
+          "approx": 117
+        },
+        {
+          "t_ms": 10400,
+          "path": "log.resolved[3].outcome",
+          "equals": "HIT"
+        },
+        {
+          "t_ms": 10400,
+          "path": "log.resolved[3].dmg",
+          "approx": 25
+        },
+        {
+          "t_ms": 10400,
+          "path": "streamer.hp",
+          "approx": 65
+        },
+        {
+          "t_ms": 12800,
+          "path": "log.resolved[4].outcome",
+          "equals": "DODGE"
+        },
+        {
+          "t_ms": 12800,
+          "path": "boss.hp",
+          "approx": 108
+        },
+        {
+          "t_ms": 12800,
+          "path": "streamer.hp",
+          "approx": 65
+        }
+      ]
+    },
+    {
+      "id": "def-keyboard-equal",
+      "spec_ref": "§3 (pose and keyboard are equal: hold K guard, hold A/D lean, J punch)",
+      "description": "Keyboard only: K down 300 ms before a JAB -> PERFECT; D held through a HOOK_L -> DODGE; J inside the counter window -> +1.5.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "JAB",
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 2900,
+          "type": "key",
+          "value": {
+            "key": "K",
+            "down": true
+          }
+        },
+        {
+          "t_ms": 3500,
+          "type": "key",
+          "value": {
+            "key": "K",
+            "down": false
+          }
+        },
+        {
+          "t_ms": 5000,
+          "type": "key",
+          "value": {
+            "key": "D",
+            "down": true
+          }
+        },
+        {
+          "t_ms": 5700,
+          "type": "key",
+          "value": {
+            "key": "J",
+            "down": true
+          }
+        },
+        {
+          "t_ms": 5750,
+          "type": "key",
+          "value": {
+            "key": "J",
+            "down": false
+          }
+        },
+        {
+          "t_ms": 6000,
+          "type": "key",
+          "value": {
+            "key": "D",
+            "down": false
+          }
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].outcome",
+          "equals": "PERFECT"
+        },
+        {
+          "t_ms": 3200,
+          "path": "boss.hp",
+          "approx": 124
+        },
+        {
+          "t_ms": 5600,
+          "path": "log.resolved[1].outcome",
+          "equals": "DODGE"
+        },
+        {
+          "t_ms": 5600,
+          "path": "boss.hp",
+          "approx": 115
+        },
+        {
+          "t_ms": 5700,
+          "path": "boss.hp",
+          "approx": 113.5
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+ "clip": "kash-webcam-2026-10-27",
+ "source": "Kash's MacBook Pro camera, QuickTime 1280x720@30, 192 s; video NOT committed (privacy), landmarks only",
+ "fps_landmarks": 10,
+ "labeller": "Devin, from Kash's spoken labels (faster-whisper small.en word timestamps); t = when he said the label, not movement onset",
+ "side_convention": "'lean_left' = Kash's own left. The saved QuickTime file is unmirrored, so his left = image RIGHT (shoulder midpoint x increases)",
+ "events": [
+  {
+   "t_ms": 1460,
+   "type": "start",
+   "note": "clap"
+  },
+  {
+   "t_ms": 4000,
+   "type": "neutral",
+   "note": "arms at sides"
+  },
+  {
+   "t_ms": 13190,
+   "type": "guard",
+   "note": "hold"
+  },
+  {
+   "t_ms": 23460,
+   "type": "lean_left",
+   "note": "standing"
+  },
+  {
+   "t_ms": 29020,
+   "type": "lean_left",
+   "note": "standing"
+  },
+  {
+   "t_ms": 34060,
+   "type": "lean_left",
+   "note": "standing"
+  },
+  {
+   "t_ms": 39830,
+   "type": "lean_right",
+   "note": "standing"
+  },
+  {
+   "t_ms": 43600,
+   "type": "lean_right",
+   "note": "standing"
+  },
+  {
+   "t_ms": 47830,
+   "type": "lean_right",
+   "note": "standing"
+  },
+  {
+   "t_ms": 52480,
+   "type": "guard_drop",
+   "note": "standing"
+  },
+  {
+   "t_ms": 59510,
+   "type": "guard_drop",
+   "note": "standing"
+  },
+  {
+   "t_ms": 65459,
+   "type": "guard_drop",
+   "note": "standing"
+  },
+  {
+   "t_ms": 76230,
+   "type": "jabs",
+   "note": "standing, straight at camera"
+  },
+  {
+   "t_ms": 94000,
+   "type": "angled_jabs",
+   "note": "approx"
+  },
+  {
+   "t_ms": 109900,
+   "type": "fight",
+   "note": "mixed"
+  },
+  {
+   "t_ms": 142040,
+   "type": "seated",
+   "note": "sits closer to camera"
+  },
+  {
+   "t_ms": 144800,
+   "type": "guard",
+   "note": "seated"
+  },
+  {
+   "t_ms": 154940,
+   "type": "lean_left",
+   "note": "seated"
+  },
+  {
+   "t_ms": 159300,
+   "type": "lean_left",
+   "note": "seated"
+  },
+  {
+   "t_ms": 163230,
+   "type": "lean_left",
+   "note": "seated"
+  },
+  {
+   "t_ms": 166720,
+   "type": "lean_right",
+   "note": "seated"
+  },
+  {
+   "t_ms": 169450,
+   "type": "lean_right",
+   "note": "seated"
+  },
+  {
+   "t_ms": 173400,
+   "type": "lean_right",
+   "note": "seated"
+  },
+  {
+   "t_ms": 180420,
+   "type": "jabs",
+   "note": "seated, 5 counted"
+  },
+  {
+   "t_ms": 186340,
+   "type": "end",
+   "note": "clap"
+  }
+ ]
+}
