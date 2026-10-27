@@ -1,0 +1,8 @@
+name = "streamer-vs-chat"
+compatibility_date = "2026-10-27"
+workers_dev = true
+routes = [{ pattern = "streamervschat.kashifnazir.com", custom_domain = true }]
+
+[assets]
+directory = "./dist-demo"
+not_found_handling = "single-page-application"

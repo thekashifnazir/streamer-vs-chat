@@ -15,7 +15,9 @@
     "dev": "tsx scripts/dev.ts",
     "dev:mock": "tsx scripts/dev-mock.ts",
     "test": "vitest run",
-    "sim": "tsx scripts/sim.ts"
+    "sim": "tsx scripts/sim.ts",
+    "build:demo": "tsx scripts/build-demo.ts",
+    "demo": "tsx scripts/demo.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -23,6 +25,7 @@
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "vite": "^7.1.0",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.154.0"
   }
 }

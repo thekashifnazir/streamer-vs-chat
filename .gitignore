@@ -7,3 +7,6 @@ dist/
 .DS_Store
 tokens.json
 tokens.json.*
+
+dist-demo/
+.wrangler/

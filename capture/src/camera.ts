@@ -1,6 +1,7 @@
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 import type { Landmark } from './classifier';
 export type FrameSample = {landmarks:Landmark[];at:number;inferenceMs:number;fps:number};
+export type PoseAssets = { wasmLoaderPath:string; wasmBinaryPath:string; modelAssetPath:string };
 
 /** Inference always sees the raw video; the preview alone is mirrored in CSS. */
 export class PoseCamera {
@@ -8,7 +9,7 @@ export class PoseCamera {
   private landmarker: PoseLandmarker | undefined;
   private frameId: number | undefined;
   private generation = 0;
-  constructor(private video:HTMLVideoElement,private onFrame:(sample:FrameSample)=>void,private onError:(message:string)=>void) {}
+  constructor(private video:HTMLVideoElement,private onFrame:(sample:FrameSample)=>void,private onError:(message:string)=>void,private assets?:PoseAssets) {}
   async start():Promise<boolean> {
     this.stop();
     const generation=this.generation;
@@ -21,9 +22,9 @@ export class PoseCamera {
         if(generation===this.generation){this.stop();this.onError('Camera disconnected. Restart the camera to continue.');}
       });
       await this.video.play();
-      const fileset=await FilesetResolver.forVisionTasks('/node_modules/@mediapipe/tasks-vision/wasm');
+      const fileset=this.assets?{wasmLoaderPath:this.assets.wasmLoaderPath,wasmBinaryPath:this.assets.wasmBinaryPath}:await FilesetResolver.forVisionTasks('/node_modules/@mediapipe/tasks-vision/wasm');
       const model=await PoseLandmarker.createFromOptions(fileset,{
-        baseOptions:{modelAssetPath:'/capture/public/models/pose_landmarker_lite.task',delegate:'CPU'},
+        baseOptions:{modelAssetPath:this.assets?.modelAssetPath??'/capture/public/models/pose_landmarker_lite.task',delegate:'CPU'},
         runningMode:'VIDEO',numPoses:1,outputSegmentationMasks:false,
       });
       if(generation!==this.generation) {model.close();return false;}
