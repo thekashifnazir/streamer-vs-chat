@@ -2,6 +2,10 @@ import type { PoseState, PunchEvent } from '@svc/shared';
 
 export type Landmark = { x: number; y: number; z?: number; visibility?: number };
 export const GUARD_METRIC = 'shoulder-normal-v1' as const;
+export const GUARD_MIN_ON = -0.5;
+export const GUARD_HYSTERESIS = 0.25;
+export type LeanThresholds = {L:number;R:number};
+export type PoseCalibration = {guardThreshold:number;leanThresholds?:LeanThresholds};
 export type PoseMetrics = {
   g: number;
   tilt: number;
@@ -58,7 +62,8 @@ const freshPunch = (): PunchTracker => ({ armed: false, peak: 0, peakAt: 0 });
 
 /** Stateful input classifier only; this never owns health, votes, or combat rules. */
 export class PoseClassifier {
-  private guardThreshold: number;
+  private guardThreshold = GUARD_MIN_ON;
+  private leanThresholds:LeanThresholds = {L:.5,R:.5};
   private guard = false;
   private lean: PoseState['lean'] = null;
   private candidate: PoseState['lean'] = null;
@@ -68,14 +73,19 @@ export class PoseClassifier {
   private lastPunchAt = -Infinity;
   private punches = { L: freshPunch(), R: freshPunch() };
 
-  constructor({ guardThreshold }: { guardThreshold: number }) {
-    if (!Number.isFinite(guardThreshold)) throw new Error('Guard calibration must be finite');
-    this.guardThreshold = guardThreshold;
-  }
-  setGuardThreshold(value: number) {
-    if (!Number.isFinite(value)) throw new Error('Guard calibration must be finite');
-    this.guardThreshold = value;
+  constructor(calibration:PoseCalibration) { this.setCalibration(calibration); }
+  setCalibration({guardThreshold,leanThresholds={L:.5,R:.5}}:PoseCalibration) {
+    if(!Number.isFinite(guardThreshold))throw new Error('Guard calibration must be finite');
+    if(![leanThresholds.L,leanThresholds.R].every(value=>Number.isFinite(value)&&value>=.3)) {
+      throw new Error('Lean thresholds must be finite magnitudes of at least0.3');
+    }
+    // A relaxed/waist pose must never become guard through a low calibration.
+    this.guardThreshold=Math.max(GUARD_MIN_ON,guardThreshold);
+    this.leanThresholds={...leanThresholds};
     this.reset();
+  }
+  setGuardThreshold(value:number) {
+    this.setCalibration({guardThreshold:value,leanThresholds:this.leanThresholds});
   }
   reset() {
     this.guard = false;
@@ -99,8 +109,8 @@ export class PoseClassifier {
       // Freeze the held lean, but discard partially accumulated dwell time.
       this.candidate = null;
     } else {
-      if ((this.lean === 'L' && metrics.tilt <= 0.25) || (this.lean === 'R' && metrics.tilt >= -0.25)) this.lean = null;
-      const desired = metrics.tilt > 0.5 ? 'L' : metrics.tilt < -0.5 ? 'R' : null;
+      if ((this.lean === 'L' && metrics.tilt <= this.leanThresholds.L/2) || (this.lean === 'R' && metrics.tilt >= -this.leanThresholds.R/2)) this.lean = null;
+      const desired = metrics.tilt > this.leanThresholds.L ? 'L' : metrics.tilt < -this.leanThresholds.R ? 'R' : null;
       if (desired !== this.lean && desired !== null) {
         if (this.candidate !== desired) { this.candidate = desired; this.candidateSince = at; }
         if (at - this.candidateSince >= 200) { this.lean = desired; this.candidate = null; }
@@ -121,10 +131,10 @@ export class PoseClassifier {
       }
       if (extension < 1.2) { tracker.armed = true; tracker.peak = 0; }
     }
-    // Engage at the calibrated midpoint; retain a held guard through lean noise.
+    // Engage at the calibrated upper threshold; retain a held guard through lean noise.
     // Tracking/framing loss still clears immediately, without a debounce delay.
     this.guard = metrics.wristsNearBody && (this.guard
-      ? metrics.g >= this.guardThreshold - 0.25
+      ? metrics.g >= this.guardThreshold - GUARD_HYSTERESIS
       : metrics.g > this.guardThreshold);
     return { state: { kind: 'pose', guard: this.guard, lean: this.lean, at, source: 'pose' }, punches, metrics };
   }

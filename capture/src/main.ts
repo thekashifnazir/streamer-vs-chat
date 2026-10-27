@@ -81,7 +81,7 @@ const camera=new PoseCamera(video,sample=>{
   cameraRunning=true;landmarks=sample.landmarks;lastFrameAt=performance.now();
   const before=calibration.snapshot;
   const calibrated=calibration.update(landmarks,sample.at);
-  if(calibrated.ready && !before.ready && calibrated.guardThreshold!==null) classifier.setGuardThreshold(calibrated.guardThreshold);
+  if(calibrated.ready && !before.ready && calibrated.guardThreshold!==null) classifier.setCalibration({guardThreshold:calibrated.guardThreshold,leanThresholds:calibrated.leanThresholds??undefined});
   const result=classifier.update(landmarks,sample.at);
   const metrics=result.metrics;
   const framed=inFrame();
@@ -96,7 +96,7 @@ const camera=new PoseCamera(video,sample=>{
   }
   recorder.frame(landmarks,sample.at);
   element('fps-debug').textContent=metrics?`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms`:NO_POSE_MESSAGE;
-  element('diagnostics').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms inference\n${metrics?`g ${metrics.g.toFixed(2)} · tilt ${metrics.tilt.toFixed(2)} · S ${metrics.shoulderWidth.toFixed(3)}`:NO_POSE_MESSAGE}\n${calibrated.guardThreshold===null?'CALIBRATION REQUIRED':`guard threshold ${calibrated.guardThreshold.toFixed(2)}`}\n${(performance.now()-sample.at).toFixed(1)} ms frame → input`;
+  element('diagnostics').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms inference\n${metrics?`g ${metrics.g.toFixed(2)} · tilt ${metrics.tilt.toFixed(2)} · S ${metrics.shoulderWidth.toFixed(3)}`:NO_POSE_MESSAGE}\n${calibrated.guardThreshold===null?'CALIBRATION REQUIRED':`guard ON ${calibrated.guardThreshold.toFixed(2)} · OFF ${(calibrated.guardThreshold-.25).toFixed(2)}`}\n${calibrated.leanThresholds?`lean ON L ${calibrated.leanThresholds.L.toFixed(2)} / R ${calibrated.leanThresholds.R.toFixed(2)}`:'LEAN CALIBRATION REQUIRED'}\n${(performance.now()-sample.at).toFixed(1)} ms frame → input`;
   if(recorder.recording)recordStatus.textContent=`Recording ${recorder.frameCount} frames · K/A/D/J supply labels in either input mode.`;
 },message=>{stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());});
 
@@ -135,7 +135,7 @@ element('record-start').addEventListener('click',()=>{
   if(!calibration.snapshot.ready){recordStatus.textContent='Complete webcam calibration before recording so replay uses your guard threshold.';return;}
   startRecordButton.disabled=true;stopRecordButton.disabled=false;
   posture.disabled=true;element<HTMLButtonElement>('start-calibration').disabled=true;
-  recorder.start(performance.now(),posture.value==='seated'?'seated':'standing',calibration.snapshot.guardThreshold,keyboard.physical);
+  recorder.start(performance.now(),posture.value==='seated'?'seated':'standing',calibration.snapshot.guardThreshold,keyboard.physical,{leanThresholds:calibration.snapshot.leanThresholds??undefined,leanPeaks:calibration.snapshot.leanPeaks??undefined,guardMedians:calibration.snapshot.guardMedians??undefined});
   recordStatus.textContent='Recording · K guard · A/D lean · J punch. Raw landmarks only; no video.';
 });
 element('record-stop').addEventListener('click',()=>{

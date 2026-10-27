@@ -1,8 +1,8 @@
 import { scoreCueDirections } from './cue';
-import { PoseClassifier, measurePose, type Landmark } from '../../capture/src/classifier.js';
+import { PoseClassifier, GUARD_MIN_ON, measurePose, type Landmark, type LeanThresholds } from '../../capture/src/classifier.js';
 
 export type Frame = {t:number;lm: Array<Landmark | number[]> | null};
-export type Fixture = {version?:number;calibration?:{guardThreshold:number|null;guardMetric?:string};frames:Frame[]};
+export type Fixture = {version?:number;calibration?:{guardThreshold:number|null;guardMetric?:string;leanThresholds?:LeanThresholds;leanPeaks?:LeanThresholds;guardMedians?:{neutral:number;resting:number;guard:number}};frames:Frame[]};
 export type Labels = {
   version?:number; label_source?:'key'|'cue'; onset_verified?:boolean; labeller?:string;
   events?:Array<{t?:number;t_ms?:number;event?:string;type?:string;side?:string}>;
@@ -13,7 +13,7 @@ export function normalizeLandmarks(raw: Frame['lm']): Landmark[] {
   return (raw ?? []).map(p => Array.isArray(p) ? {x:p[0]!,y:p[1]!,z:p[2],visibility:p[3]} : p);
 }
 export function replayFixture(fixture:Fixture, guardThreshold = fixture.calibration?.guardThreshold ?? -1.01) {
-  const classifier=new PoseClassifier({guardThreshold});
+  const classifier=new PoseClassifier({guardThreshold,leanThresholds:fixture.calibration?.leanThresholds});
   const events:ScoredEvent[]=[];
   const states:Array<{t:number;guard:boolean;lean:'L'|'R'|null;valid:boolean}>=[];
   let previous={guard:false,lean:null as 'L'|'R'|null};
@@ -91,7 +91,7 @@ export function scoreRecordedFixture(fixture:Fixture,labels:Labels,punchGate?:Pu
   const defenceLabelsMatched=defence.matched===defence.expected;
   const cue=labels.label_source==='cue'?scoreCueDirections(replay,labels):null;
   const gate=punchGate?{...punchGate,pass:punches.recall>=punchGate.minRecall&&punches.precision>=punchGate.minPrecision}:null;
-  return {labelSource:labels.label_source??'key',onsetVerified:labels.onset_verified??null,cue,toleranceMs:150,observedHorizon:{first,last},notScored,overall,perEvent,defence,punches,
+  return {calibrationUsed:{guardThreshold:Math.max(GUARD_MIN_ON,fixture.calibration!.guardThreshold!),leanThresholds:fixture.calibration?.leanThresholds??{L:.5,R:.5}},labelSource:labels.label_source??'key',onsetVerified:labels.onset_verified??null,cue,toleranceMs:150,observedHorizon:{first,last},notScored,overall,perEvent,defence,punches,
     allLabelsMatched:overall.matched===overall.expected,defenceLabelsMatched,punchGate:gate,
     strictTimingAcceptancePass:defenceLabelsMatched&&(gate?.pass??true),
     acceptancePass:(cue?cue.pass:defenceLabelsMatched)&&(gate?.pass??true)};

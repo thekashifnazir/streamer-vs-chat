@@ -1,10 +1,11 @@
-import { GUARD_METRIC, type Landmark } from './classifier';
+import { GUARD_METRIC, type Landmark, type LeanThresholds } from './classifier';
 export type HeldLabels = {guard:boolean;lean:'L'|'R'|null};
 type LabelEvent = 'guard'|'lean_L'|'lean_R';
 export type RecordingLabels = {
   version:1; label_source:'key'; mode:'standing'|'seated'; intervals:{event:LabelEvent;start:number;end:number}[];
   events:{event:'left_punch';t:number}[];
 };
+export type CalibrationEvidence = {leanThresholds?:LeanThresholds;leanPeaks?:LeanThresholds;guardMedians?:{neutral:number;resting:number;guard:number}};
 export class FixtureRecorder {
   private startAt = 0;
   private active = false;
@@ -12,8 +13,9 @@ export class FixtureRecorder {
   private labels: RecordingLabels = {version:1,label_source:'key',mode:'standing',intervals:[],events:[]};
   private opened = new Map<LabelEvent,number>();
   private threshold: number | null = null;
-  start(at:number, mode:'standing'|'seated', guardThreshold:number|null, held:HeldLabels): void {
-    this.startAt=at; this.active=true; this.frames=[]; this.opened.clear(); this.threshold=guardThreshold;
+  private evidence:CalibrationEvidence = {};
+  start(at:number, mode:'standing'|'seated', guardThreshold:number|null, held:HeldLabels, evidence:CalibrationEvidence={}): void {
+    this.startAt=at; this.active=true; this.frames=[]; this.opened.clear(); this.threshold=guardThreshold;this.evidence=structuredClone(evidence);
     this.labels={version:1,label_source:'key',mode,intervals:[],events:[]};
     this.key(held,at);
   }
@@ -39,7 +41,7 @@ export class FixtureRecorder {
     if(!this.active) return null;
     this.key({guard:false,lean:null},at); this.active=false;
     return {
-      landmarks:{version:1,mode:this.labels.mode,calibration:{guardThreshold:this.threshold,guardMetric:GUARD_METRIC},frames:this.frames},
+      landmarks:{version:1,mode:this.labels.mode,calibration:{guardThreshold:this.threshold,guardMetric:GUARD_METRIC,...this.evidence},frames:this.frames},
       labels:this.labels,
     };
   }
