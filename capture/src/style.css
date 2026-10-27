@@ -67,3 +67,5 @@ header{align-items:flex-start;flex-direction:column;gap:12px}
 .resume { width: 100%; margin-top: 12px; }
 
 .fps-debug{position:absolute;right:16px;top:14px;background:#0d0b13dc;padding:4px 8px;font:12px ui-monospace,monospace;color:#c4eedf}
+
+.session-warning{color:var(--yellow);font-weight:700}

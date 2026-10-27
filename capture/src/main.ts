@@ -34,6 +34,10 @@ const calibration=createCalibration({onChange(snapshot){
   element<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
 }});
 const keyboard=createKeyboard({emit:input=>emit(input),label:label=>recorder.key(label,label.at)});
+function sessionWarning(message='') {
+  const warning=element('session-warning');
+  warning.textContent=message;warning.hidden=!message;
+}
 function allowed() { return clearSpace.checked && !stopped; }
 function updateKeyboard() { keyboard.setEnabled(source.value==='keyboard' && allowed()); }
 function neutral(at=performance.now()):PoseState {
@@ -125,11 +129,12 @@ posture.addEventListener('change',()=>{
   calibration.reset();classifier.reset();lastPose=neutral();
   if(source.value==='pose')emit(neutral());
 });
-source.addEventListener('change',()=>{source.blur();classifier.reset();lastPose=neutral();transmit(neutral());updateKeyboard();});
-clearSpace.addEventListener('change',()=>{if(!clearSpace.checked)transmit(neutral());updateKeyboard();});
+source.addEventListener('change',()=>{source.blur();sessionWarning();classifier.reset();lastPose=neutral();transmit(neutral());updateKeyboard();});
+clearSpace.addEventListener('change',()=>{sessionWarning();if(!clearSpace.checked)transmit(neutral());updateKeyboard();});
 element('stop-input').addEventListener('click',()=>emit({kind:'control',action:'stop',by:'capture'}));
 element('resume-input').addEventListener('click',()=>{
   if(!clearSpace.checked){connectionStatus.textContent='Confirm your clear space before resuming.';return;}
+  if(socket?.readyState===WebSocket.OPEN)sessionWarning();
   stopped=false;transmit({kind:'control',action:'resume',by:'capture'});updateKeyboard();
 });
 element('record-start').addEventListener('click',()=>{
@@ -166,9 +171,10 @@ window.addEventListener('beforeunload',()=>{
 updateKeyboard();connect();
 
 function sessionCommand(action:'start'|'next-round') {
-  if(!allowed()){element('game-status').textContent='Confirm your clear space and Resume inputs before starting.';return;}
-  if(source.value==='pose'&&!calibration.snapshot.ready){element('game-status').textContent='Finish webcam calibration, or select Keyboard.';return;}
-  if(socket?.readyState!==WebSocket.OPEN){element('game-status').textContent='Connect to the local server first.';return;}
+  if(!allowed()){sessionWarning('Confirm your clear space and Resume inputs before starting.');return;}
+  if(source.value==='pose'&&!calibration.snapshot.ready){sessionWarning('Finish webcam calibration, or select Keyboard.');return;}
+  if(socket?.readyState!==WebSocket.OPEN){sessionWarning('Connect to the local server first.');return;}
+  sessionWarning();
   socket.send(JSON.stringify({kind:'session',action}));
 }
 element('start-match').addEventListener('click',()=>sessionCommand('start'));
