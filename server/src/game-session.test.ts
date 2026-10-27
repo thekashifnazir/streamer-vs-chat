@@ -21,6 +21,7 @@ it('takes input at receive time, instantly freezes/vetoes on authorized chat, an
   at(2500);game.chat({user:'v',text:'!veto',simulated:true,role:'viewer'});expect(game.state.paused).toBe(false);
   game.input({kind:'pose',guard:true,lean:null,at:123,source:'keyboard'},2500);
   expect(game.state.input.guard_at).toBe(2500);
+  expect(game.state.log.inputs.at(-1)).toMatchObject({at:2500,capture_at:123,source:'keyboard',guard:true});
   game.chat({user:'m',text:'!veto',simulated:true,role:'mod'});expect(game.state.activeAttack).toBeNull();
   at(10000);game.advance();expect(game.state.streamer.hp).toBe(100);expect(game.state.paused).toBe(true);
   game.chat({user:'b',text:'!resume',simulated:true,role:'broadcaster'});expect(game.state.paused).toBe(false);

@@ -59,11 +59,11 @@ export class GameSound {
     }
     return true;
   }
-  play(name:Sound,voice=false):void {
+  play(name:Sound,voice=false,priority=false):void {
     const context=this.context,buffer=this.buffers.get(name);
     if(!this.enabled||!context||!buffer||this.dead)return;
     if(voice) {
-      if(context.currentTime-this.lastVoiceAt<2)return;
+      if(!priority&&context.currentTime-this.lastVoiceAt<2)return;
       this.lastVoiceAt=context.currentTime;
       this.musicGain!.gain.cancelScheduledValues(context.currentTime);
       this.musicGain!.gain.setValueAtTime(.25,context.currentTime);

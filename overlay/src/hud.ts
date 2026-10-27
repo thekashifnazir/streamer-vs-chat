@@ -6,6 +6,31 @@ import { GameSound } from './sound';
 const commands:[Move,string][]=[['JAB','!jab'],['HOOK_L','!hookl'],['HOOK_R','!hookr'],['COMBO','!combo'],['SUPER','!super']];
 export const defenceCue=(move:Move)=>move==='HOOK_L'?'LEAN →':move==='HOOK_R'?'← LEAN':move==='SUPER'?'LEAN ANY WAY':'GUARD';
 const names:Record<Move,string>={JAB:'JAB',HOOK_L:'HOOK LEFT',HOOK_R:'HOOK RIGHT',COMBO:'COMBO',SUPER:'SUPER'};
+export const FIXED_STAMP_MS=1800;
+/** Authoritative scouting state projected into presentation; no thresholds live in the HUD. */
+export function scoutingPresentation(state:GameState) {
+  if(state.round.number<2)return {kind:'hidden'} as const;
+  const {card,last_fix:fix,cooldown}=state.scouting;
+  if(card) {
+    const observed=state.scouting.dodges.slice(state.scouting.since_fix);
+    const count=observed.filter(side=>side===card).length;
+    const n=state.scouting.n;
+    const command=card==='L'?'!hookl':'!hookr';
+    const move:Move=card==='L'?'HOOK_L':'HOOK_R';
+    return {kind:'habit',side:card,n,count,percent:Math.round(count/Math.max(1,n)*100),command,
+      highlightedMove:cooldown===0?move:undefined,cooldown} as const;
+  }
+  const age=(state.clock.paused_at??state.now)-(fix?.at??-Infinity);
+  if(fix&&age>=0&&age<FIXED_STAMP_MS)return {kind:'fixed',side:fix.side,healed:fix.hp_gained} as const;
+  return {kind:'hidden'} as const;
+}
+export function exploitHabitNote(state:GameState):string {
+  const attack=state.activeAttack;
+  if(!attack?.exploit)return '';
+  const side=attack.exploit_side??(attack.move==='HOOK_L'?'L':attack.move==='HOOK_R'?'R':null);
+  return side?`EXPLOIT · YOU DODGE ${side==='L'?'LEFT':'RIGHT'}`:'';
+}
+
 /** The same view consumes server ticks and local demo reducer states; it owns no game rules. */
 export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean}={}) {
   host.classList.add('rails-host');
@@ -13,7 +38,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <aside class="rail streamer"><header><p class="eyebrow">STREAMER</p><h1>KASH</h1></header>
   <div class="hp"><strong data-id="streamer-hp">100</strong><span>%</span></div><div class="health-bar" data-id="streamer-bar"><i></i><span></span></div>
   <p class="rounds">ROUNDS <strong data-id="streamer-wins">0</strong> – <span data-id="boss-wins">0</span></p>
-  <section class="scouting" data-id="scouting" hidden><p class="eyebrow">SCOUTED</p><h2 data-id="habit">DODGES LEFT</h2><strong class="habit-share" data-id="habit-share"></strong><p data-id="habit-n"></p><p>CHAT: VOTE <b data-id="exploit-command"></b></p></section>
+  <section class="scouting" data-id="scouting" hidden aria-live="polite"><p class="eyebrow" data-id="scouting-label">SCOUTED</p><div data-id="habit-details"><h2 data-id="habit">DODGES LEFT</h2><strong class="habit-share" data-id="habit-share"></strong><p class="scouting-evidence"><span data-id="habit-n"></span><span data-id="exploit-cooldown"></span></p><p>CHAT: VOTE <b data-id="exploit-command"></b></p></div><div data-id="fixed-details" hidden><strong class="fixed-stamp">FIXED!</strong><p data-id="fixed-reward"></p></div></section>
   <section class="status-card"><p class="eyebrow" data-id="phase">READY TO FIGHT</p><p data-id="status">GUARD STRAIGHTS.<br>LEAN FROM SWINGS.</p><small data-id="result"></small></section>
   <footer><p class="simulated" data-id="simulated" hidden>● SIMULATED CHAT</p><p class="connection" data-id="connection" role="status">CONNECTING…</p><div class="hud-options"><button data-id="sound" type="button">SOUND OFF · M</button><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer></aside>
   <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b></span></div>
@@ -25,6 +50,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="440" role="img" aria-label="Chat Golem boss"></canvas></aside></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
+  const setText=(id:string,value:string)=>{const element=el(id);if(element.textContent!==value)element.textContent=value;};
   stage.classList.toggle('plain',!!options.plain);
   el<HTMLInputElement>('plain').checked=!!options.plain;
   el('simulated').hidden=!options.simulated;
@@ -74,11 +100,23 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
     el('hype').textContent=`${Math.round(state.hype)}%`;el('hype-fill').style.width=`${state.hype}%`;
     const superReady=state.hype>=100&&state.supers_used<3;
-    const card=state.round.number>=2?state.scouting.card:null;
-    el('scouting').hidden=!card;
-    const exploit=card==='L'?'HOOK_L':card==='R'?'HOOK_R':undefined;
-    if(card){el('habit-share').textContent=`${Math.round(state.scouting.dodges.slice(state.scouting.since_fix).filter(side=>side===card).length/Math.max(1,state.scouting.n)*100)}%`;el('habit').textContent=`DODGES ${card==='L'?'LEFT':'RIGHT'}`;el('habit-n').textContent=`n=${state.scouting.n}`;el('exploit-command').textContent=card==='L'?'!hookl':'!hookr';}
-    renderTally({kind:'tally',tally:state.tally,voters:state.voters,simulated},superReady,exploit);
+    const scouting=scoutingPresentation(state);
+    el('scouting').hidden=scouting.kind==='hidden';
+    el('scouting').classList.toggle('fixed',scouting.kind==='fixed');
+    el('habit-details').hidden=scouting.kind!=='habit';
+    el('fixed-details').hidden=scouting.kind!=='fixed';
+    if(scouting.kind==='habit') {
+      setText('scouting-label','SCOUTED');
+      setText('habit-share',`${scouting.percent}%`);
+      setText('habit',`DODGES ${scouting.side==='L'?'LEFT':'RIGHT'}`);
+      setText('habit-n',`n=${scouting.n}`);
+      setText('exploit-command',scouting.command);
+      setText('exploit-cooldown',scouting.cooldown>0?`${scouting.cooldown} BEAT${scouting.cooldown===1?'':'S'} COOLDOWN`:'EXPLOIT READY');
+    } else if(scouting.kind==='fixed') {
+      setText('scouting-label','HABIT BROKEN');
+      setText('fixed-reward',scouting.healed>0?`+${scouting.healed} HP · KEEP MIXING IT UP`:'HP FULL · KEEP MIXING IT UP');
+    }
+    renderTally({kind:'tally',tally:state.tally,voters:state.voters,simulated},superReady,scouting.kind==='habit'?scouting.highlightedMove:undefined);
     el('beat').textContent=state.paused?'· PAUSED':`· NEXT IN ${((2400-state.round.elapsed_ms%2400)/1000).toFixed(1)}s`;
     const attack=state.activeAttack;
     const telegraph=!!attack&&!attack.vetoed&&(state.clock.paused_at??state.now)<attack.lands_at&&!state.round.over;
@@ -86,32 +124,33 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('telegraph').hidden=!(telegraph||counter);el('telegraph').classList.toggle('counter',counter&&!telegraph);
     el('banner').textContent=telegraph?'HANDS UP!':'COUNTER!';
     el('move').textContent=telegraph?names[attack!.move]:'BONUS PUNCH';el('cue').textContent=telegraph?defenceCue(attack!.move):'J';
-    el('exploit-note').textContent=telegraph&&attack!.exploit?'CHAT IS EXPLOITING YOUR HABIT':'';
+    el('exploit-note').textContent=telegraph?exploitHabitNote(state):'';
     el('left-arrow').hidden=!(telegraph&&(attack!.move==='HOOK_R'||attack!.move==='SUPER'));
     el('right-arrow').hidden=!(telegraph&&(attack!.move==='HOOK_L'||attack!.move==='SUPER'));
     el('phase').textContent=state.paused?'PAUSED':state.round.over?'ROUND OVER':superReady?'SUPER READY':'DEFENCE FIRST';
     el('status').textContent=state.round.over?`${state.round.winner==='streamer'?'STREAMER':'CHAT'} WINS`:state.paused?'RESUME WHEN READY.':'GUARD STRAIGHTS.\nLEAN FROM SWINGS.';
     el('result').textContent=state.round.over?(state.match.winner?'MATCH COMPLETE':'NEXT ROUND WHEN READY'):'';
     if(!previous){
-      for(const entry of state.log.telegraphs)heard.add(`tell:${state.round.number}:${entry.beat}`);
-      for(const entry of state.log.resolved)heard.add(`hit:${state.round.number}:${entry.beat}`);
+      for(const entry of state.log.telegraphs)heard.add(`tell:${entry.round}:${entry.beat}`);
+      for(const entry of state.log.resolved)heard.add(`hit:${entry.round}:${entry.beat}`);
       for(const entry of state.log.rounds)heard.add(`round-end:${entry.number}`);
     }
     if(telegraph){const key=`tell:${state.round.number}:${attack!.beat}`;once(key,()=>{sound.play('telegraph');sound.play('handsVoice',true);});clip=`${moveClip[attack!.move]}_windup`;clipAt=attack!.at;}
-    const last=state.log.resolved.at(-1);
-    if(last){once(`hit:${state.round.number}:${last.beat}`,()=>{
+    const scoutChanged=!!previous&&(state.scouting.fixes>previous.scouting.fixes||!!state.scouting.card&&!previous.scouting.card);
+    const last=state.log.resolved.filter(entry=>entry.round===state.round.number).at(-1);
+    if(last){once(`hit:${last.round}:${last.beat}`,()=>{
       if(last.outcome==='BLOCK'){sound.play('block');sound.play('blockedVoice',true);}
       else if(last.outcome==='PERFECT'){sound.play('perfect');sound.play('perfectVoice',true);}
       else if(last.outcome==='DODGE')sound.play('dodge');else sound.play('hit');
-      if(last.counter_dmg>0){sound.play('counter');sound.play('counterAccent');sound.play('counterVoice',true);}
+      if(last.counter_dmg>0){sound.play('counter');sound.play('counterAccent');if(!scoutChanged)sound.play('counterVoice',true);}
 
     });}
     if(!previous&&state.round.elapsed_ms<1000&&!state.round.over)sound.play('round1',true);
     if(previous&&state.round.number!==previous.round.number){sound.play(state.round.number===2?'round2':'round3',true);sound.play('fight');}
     if(previous&&state.now-lastVoteSoundAt>=125&&commands.some(([move])=>state.tally[move]!==previous!.tally[move])&&state.voters>0){sound.play('vote');lastVoteSoundAt=state.now;}
     if(previous&&state.hype>=100&&previous.hype<100)sound.play('super');
-    if(previous&&state.scouting.card&&!previous.scouting.card)sound.play('weakness',true);
-    if(previous&&state.scouting.fixes>previous.scouting.fixes){sound.play('fixed',true);sound.play('cheer');}
+    if(previous&&state.scouting.card&&!previous.scouting.card)sound.play('weakness',true,true);
+    if(previous&&state.scouting.fixes>previous.scouting.fixes){sound.play('fixed',true,true);sound.play('cheer');}
     if(previous&&state.boss.hp<previous.boss.hp&&state.log.resolved.length===previous.log.resolved.length)sound.play('bonus');
     const result=state.log.rounds.at(-1);
     if(result)once(`round-end:${result.number}`,()=>{sound.play(result.winner==='streamer'?'streamerWins':'chatWins',true);if(result.reason==='ko'){sound.play('ko');sound.play('koVoice',true);}});

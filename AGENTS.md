@@ -5,7 +5,7 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - dev (mock Twitch): npm run dev:mock   # twitch CLI mock + chat shim + server + overlay
 - dev (live Twitch): npm run dev
 - test: npm test   # unit, golden-vector, transport and recorded-landmark regression tests
-- balance: npm run sim   # 4000 single rounds per cell; Fails if casual win rate leaves 30-70% or no-punch drops under 30% at 0/3/50/500 viewers
+- balance: npm run sim   # 4000 single R1 rounds/cell plus 4000 scouting-enabled R2 rounds/cell after real R1 warmups; both fail if casual leaves 30-70% or no-punch drops below 30% at 0/3/50/500 viewers
 
 ## Rules
 - Server owns game state; overlay/capture are views/inputs over ws.
@@ -19,7 +19,7 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - SPEC.md is the source of truth for rules, numbers, event types and acceptance tests. docs/HUD.md Recommended layout (B) and docs/hud-rails.png define the Rails HUD.
 - Node 22 + TypeScript, npm workspaces: server/, overlay/, capture/, shared/. Server/auth/WebSocket port 3000; Vite port 5173 serves /overlay and /capture.
 - All game state belongs on the server. Overlay is a view; capture provides inputs. Pose and keyboard are equal inputs; punches are bonus damage. The engine is a pure step(state,event,now) reducer, with no internal clock calls.
-- Current scope includes the Day 3 pure shared reducer, server loop, result queue, golden-vector tests, balance sim, offline demo and basic asset wiring. Keep the accepted pose classifier unchanged for engine work. Day 4 events, clips and Day 6 feel/mix polish remain later work.
+- Current scope includes the Day 3 pure shared reducer, server loop, result queue, golden-vector tests, balance sim, offline demo and basic asset wiring. Keep the accepted pose classifier unchanged for engine work. Day 4 scouting is implemented; optional Twitch events, clips and Day 6 feel/mix polish remain later work.
 - demo: npm run demo (4173); static build: npm run build:demo -> dist-demo/. No runtime CDN or credential loading. Do not run wrangler login/deploy: Kash/Claude handle those on the Mac.
 - Two server-held Twitch tokens: bot user:read:chat user:write:chat user:bot; broadcaster channel:bot clips:edit. bits:read/channel:read:subscriptions and cheer/subscribe/raid subscriptions are day 4 work.
 - Secrets belong in .env and gitignored tokens.json. Never commit tokens or print credentials.
@@ -27,3 +27,7 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - Never send scripted chat to a live channel. Label simulated input SIMULATED on screen. Mock startup must not load live tokens.
 - Do not copy prep-repo spike code. Existing fixture data and reference docs may be reused.
 - Use subagents for independent lanes where useful. Run /review before each commit; if unavailable, perform and document an independent review pass before committing.
+
+## Scouting evidence
+- Scouting logs carry across rounds with round/beat identity; retain receive and raw capture timestamps. Receive time decides gameplay; a held defence is not a zero-ms reaction. Log meaningful transitions rather than every heartbeat.
+- Cards/fixes are server-owned. Only successful hook/SUPER dodge leans count; after a fix require twelve fresh samples. The HUD consumes authoritative evidence, cooldown and fix/heal metadata.

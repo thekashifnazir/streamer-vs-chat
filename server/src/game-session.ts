@@ -15,7 +15,7 @@ export class GameSession {
   private armed=false;
   private nextRoundAt:number|null=null;
   private safetyFrozen=false;
-  private latestPose:PoseState|null=null;
+  private latestPose:(PoseState&{capture_at?:number})|null=null;
   private latestPoseAt=-Infinity;
   private results:ResultsQueue;
   constructor(private options:{mock:boolean;seed?:number;now?:()=>number;sendResult:(text:string,simulated:boolean)=>Promise<unknown>;onError?:(error:unknown)=>void}) {
@@ -58,7 +58,7 @@ export class GameSession {
   }
   input(event:StreamerInput,receivedAt=this.now()):void {
     const now=this.armed?receivedAt:this.current.now;
-    if(event.kind==='pose') {this.latestPose={...event,at:receivedAt};this.latestPoseAt=receivedAt;}
+    if(event.kind==='pose') {this.latestPose={...event,capture_at:event.at,at:receivedAt};this.latestPoseAt=receivedAt;}
     if(event.kind==='control') {
       this.safetyFrozen=event.action!=='resume';
       this.apply(event,now);
@@ -70,7 +70,7 @@ export class GameSession {
         this.apply({...pose,at:receivedAt},now);
       }
     } else if(this.armed&&!this.safetyFrozen) {
-      this.apply({...event,at:receivedAt},now);
+      this.apply(event.kind==='pose'?{...event,capture_at:event.at,at:receivedAt}:{...event,at:receivedAt},now);
     }
   }
   viewers(count:number):void {
