@@ -1,7 +1,8 @@
 import './style.css';
 import type { PoseState, StreamerInput } from '@svc/shared';
 import { PoseClassifier, measurePose, type Landmark } from './classifier';
-import { createCalibration } from './calibration';
+import { createCalibration, type CalibrationMode } from './calibration';
+import {createCalibrationProfiles} from './calibration-profile';
 import { createKeyboard } from './keyboard';
 import { PoseCamera } from './camera';
 import { FixtureRecorder, saveJson } from './recorder';
@@ -34,6 +35,7 @@ function updateReplay(){
   }else{replay.stop();element('replay-status').textContent='Replay off. Saved replays remain available until this page closes.';}
 }
 let socket:WebSocket;
+let reconnectTimer:number|undefined;
 let disposed=false;
 let stopped=false;
 let cameraRunning=false;
@@ -52,8 +54,20 @@ const classifier=new PoseClassifier({guardThreshold:0});
 const calibration=createCalibration({onChange(snapshot){
   element('calibration-status').textContent=snapshot.message;
   element<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
+  element<HTMLButtonElement>('save-calibration').disabled=!snapshot.ready||recorder.recording;
 }});
 const keyboard=createKeyboard({emit:input=>emit(input),label:label=>recorder.key(label,label.at)});
+const profiles=createCalibrationProfiles(()=>localStorage);
+function applyCalibration(){const saved=calibration.snapshot;if(saved.ready&&saved.guardThreshold!==null)classifier.setCalibration({guardThreshold:saved.guardThreshold,leanThresholds:saved.leanThresholds??undefined,guardReleaseBand:saved.guardReleaseBand??undefined,guardMedians:saved.guardMedians??undefined,neutralSwayP95:saved.neutralSwayP95??undefined});}
+function restoreCalibration(selectPose=false){
+ const mode=posture.value as CalibrationMode,saved=profiles.load(mode);if(!saved||!calibration.restore(saved,mode))return false;
+ classifier.reset();applyCalibration();lastPose=neutral();stopped=true;if(selectPose)source.value='pose';updateKeyboard();
+ transmit(neutral());transmit({kind:'control',action:'stop',by:'capture'});
+ element('saved-calibration-status').textContent=`Saved ${mode} calibration restored. Start camera and check framing; confirm clear space and Resume inputs. Recalibrate after changing camera or position.`;return true;
+}
+element('save-calibration').addEventListener('click',()=>{if(recorder.recording)return;element('saved-calibration-status').textContent=profiles.save(calibration.snapshot)?`Saved ${calibration.snapshot.mode} calibration numbers in this browser. Recalibrate if camera or position changes.`:'Calibration could not be saved. Complete calibration and allow browser storage.';element('save-calibration').blur();});
+element('forget-calibration').addEventListener('click',()=>{if(recorder.recording)return;const mode=posture.value as CalibrationMode;element('saved-calibration-status').textContent=profiles.forget(mode)?`Saved ${mode} calibration forgotten. Current in-memory calibration stays until reload or recalibration.`:'Browser storage is unavailable.';element('forget-calibration').blur();});
+
 function sessionWarning(message='') {
   const warning=element('session-warning');
   warning.textContent=message;warning.hidden=!message;
@@ -79,13 +93,16 @@ function emit(input:StreamerInput) {
   transmit(input);
 }
 function connect() {
-  socket=new WebSocket(`ws://${location.hostname}:3000/ws`);
+  if(disposed)return;
+  const connection=new WebSocket(`ws://${location.hostname}:3000/ws`);socket=connection;
   socket.addEventListener('open',()=>{
+    if(disposed||socket!==connection){connection.close();return;}
     connectionStatus.textContent='Server connected';sendOptions();
     transmit(neutral());
     if(stopped) transmit({kind:'control',action:'stop',by:'capture'});
   });
   socket.addEventListener('message',event=>{
+    if(disposed||socket!==connection)return;
     try {
       const message=JSON.parse(String(event.data));
       if(message.kind==='replay-capture') {
@@ -107,8 +124,8 @@ function connect() {
       } else if(message.kind==='input-error') connectionStatus.textContent=message.message;
     } catch { /* Ignore unrelated/malformed messages. */ }
   });
-  socket.addEventListener('close',()=>{connectionStatus.textContent='Server disconnected · inputs are not queued';if(!disposed)window.setTimeout(connect,1000);});
-  socket.addEventListener('error',()=>socket.close());
+  socket.addEventListener('close',()=>{if(disposed||socket!==connection)return;stopped=true;keyboard.release();updateKeyboard();connectionStatus.textContent='Server disconnected · inputs stopped. Resume after reconnect.';if(!disposed)reconnectTimer=window.setTimeout(connect,1000);});
+  socket.addEventListener('error',()=>connection.close());
 }
 function inFrame() {
   return [0,11,12,15,16].every(i=>{
@@ -160,6 +177,7 @@ element('start-calibration').addEventListener('click',()=>{
 posture.addEventListener('change',()=>{
   posture.blur();sendOptions();
   calibration.reset();classifier.reset();lastPose=neutral();
+  if(!restoreCalibration())element('saved-calibration-status').textContent='No compatible saved calibration for this posture. Calibrate before webcam play.';
   if(source.value==='pose')emit(neutral());
 });
 source.addEventListener('change',()=>{source.blur();sessionWarning();classifier.reset();lastPose=neutral();transmit(neutral());updateKeyboard();});
@@ -168,7 +186,10 @@ element('stop-input').addEventListener('click',()=>emit({kind:'control',action:'
 element('resume-input').addEventListener('click',()=>{
   if(benchmarking){connectionStatus.textContent='Wait for the camera comparison before resuming.';return;}
   if(!clearSpace.checked){connectionStatus.textContent='Confirm your clear space before resuming.';return;}
-  if(socket?.readyState===WebSocket.OPEN)sessionWarning();
+  if(socket?.readyState!==WebSocket.OPEN){connectionStatus.textContent='Connect to the local server before resuming.';sessionWarning('Connect to the local server first.');return;}
+  sessionWarning();
+  const resumeMetrics=source.value==='pose'?measurePose(landmarks):null;
+  if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!inFrame()||!resumeMetrics||(posture.value==='seated'&&resumeMetrics.shoulderWidth>.2))){connectionStatus.textContent='Start camera with valid calibration and keep head, shoulders and wrists in frame before resuming.';return;}
   stopped=false;transmit({kind:'control',action:'resume',by:'capture'});updateKeyboard();
 });
 element('record-start').addEventListener('click',()=>{
@@ -176,14 +197,14 @@ element('record-start').addEventListener('click',()=>{
   if(!cameraRunning){recordStatus.textContent='Start the camera to record landmarks. Label with K / A / D / J.';return;}
   if(!calibration.snapshot.ready){recordStatus.textContent='Complete webcam calibration before recording so replay uses your guard threshold.';return;}
   startRecordButton.disabled=true;stopRecordButton.disabled=false;
-  posture.disabled=true;element<HTMLButtonElement>('start-calibration').disabled=true;
+  posture.disabled=true;element<HTMLButtonElement>('start-calibration').disabled=true;element<HTMLButtonElement>('save-calibration').disabled=true;element<HTMLButtonElement>('forget-calibration').disabled=true;
   recorder.start(performance.now(),posture.value==='seated'?'seated':'standing',calibration.snapshot.guardThreshold,keyboard.physical,{leanThresholds:calibration.snapshot.leanThresholds??undefined,leanPeaks:calibration.snapshot.leanPeaks??undefined,guardMedians:calibration.snapshot.guardMedians??undefined,guardReleaseBand:calibration.snapshot.guardReleaseBand??undefined,neutralSwayP95:calibration.snapshot.neutralSwayP95??undefined,leanFloor:calibration.snapshot.leanFloor??undefined});
   recordStatus.textContent='Recording · K guard · A/D lean · J punch. Raw landmarks only; no video.';
 });
 element('record-stop').addEventListener('click',()=>{
   const result=recorder.stop(performance.now());if(!result)return;
   startRecordButton.disabled=false;stopRecordButton.disabled=true;
-  posture.disabled=false;element<HTMLButtonElement>('start-calibration').disabled=false;
+  posture.disabled=false;element<HTMLButtonElement>('start-calibration').disabled=false;element<HTMLButtonElement>('save-calibration').disabled=!calibration.snapshot.ready;element<HTMLButtonElement>('forget-calibration').disabled=false;
   const name=element<HTMLInputElement>('record-name').value.trim().replace(/[^a-zA-Z0-9_-]/g,'-')||`capture-${posture.value}`;
   saveJson(`${name}.landmarks.json`,result.landmarks);saveJson(`${name}.labels.json`,result.labels);
   recordStatus.textContent=`Saved ${result.landmarks.frames.length} frames as ${name}.landmarks.json and ${name}.labels.json. Move both files into test/fixtures/.`;
@@ -200,11 +221,11 @@ const heartbeat=window.setInterval(()=>{
   }
 },100);
 window.addEventListener('beforeunload',()=>{
-  disposed=true;benchmark.cancel();window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();replay.dispose();socket?.close();
+  disposed=true;window.clearTimeout(reconnectTimer);benchmark.cancel();window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();replay.dispose();socket?.close();
 });
 replayEnabled.addEventListener('change',updateReplay);
 noPunch.addEventListener('change',()=>{sendOptions();noPunch.blur();});
-updateKeyboard();connect();
+posture.value=profiles.mode();restoreCalibration(true);updateKeyboard();connect();
 
 function sessionCommand(action:'start'|'next-round'|'summary') {
   if(benchmarking){sessionWarning('Wait for the camera comparison before starting.');return;}

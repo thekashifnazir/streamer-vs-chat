@@ -1,3 +1,4 @@
+import {validateCalibrationSettings} from './calibration-profile.js';
 import { computeGuardReleaseBand, GUARD_MIN_ON, measurePose, type Landmark } from './classifier.js';
 
 export type CalibrationMode = 'standing' | 'seated';
@@ -56,6 +57,10 @@ export function createCalibration(options: { onChange?: (snapshot: CalibrationSn
       next('neutral', mode === 'seated' ? 'Sit with hands relaxed for 3 seconds. Sit ~1 m further back than feels natural.' : 'Stand with hands relaxed for 3 seconds.');
     },
     reset,
+    restore(value:unknown,mode:CalibrationMode):boolean {
+      const settings=validateCalibrationSettings(value,mode);if(!settings)return false;
+      reset();publish({...settings,stage:'ready',ready:true,progress:1,message:`${mode==='seated'?'Seated':'Standing'} calibration restored from this browser. Start camera, check framing and clear space, then Resume inputs.`});return true;
+    },
     update(landmarks: Landmark[], at: number) {
       if (snapshot.stage === 'idle' || snapshot.ready) return copy();
       const metrics = measurePose(landmarks);

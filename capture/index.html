@@ -23,7 +23,7 @@
         <p class="eyebrow">WEBCAM CALIBRATION</p>
         <label class="field">Posture<select id="posture"><option value="standing">Standing</option><option value="seated">Seated</option></select></label>
         <p class="hint">Calibrate each posture separately. Keep your head, shoulders and both wrists in frame. Seated: sit ~1 m further back than feels natural.</p>
-        <button id="start-calibration">Calibrate webcam</button>
+        <button id="start-calibration">Calibrate webcam</button><div class="button-row"><button id="save-calibration" disabled>Save calibration in this browser</button><button id="forget-calibration">Forget saved posture</button></div><p id="saved-calibration-status" role="status">Optional: save only calibration numbers for this posture. No images, landmarks or login data. Recalibrate if your camera or position changes.</p>
         <progress id="calibration-progress" max="1" value="0" aria-label="Calibration step progress"></progress>
         <p id="calibration-status" role="status">Relax hands for 3 s, rest hands at your waist for 3 s, hold guard for 3 s, then measure each comfortable lean.</p>
       </div>
