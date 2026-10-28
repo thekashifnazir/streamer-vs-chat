@@ -21,7 +21,7 @@ The URLs are supplied by Kash/Claude. This change prepares the static build; it 
 - Full mock-stack WS check passed: injected JAB 1 SIMULATED, seated/no-punch preferences, automatic guard counter, projected telemetry, frozen session card, and both trailing-slash redirects.
 - Twitch CLI optional-event integration passed locally through shim 8081 with registered session/subscription IDs. Cheer, raid, subscription and injected chat passed; no live Twitch calls or scripted live chat.
 - No camera/OBS or rendered browser visual check was possible in this agent environment. Kash should check camera recording/download and seated framing on the Mac. API tests use mocked responses, not live clip creation.
-- `/review` is unavailable as a tool here. Independent subagent review covered reducer attribution, clip coordinator/Twitch context, HUD/demo accessibility, capture replay/server ownership, and final wire optimisation. Findings fixed: partial-COMBO attribution loss, queue cap, stale queued footage, and excessive large-crowd wire payloads.
+- Independent subagent review covered reducer attribution, clip coordinator/Twitch context, HUD/demo accessibility, capture replay/server ownership, and final wire optimisation. Findings fixed: partial-COMBO attribution loss, queue cap, stale queued footage, and excessive large-crowd wire payloads.
 
 ## Balance
 

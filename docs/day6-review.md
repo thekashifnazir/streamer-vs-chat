@@ -4,7 +4,7 @@
 
 Claude reproduced Node 22 keep-alive sockets holding the route-test afterAll open. Cleanup now closes the HTTP listener, terminates all HTTP connections, awaits its close callback, then closes Vite in finally. The timeout is unchanged.
 
-Independent review: /review is unavailable as a tool; a second agent inspected the fix and ran the route suite three times on Node 22. All 10 tests passed each time (312/302/297 ms). Full npm test passed 310/310, 41 files, with exit 0. No real Twitch was called.
+Independent subagent review: a second agent inspected the fix and ran the route suite three times on Node 22. All 10 tests passed each time (312/302/297 ms). Full npm test passed 310/310, 41 files, with exit 0. No real Twitch was called.
 
 ## Feel pass
 
@@ -22,7 +22,7 @@ Capture has a bounded real-frame CPU/GPU comparison: 30 warmup + 90 measured fra
 
 ## Review and verification
 
-/review is unavailable as a tool. Independent agents reviewed FX/safety/timing, HUD/audio/assets, capture benchmark and root cold-open/stats integration. Fixed findings include stable sprite scale/headroom, global presentation hit-stop, broken COMBO guard metadata, pending autoplay resume/mute, repeated HP-trail transition resets, per-hit COMBO audio, benchmark startup race, already-completed-round consent and consent withdrawal during async export. Final verification: 342 tests in 46 files pass on Node 22; TypeScript and whitespace checks pass. Static offline build passes at 25.2 MB raw / 15.1 MB gzip, retaining the vendored lite model and single SIMD fileset. The route suite teardown remains fast as part of the full run. No live Twitch calls or scripted live chat.
+Independent subagent review covered FX/safety/timing, HUD/audio/assets, capture benchmark and root cold-open/stats integration. Fixed findings include stable sprite scale/headroom, global presentation hit-stop, broken COMBO guard metadata, pending autoplay resume/mute, repeated HP-trail transition resets, per-hit COMBO audio, benchmark startup race, already-completed-round consent and consent withdrawal during async export. Final verification: 342 tests in 46 files pass on Node 22; TypeScript and whitespace checks pass. Static offline build passes at 25.2 MB raw / 15.1 MB gzip, retaining the vendored lite model and single SIMD fileset. The route suite teardown remains fast as part of the full run. No live Twitch calls or scripted live chat.
 
 Both 4000-round/cell matrices pass unchanged. R1 casual 48.5–55.6%, no-punch 35.9–42.1%; scouting R2 casual 48.4–56.7%, no-punch 36.1–41.4%. Scouting exercised 1326 cards, 1316 exploits, 335 fixes. Full model/viewer tables remain identical to docs/day5-review.md.
 

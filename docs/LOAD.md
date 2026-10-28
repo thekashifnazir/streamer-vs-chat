@@ -55,4 +55,4 @@ The load injector limits simultaneous HTTP requests to 32, with a FIFO queue tha
 
 The [initial unbounded load failed](hardening/load-initial-failed.json): 13,105 scheduled commands, 12,894 received and 211 HTTP failures/missing votes. A [10-second diagnostic](hardening/load-unbounded-diagnostic.json) reproduced 211 failures with 317 concurrent requests, including 210 ECONNRESET errors. This establishes connection resets under the unbounded HTTP fanout; a file-descriptor-limit cause was not established. The bounded queue fixes the driver without weakening any server latency, drift or conservation gate. Failed runs are not counted as passing evidence.
 
-See [the hardening review](queue11b-review.md) for recovery, independent review, balance results and physical checks still needing Kash. The two-minute result above is a local execution of the CI variant, not a claim about a future GitHub Actions run.
+See [the hardening review](queue11b-review.md) for recovery, independent subagent review, balance results and physical checks still needing Kash. The two-minute result above is a local execution of the CI variant, not a claim about a future GitHub Actions run.

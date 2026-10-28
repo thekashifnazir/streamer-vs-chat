@@ -1,6 +1,6 @@
 # Codex prompt pack
 
-Paste these into the **main Codex app project thread** on Mac, one day per file. Keep most of the build there; use separate side threads sparingly and list their IDs in the entry README. The CLI equivalent is `codex resume <ID>`. Each prompt says what done looks like, so Codex can plan, split work into subagent lanes and `/review` it. Day 1 is the first prompt in `../codex-kickoff.md`. These files carry on from there. Edit them freely. They follow `../plan-6day.md` and the spike reports in `../spikes/`.
+Paste these into the **main Codex app project thread** on Mac, one day per file. Keep most of the build there; use separate side threads sparingly and list their IDs in the entry README. The CLI equivalent is `codex resume <ID>`. Each prompt says what done looks like, so Codex can plan, split work into subagent lanes and arrange independent subagent review. Day 1 is the first prompt in `../codex-kickoff.md`. These files carry on from there. Edit them freely. They follow `../plan-6day.md` and the spike reports in `../spikes/`.
 
 Rule of thumb: let Codex write the code, and keep its plan, review notes and test runs in the thread. That transcript is the "how well it uses Codex" evidence.
 

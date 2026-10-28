@@ -26,5 +26,5 @@ Tests (vitest), add to SPEC.md §7 as 19–22:
 20 !forgetme: A sends !forgetme -> record gone, file rewritten, later votes from A are not recorded.
 21 Retention: record with lastSeen 91 days ago is dropped on load.
 22 No text: after 100 chat messages, data/viewers.json contains none of the message bodies.
-Run the tests and the balance sim; both must pass. Then /review.
+Run the tests and the balance sim; both must pass. Then arrange independent subagent review.
 ```

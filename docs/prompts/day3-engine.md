@@ -33,5 +33,5 @@ Keep `routes` above the first table header. The primary URL is `https://streamer
 Wire the Chat Golem boss, Anton/Barlow fonts, `assets/sfx-ready/` and `assets/voice/ready/` into the overlay. Keep this pass plain, with no juice; day 6 adds the feel effects and mix tuning from `assets/SOUNDS.md`.
 
 Load every vector in `test/fixtures/golden/*.json` (format in `test/fixtures/golden/README.md`) through the reducer as a vitest suite; SPEC.md §9 settles the edge cases.
-Turn SPEC.md acceptance tests 1-15 into vitest tests first (15a waits for clips on day 5), then make them pass. /review the diff.
+Turn SPEC.md acceptance tests 1-15 into vitest tests first (15a waits for clips on day 5), then make them pass. Arrange independent subagent review of the diff.
 ````

@@ -2,9 +2,9 @@
 
 ## Part 1: spacing
 
-README and eleven top-level docs now separate words, ports, counts and units. Independent review compared each changed file after removing whitespace: every non-whitespace character is unchanged. Code, URLs, paths, dimensions, technical tokens and game numbers retain their meaning. No teardown change was needed; 071ce4b already fixes the cold-clone failure.
+README and eleven top-level docs now separate words, ports, counts and units. Independent subagent review compared each changed file after removing whitespace: every non-whitespace character is unchanged. Code, URLs, paths, dimensions, technical tokens and game numbers retain their meaning. No teardown change was needed; 071ce4b already fixes the cold-clone failure.
 
-The requested separate documentation commit follows independent review (the `/review` command is unavailable here). Node 22 tests and TypeScript pass in the current tree, and all four unchanged SPEC §5 balance matrices pass. Feature work is committed separately.
+The requested separate documentation commit follows independent subagent review. Node 22 tests and TypeScript pass in the current tree, and all four unchanged SPEC §5 balance matrices pass. Feature work is committed separately.
 
 ## Part 2: choices and implementation
 
@@ -24,7 +24,7 @@ The offline demo opens a separate simulated-only IndexedDB database and atomical
 
 ## Review and verification
 
-Independent review covered storage/tombstones/retention, lethal-hit attribution, rate-limited acknowledgement, MVP finalization, channel rebinding, source isolation, IndexedDB lifecycle and HUD presentation. Findings fixed before commit included idle-demo streak erasure, first-hit COMBO credit, all-beat dedup growth, stale/overlapping channel callbacks, delayed acknowledgement routing, cross-channel replay IDs paint after disposal and a demo end-card/session-MVP mismatch. The `/review` command is unavailable; these independent passes fulfil AGENTS.md's documented fallback.
+Independent subagent review covered storage/tombstones/retention, lethal-hit attribution, rate-limited acknowledgement, MVP finalization, channel rebinding, source isolation, IndexedDB lifecycle and HUD presentation. Findings fixed before commit included idle-demo streak erasure, first-hit COMBO credit, all-beat dedup growth, stale/overlapping channel callbacks, delayed acknowledgement routing, cross-channel replay IDs paint after disposal and a demo end-card/session-MVP mismatch.
 
 - Node 22 unit/integration tests include acceptance 19–22 with real temporary JSON files and fake chat; no real Twitch traffic.
 - All four SPEC §5 balance matrices pass with exactly the prior seed-2026 results: casual 48.5–65.6%, no-punch 35.9–53.1%. Scouting and brace coverage gates also pass.

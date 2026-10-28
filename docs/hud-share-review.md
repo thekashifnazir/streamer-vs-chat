@@ -6,6 +6,6 @@ The seated scouting reservation grows from 300 to 340 px to accommodate the wrap
 
 The layout regression derives the actual standing/seated font sizes and card heights from CSS, checks the supplied widest-glyph measurement with proportional 1080p/720p scaling, asserts the single-column/intrinsic-width structure, and budgets wrapped vertical content plus footer separation. This is an analytical layout assertion using Claude's real glyph measurement, not a claim that a new browser render was measured here.
 
-Independent subagent review found no blocking issues. Its suggestion to derive seated declarations from CSS and account conservatively for wrap spacing was applied; focused layout tests pass. /review is unavailable, so this independent pass uses the AGENTS.md fallback.
+Independent subagent review found no blocking issues. Its suggestion to derive seated declarations from CSS and account conservatively for wrap spacing was applied; focused layout tests pass.
 
 Verification: full Node 22 suite passes 500/500 tests and TypeScript passes. The complete npm run sim passes all four ordinary/coordinated R1/R2 matrices, scouting/brace coverage and all four boss fixture gates, with unchanged production results (casual 48.5-65.6%, no-punch 35.9-53.1%). No deployment performed.

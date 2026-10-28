@@ -15,5 +15,5 @@ Build capture/ (opens in a normal Chrome window, not an OBS Browser Source, beca
 5. Send events to the server over ws with capture timestamps. The server stays authoritative.
 6. Fixture recorder: a "record" toggle on the capture page that saves `<name>.landmarks.json` (per frame: t ms + 33 landmarks) and `<name>.labels.json` (intervals `{event: guard|lean_L|lean_R, start, end}` and punch times from the keys I hold while recording: K guard, A/D lean, J punch). I'll record standing and seated clips into test/fixtures/.
 7. Tests: a fixture harness that replays landmark JSON through the same classifier and compares events with the labels within ±150 ms; report precision/recall per event type (SPEC.md test 16), plus unit tests for the lean hysteresis and the punch gate on synthetic landmarks.
-Use subagents for (a) classifier + fixture harness and (b) calibration UI + keyboard input. /review before committing.
+Use subagents for (a) classifier + fixture harness and (b) calibration UI + keyboard input. Arrange independent subagent review before committing.
 ```

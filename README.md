@@ -171,3 +171,7 @@ In the offline demo, open **Boss Forge**, choose one of three prebaked bosses or
 The optional live Node path uses server-only `OPENAI_API_KEY` in `.env`. Chat submits `!forge <idea>` once per match; `!forge +1` endorses the most recently admitted idea, and `!forge +1 1`, `2` or `3` selects a displayed shortlist position (latest endorsement wins). The stable top three are shown; the leading idea is generated between rounds, or a moderator/broadcaster can send bare `!forge` before START or between rounds. `!veto` cancels pending generation and acceptance. The model is `gpt-6-luna`, with one repair turn; deterministic validation, moderation and the balance gate must all pass. Ideas never enter speech.
 
 Mock startup never creates an API client. Server tests inject fake moderation/Responses clients. API availability, actual cost and a real-key rehearsal remain Mac checks; unknown costs are displayed as unavailable. The static build never includes the server key.
+
+## How Codex built this
+
+Implementation used separate subagent lanes for the engine, server integrations and HUD. Independent subagent review checked the changes before commits; findings and verification are recorded in the [day reviews](docs/day3-review.md), [hosted-mode review](docs/stretch-2-review.md) and [Boss Forge review](docs/boss-forge-review.md). Tests use mocks and fixtures; the shared reducer also runs through the balance sim.

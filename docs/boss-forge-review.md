@@ -4,7 +4,7 @@
 
 Scouting/FIXED replaces the generic DEFENCE FIRST tip on the non-memory rail. Explicit grid rows reserve a separate footer for SIMULATED, connectivity and controls; the badge remains fully visible. Memory layouts retain their existing compact budget. Standing and seated geometry assertions cover 1080p and proportional 720p, and the HUD font floor remains unchanged.
 
-Independent review checked row totals, footer reservation, conditional status removal and the widest 100% evidence text. Focused HUD tests pass. `/review` is unavailable, so the independent pass is the AGENTS.md fallback.
+Independent subagent review checked row totals, footer reservation, conditional status removal and the widest 100% evidence text. Focused HUD tests pass.
 
 ## Needs Kash
 
@@ -25,9 +25,9 @@ The next round is held during generation. Phase changes, moderator controls, cap
 
 The offline demo dynamically mounts a prebaked/JSON editor with a cancellable local worker, before/after table and explicit acceptance. Keyboard play remains available without waiting for simulation. Hosted /play does not enable this no-key editor, and static build/model/WASM vendoring remain credential-free.
 
-## Independent review
+## Independent subagent review
 
-The server and HUD lanes were separately implemented. Independent passes checked the validator, default compatibility, multihit/counter behavior, custom command/fifth-slot routing, round holds, veto epochs, source isolation, protected broadcaster lookup, worker cancellation and safe text rendering. Findings fixed include a custom fifth-slot voter telemetry double count, per-move clipping instead of a uniform tuning factor, stale chat-move scouting on boss changes and pending acceptance after veto. Added regressions cover round hold/queued cancellation and production-reducer trajectory equivalence. The reviewing agent reached its usage limit during its final pass; the root completed that pass and rechecked its reported findings before committing. `/review` is unavailable.
+The server and HUD lanes were separately implemented. Independent subagent reviews checked the validator, default compatibility, multihit/counter behavior, custom command/fifth-slot routing, round holds, veto epochs, source isolation, protected broadcaster lookup, worker cancellation and safe text rendering. Findings fixed include a custom fifth-slot voter telemetry double count, per-move clipping instead of a uniform tuning factor, stale chat-move scouting on boss changes and pending acceptance after veto. Added regressions cover round hold/queued cancellation and production-reducer trajectory equivalence. The reviewing agent reached its usage limit during its final pass; the root completed that pass and rechecked its reported findings before committing.
 
 Official request shapes were checked against [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses) and [Moderation](https://developers.openai.com/api/docs/guides/moderation). Model account availability and real pricing remain unverified; the requested name is preserved without substitution.
 

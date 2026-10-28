@@ -27,7 +27,7 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - Tests must never call real Twitch. Mock CLI listens on 8080, injection shim on 8081. Listener URL ws://127.0.0.1:8081/ws and TWURPLE_MOCK_API_PORT=8081; never connect directly to 8080. Other mock event triggers must use the session and subscription IDs from getCliTestCommand().
 - Never send scripted chat to a live channel. Label simulated input SIMULATED on screen. Mock startup must not load live tokens.
 - Do not copy prep-repo spike code. Existing fixture data and reference docs may be reused.
-- Use subagents for independent lanes where useful. Run /review before each commit; if unavailable, perform and document an independent review pass before committing.
+- Use subagents for independent lanes where useful. Perform and document an independent subagent review before each commit.
 
 ## Scouting evidence
 - Scouting logs carry across rounds with round/beat identity; retain receive and raw capture timestamps. Receive time decides gameplay; a held defence is not a zero-ms reaction. Log meaningful transitions rather than every heartbeat.

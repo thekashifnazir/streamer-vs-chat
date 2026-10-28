@@ -7,5 +7,5 @@ Today: feel and proof.
 3. Performance pass: capture page fps and inference ms on this Mac (GPU vs CPU delegate); pick the faster.
 4. A play-test build for friends: the demo link, plus an opt-in local stats export (votes/min, unique chatters, rounds) to quote in the submission.
 5. Boss Forge is `docs/prompts/stretch-4-boss-forge.md`, only if ahead.
-/review and fix the findings.
+Arrange independent subagent review and fix the findings.
 ```

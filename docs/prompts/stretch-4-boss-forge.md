@@ -31,5 +31,5 @@ Build "Boss Forge": chat-designed bosses that an LLM proposes and our determinis
    protected name "kashrunz", no lean move); gateBoss passes the default boss; tuneBoss rescues a 2×-damage
    boss; a mocked LLM client drives the repair path; no network in tests. Add the default boss and fixtures
    to the CI balance gate.
-Work in a subagent lane for the server/LLM part and one for the HUD card, then /review both.
+Work in a subagent lane for the server/LLM part and one for the HUD card, then arrange independent subagent review of both.
 ```

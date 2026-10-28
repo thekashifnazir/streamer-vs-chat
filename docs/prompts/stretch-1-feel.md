@@ -11,5 +11,5 @@ Read SPEC.md (§1 core loop, §2 defence table, §6 events) and assets/SOUNDS.md
 6. Calm FX: on when the demo page matches prefers-reduced-motion: reduce, or when the overlay URL has ?fx=calm. Calm FX = trauma always 0, slams become 150 ms fades, hit-stop and sounds stay. Show a small CALM FX badge on the streamer rail when it is on.
 7. Text floor: every HUD text has a font-size >= 36 px at 1920x1080 (n=30 on the scouting card 40 px). Add a test that fails on any smaller font-size in the overlay CSS.
 8. Acceptance: (a) Given a JAB HIT, the Resolved event time is unchanged with and without hit-stop; (b) the next telegraph starts exactly 2400 ms after the previous one with FX on; (c) with ?fx=calm the rail transform stays identity through a SUPER HIT; (d) the flash test above passes.
-/review and fix the findings.
+Arrange independent subagent review and fix the findings.
 ```

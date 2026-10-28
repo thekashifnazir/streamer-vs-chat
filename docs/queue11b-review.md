@@ -28,7 +28,7 @@ The soak uses real wall time and real server GC heap measurements after a 60-sec
 
 ## Review and verification
 
-The `/review` command is unavailable in this session, so independent agent review covered server recovery/archives, capture persistence, test teardown and CI, and the benchmark gates. Findings fixed before commit included offline Resume arming inputs and a stale capture reconnect callback. Final commands and measured reports are recorded after completion below.
+Independent subagent review covered server recovery/archives, capture persistence, test teardown and CI, and the benchmark gates. Findings fixed before commit included offline Resume arming inputs and a stale capture reconnect callback. Final commands and measured reports are recorded after completion below.
 
 ## Needs Kash
 
@@ -61,4 +61,4 @@ Mac arm64, Node 22.23.4, Twitch CLI 1.1.24. Mock only.
 - The initial unbounded driver failed with 211 missing HTTP requests; a diagnostic reproduced 210 connection resets among 211 failures. A reviewed/tested FIFO queue caps HTTP concurrency at 32 while retaining all scheduled votes; no retries, thresholds or game rules changed. [Failed run](hardening/load-initial-failed.json), [diagnostic](hardening/load-unbounded-diagnostic.json). File-descriptor exhaustion was an early hypothesis, not an established cause.
 
 - **Actual CLI recovery PASS:** terminated/restarted only the isolated CLI while shim/server stayed up. RECONNECTING was observed, a fresh overlay snapshot arrived in 19.8 ms, the pending attack resolved normally, a previously accepted next-beat vote survived, and a new injected vote arrived after subscription recovery. Zero unhandled errors. [Report](hardening/recovery.json). Reproduce with `npm run test:recovery`.
-- **Final static checks:** Node 22 full Vitest suite, TypeScript, cold-clone route teardown, all four SPEC §5 balance matrices and offline demo build pass. Independent review covered server/archives, capture restore, overlay reconnects, benchmark conservation, report arithmetic and CI. The CLI archive SHA-256 and its enclosing directory were checked against the downloaded official release before configuring CI extraction.
+- **Final static checks:** Node 22 full Vitest suite, TypeScript, cold-clone route teardown, all four SPEC §5 balance matrices and offline demo build pass. Independent subagent review covered server/archives, capture restore, overlay reconnects, benchmark conservation, report arithmetic and CI. The CLI archive SHA-256 and its enclosing directory were checked against the downloaded official release before configuring CI extraction.

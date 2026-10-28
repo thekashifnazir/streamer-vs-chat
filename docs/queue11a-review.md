@@ -18,7 +18,7 @@ Attempt 2 increased pre-bracing to 50%, keeping 85% maintenance. R1 cannot chang
 
 Under the requested fallback, all SYNC engine state, deadlines, attack/resolution flags, damage, HUD and simulation coverage were removed. Eight early same-move votes now cause ordinary damage, protected by unit and golden regressions. Two-way scouting stays.
 
-Independent review also caught a simulation-definition issue: floor(3×.35) created one extra permanent JAB voter and called it coordination. The final coordinated profile requires at least 8 group members. Thus 0/3 use ordinary personas; 50/500 retain the same 35% persistent JAB group. This is a documented cohort-definition correction, not a change to player skill, damage or the gate. Final brace rate returns to the original 35%, with 85% hold. Timing/prediction use independent random streams; votes are interleaved chronologically with prior attacks and COMBO hits. Failed/wrong predictions use the unchanged §5 reaction model.
+Independent subagent review also caught a simulation-definition issue: floor(3×.35) created one extra permanent JAB voter and called it coordination. The final coordinated profile requires at least 8 group members. Thus 0/3 use ordinary personas; 50/500 retain the same 35% persistent JAB group. This is a documented cohort-definition correction, not a change to player skill, damage or the gate. Final brace rate returns to the original 35%, with 85% hold. Timing/prediction use independent random streams; votes are interleaved chronologically with prior attacks and COMBO hits. Failed/wrong predictions use the unchanged §5 reaction model.
 
 ## Verification
 
@@ -26,7 +26,7 @@ Final verification: 372 tests in 50 files pass on Node 22, including 59 goldens.
 
 The original 50 golden vectors remain untouched; 6 two-way vectors and 3 rejected-SYNC standard-damage vectors bring the loaded total to 59. New tests cover confidence/hysteresis, opening carry/reset/immutability, prior-card eligibility and exact tell boundary, all defence types, broken COMBO, actual counter caps, zero-effective votes, transport metadata and negative SYNC behaviour.
 
-/review is unavailable as a tool. Independent agents reviewed engine/goldens, HUD/calm/layout, server projection and simulation assumptions. Findings fixed: no guessed SYNC majority gate, early votes interleaved before overlapping COMBO/punch events, compact card layout, raid/art overlap, and one-person 'coordination'.
+Independent subagent review covered engine/goldens, HUD/calm/layout, server projection and simulation assumptions. Findings fixed: no guessed SYNC majority gate, early votes interleaved before overlapping COMBO/punch events, compact card layout, raid/art overlap, and one-person 'coordination'.
 
 Claude clarified that the earlier route-test timeout was specific to its /private/tmp check environment; no additional teardown changes were made in this queue.
 
