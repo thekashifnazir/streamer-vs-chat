@@ -264,3 +264,39 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .memory-on .nemesis-card h2{font-size:36px;line-height:1}.memory-on .nemesis-card{margin-top:6px;padding:8px}
 /* Busy memory rails retain the timed raid badge; detailed weighting remains in its title. */
 .memory-on .boss.nemesis-active .raid-phase span{display:none}
+
+/* Keep safety/source labels in reserved space: scouting replaces the generic tip. */
+.rails-hud:not(.memory-on) .streamer{
+  --left-header-h:121px;--left-hp-h:159px;--left-bar-h:44px;--left-rounds-h:40px;
+  --left-scout-h:280px;--left-gap:8px;--left-padding-y:36px;
+  --left-footer-h:188px;--left-footer-bottom:28px;
+  display:grid;grid-template-rows:var(--left-header-h) var(--left-hp-h) var(--left-bar-h) var(--left-rounds-h) var(--left-scout-h);gap:var(--left-gap);align-content:start;
+}
+.rails-hud:not(.memory-on) .streamer>header{grid-row:1}
+.rails-hud:not(.memory-on) .streamer>.hp{grid-row:2;height:var(--left-hp-h)}
+.rails-hud:not(.memory-on) .streamer>.health-bar{grid-row:3;height:var(--left-bar-h)}
+.rails-hud:not(.memory-on) .streamer>.rounds{grid-row:4;margin:0!important;line-height:1}
+.rails-hud:not(.memory-on) .streamer>.scouting{grid-row:5;margin:0;padding:10px;height:var(--left-scout-h)}
+.rails-hud:not(.memory-on) .scouting:not([hidden])+.status-card{display:none}
+.rails-hud:not(.memory-on) .streamer>.status-card{grid-row:5;margin:0;padding:10px}
+.rails-hud:not(.memory-on) [data-id="habit-details"]{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 8px;align-items:center}
+.rails-hud:not(.memory-on) [data-id="habit-details"] h2{grid-column:1/-1;margin:0;font-size:40px;line-height:1.1}
+.rails-hud:not(.memory-on) [data-id="habit-details"]>.habit-share{font-size:76px;line-height:1}
+.rails-hud:not(.memory-on) .scouting-evidence{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:0;line-height:1}
+.rails-hud:not(.memory-on) [data-id="exploit-cooldown"]{text-align:left}
+.rails-hud:not(.memory-on) [data-id="habit-details"]>p:last-child{grid-column:1/-1;margin:0;line-height:1.1}
+.rails-hud:not(.memory-on) footer{height:var(--left-footer-h);bottom:var(--left-footer-bottom);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-content:end;gap:6px}
+.rails-hud:not(.memory-on) footer>.simulated{grid-column:1/-1;max-width:100%;white-space:nowrap;letter-spacing:0;padding:6px 8px;line-height:1}
+.rails-hud:not(.memory-on) footer>.calm-badge{grid-column:1;grid-row:2;margin:0!important;padding:2px;line-height:1}
+.rails-hud:not(.memory-on) footer>.connection{grid-column:2;grid-row:2;margin:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1}
+.rails-hud:not(.memory-on):not(.calm) footer>.connection{grid-column:1/-1}
+.rails-hud:not(.memory-on) footer>.hud-options{grid-column:1/-1;grid-row:3;gap:8px;margin:0;flex-wrap:nowrap}
+.rails-hud:not(.memory-on) footer .hud-options button{max-width:210px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rails-hud:not(.memory-on) footer .hud-options label{white-space:nowrap}
+.seated.rails-hud:not(.memory-on) .streamer{--left-header-h:108px;--left-hp-h:130px;--left-scout-h:300px;--left-padding-y:20px;--left-footer-h:188px;--left-footer-bottom:22px}
+.seated.rails-hud:not(.memory-on) [data-id="habit-details"]{grid-template-columns:120px minmax(0,1fr)}
+.seated.rails-hud:not(.memory-on) [data-id="habit-details"] h2{font-size:36px}
+.seated.rails-hud:not(.memory-on) [data-id="habit-details"]>.habit-share{font-size:60px}
+.seated.rails-hud:not(.memory-on) footer>.simulated{font-size:36px;padding:6px 4px}
+.seated.rails-hud:not(.memory-on) footer .hud-options button{max-width:160px;padding:4px}
+.seated.rails-hud:not(.memory-on) .fixed-stamp{font-size:60px;margin-top:10px}
