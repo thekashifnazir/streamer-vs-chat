@@ -170,3 +170,25 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 /* Transparent headroom preserves the atlas pivot without clipping victory/KO art. */
 .boss-sprite,.boss.raid-active .boss-sprite{width:470px;height:486px}
 .seated .boss-sprite,.seated .boss.raid-active .boss-sprite{width:300px;height:310.213px;left:0}
+
+/* Chat's repeated attack is evidence for the streamer, independent of dodge scouting. */
+.chat-habit{margin-top:10px;padding:10px 12px;text-align:left;border-color:var(--cyan);background:#2ef2ff12}
+.chat-habit .eyebrow{color:var(--cyan);font-size:36px;line-height:1;letter-spacing:1px}
+.boss .chat-habit h2{font-size:43px;margin-top:5px}.chat-habit h2>span:last-child{color:var(--cyan)}
+.chat-habit p{margin-top:6px;font-size:36px;line-height:1.05}.chat-habit .chat-habit-evidence{font-size:36px}
+.chat-habit-evidence [data-id="chat-habit-n"]{font-size:40px;white-space:nowrap}
+.boss.chat-habit-active .vote-header{margin-top:7px}
+.seated .chat-habit{padding:8px;margin-top:8px}.seated .boss .chat-habit h2{font-size:38px}
+.seated .chat-habit-evidence{line-height:1.05}.seated .boss.chat-habit-active .boss-sprite{width:120px;height:124.085px;left:90px}
+.read-it-stamp{position:absolute;left:24px;right:24px;top:450px;padding:12px;text-align:center;background:#08050cf2;border:5px solid var(--cyan);color:#fff;font:400 70px/1 Anton,Impact,sans-serif;pointer-events:none}
+.read-it-stamp small{display:block;margin-top:6px;font-size:36px;color:var(--cyan)}
+.seated .read-it-stamp{left:10px;right:10px;top:400px;font-size:48px}
+.read-it-stamp{font-size:60px;padding:10px}
+.boss.chat-habit-active .boss-sprite{width:160px;height:165.447px;left:155px}
+.seated .boss.chat-habit-active .boss-sprite{width:120px;height:124.085px;left:90px}
+/* Card and tally take priority over decorative art, including a simultaneous raid. */
+.chat-habit{margin-top:8px;padding:10px 12px}.chat-habit .eyebrow{font-size:36px;line-height:1}
+.boss .chat-habit h2{font-size:43px;line-height:1.1;margin-top:4px}.chat-habit p{margin-top:4px;line-height:1.05}
+.chat-habit .chat-habit-evidence{line-height:1}.chat-habit-evidence [data-id="chat-habit-n"]{font-size:40px}
+.seated .chat-habit{padding:8px;margin-top:8px}.seated .boss .chat-habit h2{font-size:38px}
+.boss.chat-habit-active.raid-active .boss-sprite{display:none}

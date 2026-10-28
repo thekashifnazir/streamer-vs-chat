@@ -40,4 +40,4 @@ for(const vector of vectors)it(`golden ${vector.id}`,()=>{
   }
   for(const item of vector.expect.filter((e:any)=>e.t_ms==='end'))check(state,item);
 });
-it('loads all50 supplied vectors',()=>expect(vectors).toHaveLength(50));
+it('loads all50 supplied vectors plus6 Queue11a vectors',()=>expect(vectors).toHaveLength(59));

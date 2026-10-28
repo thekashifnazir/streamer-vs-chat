@@ -24,3 +24,16 @@ it('removes500-voter historical identities from serialized resolved attack telem
  state=step(state,{kind:'advance'},3200);const raw=JSON.stringify(state),view=JSON.stringify(createWireProjection()(state));
  expect(view).not.toContain('private-viewer-');expect(view.length).toBeLessThan(raw.length/5);
 });
+it('preserves READ IT, chat habit and opening metadata while keeping combat credit private',()=>{
+ let state=createGame({roundNumber:2,moves:['JAB']});
+ state={...state,chatScouting:{...state.chatScouting,history:Array(12).fill('JAB'),card:'JAB',n:12,share:1,lowerBound:.8}};
+ state=step(state,{kind:'pose',guard:true,lean:null,source:'keyboard',at:0},0);
+ state=step(state,{kind:'vote-batch',votes:Array.from({length:8},(_,i)=>({kind:'vote',user:`brace-private-${i}`,move:'JAB',at:0,simulated:true}))},0);
+ const project=createWireProjection();state=step(state,{kind:'advance'},2400);const tell=project(state);
+ expect(tell.activeAttack).toMatchObject({brace:true});expect(tell.activeAttack).not.toHaveProperty('supporters');
+ expect(tell.chatScouting).toMatchObject({card:'JAB',n:12,share:1});expect(tell.chatScouting.openings[0]).toMatchObject({round:2,beat:0,move:'JAB',voted:true});
+ state=step(state,{kind:'advance'},3200);const view=project(state);
+ expect(view.log.resolved[0]).toMatchObject({outcome:'BLOCK',counter_dmg:10,braced:true,dmg:0});
+ expect(view.log.resolved[0]).not.toHaveProperty('supporters');expect(view.log.damage).toEqual([]);
+ expect(state.boss.hp).toBe(125);
+});

@@ -4,6 +4,13 @@
 
 Twitch chat is the boss's brain; the streamer's body is the defence. Guard blocks straight attacks, lean dodges swings, and punches add bonus damage. [SPEC.md](SPEC.md) defines the rules; [docs/HUD.md](docs/HUD.md) defines the Rails layout.
 
+Features:
+
+- Chat picks attacks every 2.4 seconds; guard and lean win the fight, punches add a bonus.
+- Two-way scouting from round 2: the boss spots your lean habit on the left rail, while a right-rail card reveals chat's repeated move over its last 12 voted picks.
+- Read the card and pre-hold the correct defence before the tell: a clean defence earns **+25% automatic counter damage** and **READ IT**.
+- Keyboard/webcam, seated/no-punch, calm FX, offline demo and hosted channel play stay supported.
+
 Requires Node **22.12+** and npm. Install with `npm ci`. Twitch development also needs the [Twitch CLI](https://dev.twitch.tv/docs/cli/).
 
 ## Play the offline demo
@@ -127,6 +134,8 @@ npm run sim
 npx tsc --noEmit
 ```
 
-Tests use local transports or mocked Twitch modules. All50 golden vectors run through the same pure `step(state,event,now)` reducer used by the server, browser demo and balance sim. The sim runs 4000 single R1 rounds per cell across five player models and 0/3/50/500 viewers, plus 4000 scouting-enabled R2 rounds per cell with real R1 evidence. Both matrices fail if casual wins leave 30–70% or no-punch falls below 30%; the scouting matrix also requires cards, exploits and fixes to occur. GitHub Actions runs `npm ci`, tests, sim and offline build.
+Tests use local transports or mocked Twitch modules. All 59 golden vectors (including the original 50 unchanged) run through the same pure `step(state,event,now)` reducer used by the server, browser demo and balance sim. The sim tests ordinary chat and a coordinated-chat profile, each with 4,000 single R1 rounds per cell across five player models and 0/3/50/500 viewers, plus 4000 scouting-enabled R2 rounds per cell with real R1 evidence. All four matrices fail if casual wins leave 30–70% or no-punch falls below 30%; the scouting matrix also requires cards, exploits and fixes to occur. GitHub Actions runs `npm ci`, tests, sim and offline build.
 
-[Day 4 verification, scouting results and optional-event semantics](docs/day4-review.md). Scouting begins in round 2; fixing a habit heals up to 10 HP. Cheers add capped hype, new subscriptions heal 8 HP, and raids start a 15-second Phase 2 with inferred raider weighting capped at half the draw. [Day 5 verification and highlight/accessibility notes](docs/day5-review.md). Day-6 feel/mix tuning remains later work.
+[Day 4 verification, scouting results and optional-event semantics](docs/day4-review.md). Scouting begins in round 2; fixing a habit heals up to 10 HP. Cheers add capped hype, new subscriptions heal 8 HP, and raids start a 15-second Phase 2 with inferred raider weighting capped at half the draw. [Day 5 verification and highlight/accessibility notes](docs/day5-review.md). [Day 6 feel/mix and proof tooling](docs/day6-review.md) is implemented; listening, filmed footage and physical camera timings remain Mac checks.
+
+[Queue 11a review and balance results](docs/queue11a-review.md). CHAT SYNC was evaluated and removed after two failed balance attempts; early coordinated votes retain ordinary attack damage.

@@ -1,0 +1,455 @@
+{
+  "format": "streamer-vs-chat-golden/1",
+  "file": "two-way",
+  "vectors": [
+    {
+      "id": "chat-window-seven-fails-wilson",
+      "spec_ref": "\u00a710 Queue11a",
+      "description": "chat-window-seven-fails-wilson",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "chatScouting.history": [
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L"
+        ],
+        "moves": []
+      },
+      "events": [],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "chatScouting.card",
+          "equals": null
+        },
+        {
+          "t_ms": 0,
+          "path": "chatScouting.n",
+          "equals": 12
+        }
+      ]
+    },
+    {
+      "id": "chat-eight-activates-six-retains-five-clears",
+      "spec_ref": "\u00a710 Queue11a",
+      "description": "chat-eight-activates-six-retains-five-clears",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "chatScouting.history": [
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L"
+        ],
+        "moves": [
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer0",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer1",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer2",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer3",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer4",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer5",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer6",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer7",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 3300,
+          "type": "vote",
+          "viewer": "viewer0",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 3300,
+          "type": "vote",
+          "viewer": "viewer1",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 3300,
+          "type": "vote",
+          "viewer": "viewer2",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 3300,
+          "type": "vote",
+          "viewer": "viewer3",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 3300,
+          "type": "vote",
+          "viewer": "viewer4",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 3300,
+          "type": "vote",
+          "viewer": "viewer5",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 3300,
+          "type": "vote",
+          "viewer": "viewer6",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 3300,
+          "type": "vote",
+          "viewer": "viewer7",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 5700,
+          "type": "vote",
+          "viewer": "viewer0",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 5700,
+          "type": "vote",
+          "viewer": "viewer1",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 5700,
+          "type": "vote",
+          "viewer": "viewer2",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 5700,
+          "type": "vote",
+          "viewer": "viewer3",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 5700,
+          "type": "vote",
+          "viewer": "viewer4",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 5700,
+          "type": "vote",
+          "viewer": "viewer5",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 5700,
+          "type": "vote",
+          "viewer": "viewer6",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 5700,
+          "type": "vote",
+          "viewer": "viewer7",
+          "value": "!hookl"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "chatScouting.card",
+          "equals": "JAB"
+        },
+        {
+          "t_ms": 4800,
+          "path": "chatScouting.card",
+          "equals": "JAB"
+        },
+        {
+          "t_ms": 7200,
+          "path": "chatScouting.card",
+          "equals": null
+        }
+      ]
+    },
+    {
+      "id": "chat-openings-veto-only-reset",
+      "spec_ref": "\u00a710 Queue11a",
+      "description": "chat-openings-veto-only-reset",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "JAB",
+          "HOOK_L",
+          "COMBO"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer0",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 2500,
+          "type": "control",
+          "value": "veto",
+          "viewer": "mod",
+          "role": "mod"
+        },
+        {
+          "t_ms": 2600,
+          "type": "control",
+          "value": "resume",
+          "viewer": "mod",
+          "role": "mod"
+        },
+        {
+          "t_ms": 3000,
+          "type": "vote",
+          "viewer": "viewer0",
+          "value": "!hookl"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 2400,
+          "path": "chatScouting.openings.length",
+          "equals": 1
+        },
+        {
+          "t_ms": 4900,
+          "path": "chatScouting.openings.length",
+          "equals": 2
+        },
+        {
+          "t_ms": 7300,
+          "path": "chatScouting.openings.length",
+          "equals": 2
+        },
+        {
+          "t_ms": 4900,
+          "path": "chatScouting.openings[1].at",
+          "equals": 4900
+        }
+      ]
+    },
+    {
+      "id": "brace-prior-card-held-block",
+      "spec_ref": "\u00a710 Queue11a",
+      "description": "brace-prior-card-held-block",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "chatScouting.history": [
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB"
+        ],
+        "moves": [
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "viewer0",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].counter_dmg",
+          "equals": 10
+        },
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].braced",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "brace-exact-telegraph-too-late",
+      "spec_ref": "\u00a710 Queue11a",
+      "description": "brace-exact-telegraph-too-late",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "chatScouting.history": [
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB"
+        ],
+        "moves": [
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 0,
+          "type": "vote",
+          "viewer": "viewer0",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 2400,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].counter_dmg",
+          "equals": 8
+        },
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].braced",
+          "equals": false
+        }
+      ]
+    },
+    {
+      "id": "brace-current-pick-card-no-lookahead",
+      "spec_ref": "\u00a710 Queue11a",
+      "description": "brace-current-pick-card-no-lookahead",
+      "seed": 0,
+      "initial_state": {
+        "round.number": 2,
+        "chatScouting.history": [
+          "HOOK_L",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "JAB",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L",
+          "HOOK_L"
+        ],
+        "moves": [
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "viewer0",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "guard",
+          "value": true
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 0,
+          "path": "chatScouting.card",
+          "equals": null
+        },
+        {
+          "t_ms": 2400,
+          "path": "chatScouting.card",
+          "equals": "JAB"
+        },
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].braced",
+          "equals": false
+        }
+      ]
+    }
+  ]
+}

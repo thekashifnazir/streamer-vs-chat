@@ -149,3 +149,26 @@ In the prep repo, `spikes/nologin-demo/fixtures/*.landmarks.json` are landmark d
 9. **COMBO counter window:** apply the counter and open its window at the second hit (`L+300`), once both hits are known. The window is `[L+300, L+1000)`.
 
 The entry's `test/fixtures/golden/` holds 50 vectors implementing these rules.
+
+## 10. Two-way scouting (Queue 11a; CHAT SYNC rejected by balance gate)
+
+These rules extend §1/§2 using the same reducer and explicit receive/game-clock time. Existing vote eligibility, draw weights, no-triple rule, health and balance gates are unchanged.
+
+### 10.1 Chat habits and brace
+
+- Retain the **last12 selected moves backed by at least one counted, positive-weight chat vote** across rounds. Record the selected move, not plurality. Autopilot/zero-influence draws are not evidence of chat habits. A vetoed selected move remains evidence, just as it remains in history.
+- Also log opening picks: the first selected attack after round start/restart or a veto cancels a pending attack (including the remaining hit of a COMBO). An ordinary completed attack or pause/resume is not a reset. Openings are descriptive metadata; the card uses the overall12-pick window, not openings alone.
+- Require the full12-pick window. From round2, create a card when one move's share is at least55% and its Wilson lower bound (z=1.645) is at least0.40. With n=12 this requires8/12 (66.7%);7/12 fails the Wilson gate. The illustrative64% caption is not a new threshold. If multiple candidates tie, use §1 move order.
+- Retain an existing card while its move remains at least50% of the current window; clear it strictly below50%, then evaluate a replacement. No heal is awarded. The HUD shows the authoritative card on the **right rail** to the streamer, e.g. `CHAT LEANS ON HOOK L 67%`. The existing streamer-weakness card stays on the left rail.
+- **Brace** is a read of an already-visible card: if the card existed before this beat's draw, the selected move matches it, and the correct defence is already held when the telegraph starts, mark that attack braced. A card created by that very pick cannot retroactively qualify it. Guard qualifies for JAB/COMBO; R for HOOK_L; L for HOOK_R; either lean for SUPER. Input at the exact telegraph time runs after the draw and is too late.
+- Only a successful BLOCK/PERFECT/DODGE earns the brace reward: multiply its automatic counter by1.25 (8→10,11→13.75,9→11.25), with the normal boss HP cap at0. Show `READ IT`. COMBO must still keep guard across both hits. CHIP/HIT and veto give no reward. Punch damage and the700ms counter window are unchanged. No brace in round1 or without a matching card. Cards never restrict chat voting. `GameState.chatScouting` carries the bounded history, card/n/share/lowerBound and descriptive opening log; `Attack.brace` snapshots eligibility and `Resolution.braced` records a rewarded clean defence. These fields travel in the existing tick; no new client command is introduced.
+
+### 10.2 CHAT SYNC — not shipped
+
+The proposed eight-viewer/first1000ms SYNC attack bonus was removed entirely under the requested fallback. Attempt1 (35% brace attempts) failed ordinary R1 no-punch at500 viewers:28.5%. Attempt2 increased bracing to50%; R1 is unchanged because cards only start in round2, so the same exact R1 samples still fail. No damage numbers, gates or crowd timings were weakened to rescue SYNC. Early coordinated votes now behave exactly like other normal votes: no SYNC state, cue, cooldown or damage bonus. Golden regression vectors verify eight early same-move votes still yield normal damage.
+
+### 10.3 Acceptance and balance
+
+Golden vectors and unit tests cover full-window/Wilson/card hysteresis, openings/reset/carry, prior-card and exact-time brace, each defence and counter amount, COMBO success/failure, veto, and unmodified damage with eight early same-move votes. Existing §7 tests remain mandatory.
+
+The balance run retains §5 player/crowd parameters and gates. Added read model (inferred):35% chance to pre-hold the visible card's defence before a tell,85% chance to maintain that read; failed/wrong reads use the unchanged §5 model. Independent random streams prevent vote timing/brace decisions from perturbing the base player RNG. Ordinary votes are distributed across the beat; a coordinated profile replaces35% of personas with a persistent JAB group only when that group contains at least8 people. Tiny0/3-viewer samples use ordinary personas, rather than treating one person as a coordinated group. The no-triple rule still limits repeated picks. Both profiles run4000 R1 and4000 R2 samples per cell (R2 after actual R1 warmups), with the unchanged casual30–70% and no-punch≥30% gate applied to all four matrices. Coverage requires successful braces as proof that visible prior cards were exercised.

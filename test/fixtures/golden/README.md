@@ -114,3 +114,7 @@ After each resolved attack:
 - If there is no card: look at the dodges logged since the last fix (all of them if none). `n` = count, `k` = count of the more common side (ties → L). Show a card for that side when `round.number ≥ 2 && n ≥ 12 && k/n ≥ 0.65 && wilsonLB(k, n) ≥ 0.60`, with `wilsonLB(k,n) = (p + z²/2n − z·sqrt(p(1−p)/n + z²/4n²)) / (1 + z²/n)`, `p = k/n`, `z = 1.645`. Boundary: 10/12 → 0.60077 (card), 9/12 → 0.51264 (no card).
 - If there is a card: when the last 8 dodges hold ≥ 8 entries and the card side's share of them is ≤ 62.5% (5 of 8), the habit is fixed: `card = null`, `fixes += 1`, `streamer.hp = min(100, hp + 10)`.
 - The exploit move is HOOK_L for card L and HOOK_R for card R. When a beat's move is the exploit, the card is live and the cooldown is 0, `exploit = true` and the cooldown becomes 3; otherwise a non-zero cooldown goes down by 1 per drawn beat. An exploit adds no damage.
+
+## Entry extensions (Queue11a)
+
+The original50 prep vectors remain unchanged. `two-way.json` adds6 reducer vectors for full-window/Wilson/hysteresis, opening resets/carry and predictive brace counter rewards. `sync-rejected.json` adds3 vectors proving eight early same-move voters retain standard JAB8, hook CHIP3 and COMBO14 after the balance fallback removed CHAT SYNC. The harness loads every JSON vector (59total). Current rules and rejection rationale are SPEC.md§10.

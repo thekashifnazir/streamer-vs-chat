@@ -3,6 +3,7 @@ import { weightedTally, type GameState } from '../../shared/src/engine';
 import { BossSprite, moveClip } from './assets';
 import { GameSound } from './sound';
 import { createFxScheduler } from './fx';
+import {chatHabitPresentation,readItResolution} from './chat-habit';
 import type { GameSummary } from '../../shared/src/highlights';
 import { createSummaryView, type EndcardClip } from './summary';
 export type HudModes={seated:boolean;noPunch:boolean};
@@ -71,7 +72,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
   <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
-  <div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
+  <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
   <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
@@ -97,7 +98,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   const fx=createFxScheduler({calm:forcedCalm||options.simulated!==undefined&&motion.matches});
   const motionChange=()=>{fx.setCalm(forcedCalm||options.simulated!==undefined&&motion.matches);};
   motion.addEventListener('change',motionChange);
-  let lastStampUntil=0,lastTelegraph='',snapshotRealAt=performance.now();
+  let lastStampUntil=0,lastTelegraph='',readItUntil=0,snapshotRealAt=performance.now();
   let spriteAnchorKey='',spriteAnchor=0;
   const toggle=async(activate=false)=>{
     if(soundBusy||disposed)return;soundBusy=true;el<HTMLButtonElement>('sound').disabled=true;
@@ -139,7 +140,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     }
   }
   function render(state:GameState,simulated=!!options.simulated) {
-    if(previous&&(state.match.seed!==previous.match.seed||state.round.number<previous.round.number||state.log.rounds.length<previous.log.rounds.length)){heard.clear();previous=undefined;spriteAnchorKey='';lastStampUntil=0;lastTelegraph='';}
+    if(previous&&(state.match.seed!==previous.match.seed||state.round.number<previous.round.number||state.log.rounds.length<previous.log.rounds.length)){heard.clear();previous=undefined;spriteAnchorKey='';lastStampUntil=0;readItUntil=0;lastTelegraph='';}
     current=state;currentSimulated=simulated;snapshotRealAt=performance.now();
     const cues=fx.observe(state,snapshotRealAt);
     const visual=fx.update(snapshotRealAt);
@@ -169,6 +170,8 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       setText('fixed-reward',scouting.healed>0?`+${scouting.healed} HP · KEEP MIXING IT UP`:'HP FULL · KEEP MIXING IT UP');
     }
     renderTally({kind:'tally',tally:state.tally,weights:weightedTally(state),voters:state.voters,simulated},superReady,scouting.kind==='habit'?scouting.highlightedMove:undefined);
+    const habit=chatHabitPresentation(state,modes.seated);el('chat-habit').hidden=!habit.visible;host.querySelector('.boss')!.classList.toggle('chat-habit-active',habit.visible);
+    if(habit.visible){setText('chat-habit-move',names[habit.move]);setText('chat-habit-share',`${habit.percent}%`);setText('chat-habit-n',`n=${habit.n}`);setText('chat-habit-instruction',habit.instruction);const detail=`${habit.evidence}. ${habit.opening}. ${habit.openingDetail}. Pre-held clean defence: +25% counter${state.activeAttack?.brace?'. This attack is braced.':''}`;el('chat-habit').title=detail;el('chat-habit').setAttribute('aria-label',`Chat habit: ${names[habit.move]} ${habit.percent} percent, n=${habit.n}. ${detail}`);}
     const raid=raidPresentation(state);
     el('raid-phase').hidden=!raid.active;
     host.querySelector('.boss')!.classList.toggle('raid-active',raid.active);
@@ -191,12 +194,13 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('result').textContent=state.round.over?(state.match.winner?'MATCH COMPLETE':'NEXT ROUND WHEN READY'):'';
     if(!previous){
       for(const entry of state.log.telegraphs)heard.add(`tell:${entry.round}:${entry.beat}`);
-      for(const entry of state.log.resolved)heard.add(`hit:${entry.round}:${entry.beat}`);
+      for(const entry of state.log.resolved){heard.add(`hit:${entry.round}:${entry.beat}`);heard.add(`read-it:${entry.round}:${entry.beat}`);}
       for(const entry of state.log.rounds)heard.add(`round-end:${entry.number}`);
     }
     if(telegraph){const key=`tell:${state.round.number}:${attack!.beat}`;once(key,()=>{sound.play('telegraph');sound.play('handsVoice',true);});clip=`${moveClip[attack!.move]}_windup`;clipAt=attack!.at;}
     const scoutChanged=!!previous&&(state.scouting.fixes>previous.scouting.fixes||!!state.scouting.card&&!previous.scouting.card);
     const last=state.log.resolved.filter(entry=>entry.round===state.round.number).at(-1);
+    if(last&&readItResolution(last))once(`read-it:${last.round}:${last.beat}`,()=>{readItUntil=visual.boss.animationTime+1000;el('read-it').hidden=false;el('read-it').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)'},{transform:'scale(1)'}],{duration:visual.slam.durationMs,easing:'ease-out'});});
     if(last){once(`hit:${last.round}:${last.beat}`,()=>{
       if(last.outcome==='BLOCK'){sound.play('block');sound.play('blockedVoice',true);}
       else if(last.outcome==='PERFECT'){sound.play('perfect');sound.play('perfectVoice',true);}
@@ -230,6 +234,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       const bar=el(name+'-bar');bar.style.boxShadow=view.flash?`0 0 0 3px ${view.flash.color}`:'none';bar.style.outline=view.flash?`${3*view.flash.opacity}px solid ${view.flash.color}`:'none';
       if(!view.trail){const trail=bar.querySelector<HTMLElement>('i')!;trail.style.transition='width 300ms linear';trail.style.width=bar.querySelector<HTMLElement>('span')!.style.width;}
     }
+    el('read-it').hidden=frame.boss.animationTime>=readItUntil;el('read-it').style.opacity=String(Math.max(0,Math.min(1,(readItUntil-frame.boss.animationTime)/150)));
     el('blocked').hidden=frame.streamer.animationTime>=lastStampUntil;el('blocked').style.opacity=String(Math.max(0,Math.min(1,(lastStampUntil-frame.streamer.animationTime)/150)));
     if(current){const key=`${clip}:${clipAt}`;if(key!==spriteAnchorKey){spriteAnchorKey=key;spriteAnchor=frame.boss.animationTime-Math.max(0,(current.clock.paused_at??current.now)-clipAt);}
       const age=Math.max(0,frame.boss.animationTime-spriteAnchor),transient=!['idle','victory','ko'].includes(clip)&&!clip.endsWith('_windup');sprite.draw(transient&&age>520?'idle':clip,transient&&age>520?current.round.elapsed_ms:age);

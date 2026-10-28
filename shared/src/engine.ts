@@ -9,8 +9,8 @@ export type Counts=Record<Move,number>;
 export type Reaction={defence:'guard'|'lean';lean:Side|null;at:number;capture_at:number|null;source:PoseState['source'];reaction_ms:number|null;reaction_kind:'held'|'reacted'};
 export type DefenceInput={round:number;at:number;capture_at:number;source:PoseState['source'];guard:boolean;lean:Side|null};
 export type ScoutingFix={round:number;at:number;side:Side;hp_gained:number};
-export type Attack={round:number;beat:number;move:Move;at:number;lands_at:number;exploit:boolean;exploit_side?:Side;vetoed:boolean;guard_response?:Reaction;lean_response?:Reaction;last_attempt?:Reaction;combo_hit?:number;first_guard?:boolean;first_perfect?:boolean;combo_broken?:boolean;damage?:number;actual_damage?:number;supporters?:readonly string[]};
-export type Resolution={round:number;beat:number;move:Move;at:number;outcome:Outcome;dmg:number;counter_dmg:number;guard:boolean;lean:Side|null;defence:'guard'|'lean'|'none';reaction_ms:number|null;reaction_kind:'held'|'reacted'|'none';capture_at:number|null;received_at:number|null;actual_dmg?:number;actual_counter_dmg?:number;supporters?:readonly string[]};
+export type Attack={round:number;beat:number;move:Move;at:number;lands_at:number;exploit:boolean;exploit_side?:Side;vetoed:boolean;guard_response?:Reaction;lean_response?:Reaction;last_attempt?:Reaction;combo_hit?:number;first_guard?:boolean;first_perfect?:boolean;combo_broken?:boolean;damage?:number;actual_damage?:number;supporters?:readonly string[];brace?:boolean};
+export type Resolution={round:number;beat:number;move:Move;at:number;outcome:Outcome;dmg:number;counter_dmg:number;guard:boolean;lean:Side|null;defence:'guard'|'lean'|'none';reaction_ms:number|null;reaction_kind:'held'|'reacted'|'none';capture_at:number|null;received_at:number|null;actual_dmg?:number;actual_counter_dmg?:number;supporters?:readonly string[];braced?:boolean};
 export type DamageCredit={round:number;beat:number;at:number;damage:number;supporters:readonly string[]};
 export type RoundResult={number:number;winner:Winner;at:number;reason:'ko'|'timeout';streamer_hp:number;boss_hp:number;min_streamer_hp?:number;duration_ms?:number};
 export type GameState={
@@ -20,6 +20,7 @@ export type GameState={
   round:{number:number;over:boolean;winner:Winner|null;ended_at:number|null;end_reason:'ko'|'timeout'|null;elapsed_ms:number;remaining_ms:number;min_streamer_hp?:number};
   match:{seed:number;round_wins:Record<Winner,number>;winner:Winner|null};
   scouting:{dodges:Side[];n:number;card:Side|null;fixes:number;since_fix:number;cooldown:number;last_fix:Omit<ScoutingFix,'round'>|null};
+  chatScouting:{history:Move[];card:Move|null;n:number;share:number;lowerBound:number;openingPending:boolean;openings:{round:number;beat:number;at:number;move:Move;voted:boolean}[]};
   counter:{open:boolean;closes_at:number};
   input:{guard:boolean;lean:Side|null;guard_at:number;lean_at:number;last_punch_at:number;guard_capture_at:number|null;lean_capture_at:number|null;guard_source:PoseState['source'];lean_source:PoseState['source'];guard_received_at:number|null;lean_received_at:number|null};
   clock:{started_at:number;ends_at:number;next_beat:number;beat:number;paused_at:number|null};
@@ -78,7 +79,8 @@ export function createGame(options:{seed?:number;roundSeed?:number;viewers?:numb
     viewers:Math.max(0,Math.floor(options.viewers??0)),history:[],tally:emptyCounts(),voters:0,votes:{},raiders:{},raid:{ends_at:null},paused:false,stopped:false,
     round:{number,over:false,winner:null,ended_at:null,end_reason:null,elapsed_ms:0,remaining_ms:75000,min_streamer_hp:100},
     match:{seed,round_wins:{streamer:0,boss:0},winner:null},
-    scouting:{dodges:[],n:0,card:null,fixes:0,since_fix:0,cooldown:0,last_fix:null},counter:{open:false,closes_at:0},
+    scouting:{dodges:[],n:0,card:null,fixes:0,since_fix:0,cooldown:0,last_fix:null},
+    chatScouting:{history:[],card:null,n:0,share:0,lowerBound:0,openingPending:true,openings:[]},counter:{open:false,closes_at:0},
     input:{guard:false,lean:null,guard_at:-Infinity,lean_at:-Infinity,last_punch_at:-Infinity,guard_capture_at:null,lean_capture_at:null,guard_source:'keyboard',lean_source:'keyboard',guard_received_at:null,lean_received_at:null},
     clock:{started_at:now,ends_at:now+75000,next_beat:now+2400,beat:0,paused_at:null},activeAttack:null,
     log:{telegraphs:[],resolved:[],rounds:[],inputs:[],fixes:[],damage:[]},rng:(options.roundSeed??(seed+number))>>>0,
@@ -88,7 +90,7 @@ export function createGame(options:{seed?:number;roundSeed?:number;viewers?:numb
 function copy(state:GameState):GameState{
   // Fixed-size structural copy. Histories and vote maps are copied only on writes.
   return {...state,streamer:{...state.streamer},boss:{...state.boss},round:{...state.round},match:{...state.match,round_wins:{...state.match.round_wins}},
-    scouting:{...state.scouting},raid:{...state.raid},counter:{...state.counter},input:{...state.input},clock:{...state.clock},log:{...state.log},
+    scouting:{...state.scouting},chatScouting:{...state.chatScouting},raid:{...state.raid},counter:{...state.counter},input:{...state.input},clock:{...state.clock},log:{...state.log},
     activeAttack:state.activeAttack?{...state.activeAttack}:null};
 }
 function scout(s:GameState,newDodge=false,at=s.now){
@@ -110,6 +112,15 @@ function scout(s:GameState,newDodge=false,at=s.now){
   const left=observed.filter(side=>side==='L').length;
   const side=left>=observed.length-left?'L':'R',k=side==='L'?left:observed.length-left;
   if(k/observed.length>=.65&&wilsonLower(k,observed.length)>=.60)s.scouting.card=side;
+}
+function scoutChat(s:GameState){
+  const evidence=s.chatScouting,n=evidence.history.length; evidence.n=n;
+  const count=(move:Move)=>evidence.history.filter(value=>value===move).length;
+  if(s.round.number<2||n<12){evidence.card=null;evidence.share=0;evidence.lowerBound=0;return;}
+  if(evidence.card&&count(evidence.card)/n<.50)evidence.card=null;
+  const candidate=evidence.card??MOVES.reduce((best,move)=>count(move)>count(best)?move:best,MOVES[0]);
+  const k=count(candidate);evidence.share=k/n;evidence.lowerBound=wilsonLower(k,n);
+  if(!evidence.card&&evidence.share>=.55&&evidence.lowerBound>=.40)evidence.card=candidate;
 }
 function finish(s:GameState,winner:Winner,at:number,reason:'ko'|'timeout'){
   if(s.round.over)return;
@@ -136,7 +147,8 @@ function damage(s:GameState,amount:number,at:number):number{
   return dealt;
 }
 function resolved(s:GameState,attack:Attack,at:number,outcome:Outcome,dmg:number){
-  const bossBefore=s.boss.hp,counter=outcome==='PERFECT'?11:outcome==='BLOCK'?8:outcome==='DODGE'?9:0;
+  const bossBefore=s.boss.hp,baseCounter=outcome==='PERFECT'?11:outcome==='BLOCK'?8:outcome==='DODGE'?9:0;
+  const braced=!!attack.brace&&baseCounter>0,counter=baseCounter*(braced?1.25:1);
   if(counter){s.boss.hp=Math.max(0,s.boss.hp-counter);s.counter={open:true,closes_at:at+700};}
   const straight=attack.move==='JAB'||attack.move==='COMBO';
   const reaction=straight&&s.input.guard?attack.guard_response:
@@ -145,7 +157,7 @@ function resolved(s:GameState,attack:Attack,at:number,outcome:Outcome,dmg:number
   s.log.resolved=[...s.log.resolved,{round:s.round.number,beat:attack.beat,move:attack.move,at,outcome,dmg,counter_dmg:counter,
     guard:s.input.guard,lean:s.input.lean,defence:reaction?.defence??'none',reaction_ms:reaction?.reaction_ms??null,
     reaction_kind:reaction?.reaction_kind??'none',capture_at:reaction?.capture_at??null,received_at:reaction?.at??null,
-    actual_dmg:attack.actual_damage??0,actual_counter_dmg:bossBefore-s.boss.hp,supporters:attack.supporters??[]}];
+    actual_dmg:attack.actual_damage??0,actual_counter_dmg:bossBefore-s.boss.hp,supporters:attack.supporters??[],braced}];
   if(outcome==='DODGE'&&s.input.lean){s.scouting.dodges=[...s.scouting.dodges,s.input.lean];scout(s,true,at);}
   else scout(s);
   s.activeAttack=null;ko(s,at);
@@ -176,6 +188,7 @@ function hit(s:GameState,at:number){
   resolved(s,attack,at,outcome,raw?damage(s,raw,at):0);
 }
 function draw(s:GameState,at:number){
+  const priorChatCard=s.chatScouting.card;
   const beat=s.clock.beat++;
   s.clock.next_beat=at+2400;
   if(s.clock.next_beat+800>=s.clock.ends_at)s.clock.next_beat=Infinity;
@@ -185,6 +198,12 @@ function draw(s:GameState,at:number){
     move=drawMove(weightedTally(s),s.history,()=>{const r=randomStep(s.rng);s.rng=r.seed;return r.value;});
   }
   if(move){
+    const weights=weightedTally(s),voted=weights[move]>0;
+    const straight=move==='JAB'||move==='COMBO';
+    const correctHeld=straight?s.input.guard&&s.input.guard_at<at:s.input.lean!==null&&s.input.lean_at<at&&(move==='SUPER'||(move==='HOOK_L'?s.input.lean==='R':s.input.lean==='L'));
+    const brace=s.round.number>=2&&priorChatCard===move&&correctHeld;
+    if(s.chatScouting.openingPending){s.chatScouting.openings=[...s.chatScouting.openings,{round:s.round.number,beat,at,move,voted}];s.chatScouting.openingPending=false;}
+    if(voted){s.chatScouting.history=[...s.chatScouting.history,move].slice(-12);scoutChat(s);}
     s.history=[...s.history,move];
     s.hype=Math.min(100,s.hype+12*Math.log2(1+s.voters)/Math.max(1,Math.log2(1+s.viewers)/3)+(s.viewers===0?6:0));
     if(move==='SUPER'&&s.moves===undefined){s.hype=0;s.supers_used++;}
@@ -196,8 +215,8 @@ function draw(s:GameState,at:number){
       source:defence==='guard'?s.input.guard_source:s.input.lean_source,reaction_ms:null,reaction_kind:'held'});
     // Snapshot only real counted identities whose final move has positive draw influence.
     // Synthetic aggregate/autopilot attacks have no individual credit.
-    const weights=weightedTally(s),supporters=weights[move]>0?Object.entries(s.votes).filter(([,vote])=>vote===move).map(([user])=>user).sort():[];
-    const attack:Attack={round:s.round.number,beat,move,at,lands_at:at+800,exploit,vetoed:false,supporters:Object.freeze(supporters),
+    const supporters=weights[move]>0?Object.entries(s.votes).filter(([,vote])=>vote===move).map(([user])=>user).sort():[];
+    const attack:Attack={round:s.round.number,beat,move,at,lands_at:at+800,exploit,vetoed:false,supporters:Object.freeze(supporters),...(brace?{brace:true}:{}),
       ...(exploit?{exploit_side:s.scouting.card!}:{}),
       ...(s.input.guard?{guard_response:held('guard')}:{}),...(s.input.lean?{lean_response:held('lean')}:{}),
     };
@@ -206,7 +225,7 @@ function draw(s:GameState,at:number){
   s.tally=emptyCounts();s.votes={};s.raiders={};s.voters=0;
 }
 function advance(s:GameState,now:number){
-  scout(s);
+  scout(s);scoutChat(s);
   if(s.paused||s.round.over){
     if(!s.paused&&s.raid.ends_at!==null&&now>=s.raid.ends_at){s.raid.ends_at=null;s.raiders={};}
     s.now=now;return;
@@ -244,6 +263,7 @@ export function step(state:GameState,event:EngineEvent,now:number):GameState{
     if(!state.round.over||state.match.winner||state.paused)return state;
     const next=createGame({seed:state.match.seed,viewers:state.viewers,now,roundNumber:state.round.number+1});
     next.match={...state.match,round_wins:{...state.match.round_wins}};
+    next.chatScouting={...state.chatScouting,history:[...state.chatScouting.history],openingPending:true};scoutChat(next);
     next.scouting={...state.scouting,dodges:[...state.scouting.dodges],cooldown:0};next.log={...state.log};
     next.raid={ends_at:state.raid.ends_at!==null&&state.raid.ends_at>now?state.raid.ends_at:null};
     scout(next);return next;
@@ -271,7 +291,7 @@ export function step(state:GameState,event:EngineEvent,now:number):GameState{
       if(!s.paused){s.paused=true;s.clock.paused_at=now;}
       if(event.action==='stop')s.stopped=true;
       if(event.action==='veto'){
-        if(s.activeAttack){const beat=s.activeAttack.beat;s.log.telegraphs=s.log.telegraphs.map(t=>t.round===s.round.number&&t.beat===beat?{...t,vetoed:true}:t);s.activeAttack=null;}
+        if(s.activeAttack){s.chatScouting.openingPending=true;const beat=s.activeAttack.beat;s.log.telegraphs=s.log.telegraphs.map(t=>t.round===s.round.number&&t.beat===beat?{...t,vetoed:true}:t);s.activeAttack=null;}
         s.counter.open=false;
       }
     }

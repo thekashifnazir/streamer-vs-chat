@@ -1,0 +1,230 @@
+{
+  "format": "streamer-vs-chat-golden/1",
+  "file": "sync-rejected",
+  "vectors": [
+    {
+      "id": "sync-rejected-jab",
+      "spec_ref": "\u00a710.2 (rejected SYNC); \u00a72",
+      "description": "Eight early same-move votes retain standard damage after balance-gated SYNC removal.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "JAB"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-0",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-1",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-2",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-3",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-4",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-5",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-6",
+          "value": "!jab"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-7",
+          "value": "!jab"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].dmg",
+          "equals": 8
+        },
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "equals": 92
+        }
+      ]
+    },
+    {
+      "id": "sync-rejected-hook_l",
+      "spec_ref": "\u00a710.2 (rejected SYNC); \u00a72",
+      "description": "Eight early same-move votes retain standard damage after balance-gated SYNC removal.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "HOOK_L"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 0,
+          "type": "guard",
+          "value": true
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-0",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-1",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-2",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-3",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-4",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-5",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-6",
+          "value": "!hookl"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-7",
+          "value": "!hookl"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3200,
+          "path": "log.resolved[0].dmg",
+          "equals": 3
+        },
+        {
+          "t_ms": 3200,
+          "path": "streamer.hp",
+          "equals": 97
+        }
+      ]
+    },
+    {
+      "id": "sync-rejected-combo",
+      "spec_ref": "\u00a710.2 (rejected SYNC); \u00a72",
+      "description": "Eight early same-move votes retain standard damage after balance-gated SYNC removal.",
+      "seed": 0,
+      "initial_state": {
+        "moves": [
+          "COMBO"
+        ]
+      },
+      "events": [
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-0",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-1",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-2",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-3",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-4",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-5",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-6",
+          "value": "!combo"
+        },
+        {
+          "t_ms": 100,
+          "type": "vote",
+          "viewer": "early-7",
+          "value": "!combo"
+        }
+      ],
+      "expect": [
+        {
+          "t_ms": 3500,
+          "path": "log.resolved[0].dmg",
+          "equals": 14
+        },
+        {
+          "t_ms": 3500,
+          "path": "streamer.hp",
+          "equals": 86
+        }
+      ]
+    }
+  ]
+}

@@ -6,7 +6,7 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - dev (live Twitch): npm run dev
 - test: npm test   # unit, golden-vector, transport and recorded-landmark regression tests
 - optional-event integration: npm run test:mock-events   # installed Twitch CLI; own isolated mock, ports 8080/8081/44747 must be free
-- balance: npm run sim   # 4000 single R1 rounds/cell plus 4000 scouting-enabled R2 rounds/cell after real R1 warmups; both fail if casual leaves 30-70% or no-punch drops below 30% at 0/3/50/500 viewers
+- balance: npm run sim   # 4000 single R1 rounds/cell plus 4000 scouting-enabled R2 rounds/cell after real R1 warmups; all four ordinary/coordinated R1/R2 matrices fail if casual leaves 30-70% or no-punch drops below 30% at 0/3/50/500 viewers
 
 ## Rules
 - Server owns game state; overlay/capture are views/inputs over ws.
@@ -61,3 +61,9 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - No-login cold-open rehearsal is SIMULATED and requires actual player guard. It deliberately pauses one resolved attack; do not present it as live-chat proof.
 - Friends' stats export is opt-in, local and counts-only; withdrawal clears records and pending exports. Keep simulated metrics distinguished from hosted real-chat metrics.
 - Capture CPU/GPU comparison must use real camera frames; do not invent measurements. Default CPU until a completed bounded comparison chooses a measured delegate. No classifier formula changes.
+
+## Two-way scouting (Queue11a)
+- Chat habit history retains the last 12 selected moves with positive counted-vote support across rounds; autopilot is not evidence. Track round/veto opening metadata separately. From R2 require the full 12, share≥55% and WilsonLB(z1.645)≥.40; retain the card at 50%, clear below 50%. Cards never constrain votes.
+- Brace snapshots a matching already-visible card and correct pre-held defence at the tell. Only successful BLOCK/PERFECT/DODGE earns automatic counter ×1.25 and READ IT; punches/window unchanged. New cards cannot retroactively qualify their own draw.
+- CHAT SYNC is intentionally removed entirely. Attempt 1 (35% brace) failed ordinary R1 no-punch at 500 viewers (28.5%); attempt 2 (50% brace) cannot change R1 and also failed coordinated R2. No damage/gate/timing thresholds were weakened to save it. See docs/queue11a-review.md. Eight early votes have normal damage, with golden/unit regressions.
+- Final sim uses 35% pre-brace attempts / 85% hold (inferred) and a 35% persistent JAB coordinated group only if it has ≥8 members; 0/3 viewers retain ordinary personas. §5 player models/gates unchanged; all four 4,000-sample matrices must pass and successful braces must occur.
