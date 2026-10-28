@@ -9,6 +9,7 @@ import { PoseClassifier } from '../../capture/src/classifier';
 import { createCalibration } from '../../capture/src/calibration';
 import { createSimulationSource } from './source';
 import { InputTutorial } from './tutorial';
+import { summarizeGame } from '../../shared/src/highlights';
 
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const stage=el('stage');
@@ -30,18 +31,41 @@ let cameraRunning=false;
 let lastFrameAt=-Infinity;
 let lastPose:PoseState={kind:'pose',guard:false,lean:null,source:'pose',at:0};
 let seed=20261027;
+function updateTutorial() {
+  tutorial.setNoPunch(noPunch.checked);
+  el('tutorial-last-key').textContent=tutorial.keys[2];
+  el('tutorial-last-label').textContent=noPunch.checked?`Try the other ${posture.value==='seated'?'tilt':'lean'}`:'Try a bonus punch';
+  el('tutorial-status').textContent=`Step ${Math.min(3,tutorial.step+1)} of 3 · Press ${tutorial.keys[Math.min(2,tutorial.step)]}`;
+  for(const [index,item]of Array.from(document.querySelectorAll('[data-step]')).entries()) {
+    item.classList.toggle('done',index<tutorial.step);item.classList.toggle('active',index===tutorial.step);
+  }
+}
+function updateModes() {
+  const seated=posture.value==='seated';
+  hud.setModes({seated,noPunch:noPunch.checked});
+  classifier.setPunchesEnabled(!noPunch.checked);
+  el('punch-guide').hidden=noPunch.checked;
+  el('guide-lean').textContent=seated?'tilt':'lean';
+  el('tutorial-defence').textContent=seated?'Tilt':'Lean';
+  el('tutorial-lean-label').textContent=seated?'Tilt left':'Lean left';
+  el<HTMLInputElement>('start-no-punch').checked=noPunch.checked;
+  for(const choice of Array.from(document.querySelectorAll<HTMLInputElement>('[name="judge-posture"]')))choice.checked=choice.value===posture.value;
+  updateTutorial();
+}
+
 
 function resize(){host.style.transform=`scale(${stage.clientWidth/1920})`;}
 new ResizeObserver(resize).observe(stage);resize();
 function paint() {
   hud.render(game??createGame({seed,viewers:Number(crowdSize.value),now:0}),true);
   hud.setConnection('OFFLINE DEMO · SIMULATED CHAT');
+  hud.setEndcard(game?.round.over?summarizeGame(game,game.match.winner?undefined:game.round.number):null);
   if(game) {
     el('next-round').hidden=!game.round.over||Boolean(game.match.winner);
     el('restart').hidden=false;
     el('resume-input').hidden=!game.paused;
     crowdSize.disabled=!game.round.over;
-    el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?'Round complete. Defence does the damage; punches are a bonus.':'Straight attacks → K guard · HOOK LEFT → D lean · HOOK RIGHT → A lean · SUPER → either lean';
+    el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':`Straight attacks → K guard · HOOK LEFT → D ${posture.value==='seated'?'tilt':'lean'} · HOOK RIGHT → A ${posture.value==='seated'?'tilt':'lean'} · SUPER → either side${noPunch.checked?' · NO PUNCHES':''}`;
   }
 }
 function drawCrowd(at:number) {
@@ -71,10 +95,7 @@ function input(event:StreamerInput) {
   }
   if(!game) {
     if(tutorial.input(event))startFight();
-    for(const [index,item]of Array.from(document.querySelectorAll('[data-step]')).entries()) {
-      item.classList.toggle('done',index<tutorial.step);item.classList.toggle('active',index===tutorial.step);
-    }
-    el('tutorial-status').textContent=`Step ${Math.min(3,tutorial.step+1)} of 3 · Press ${['K','A','J'][Math.min(2,tutorial.step)]}`;
+    updateTutorial();
     return;
   }
   if(event.kind==='punch'&&noPunch.checked)return;
@@ -141,7 +162,8 @@ el('play-webcam').addEventListener('click',()=>{
   if(!calibration.snapshot.ready||!clearSpace.checked)return;
   source.value='pose';startFight();el<HTMLDetailsElement>('webcam-settings').open=false;
 });
-posture.addEventListener('change',()=>{calibration.reset();classifier.reset();posture.blur();});
+posture.addEventListener('change',()=>{calibration.reset();classifier.reset();lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};if(game&&source.value==='pose')input(lastPose);updateModes();posture.blur();});
+for(const choice of Array.from(document.querySelectorAll<HTMLInputElement>('[name="judge-posture"]')))choice.addEventListener('change',()=>{if(choice.checked){posture.value=choice.value;posture.dispatchEvent(new Event('change'));choice.blur();}});
 source.addEventListener('change',()=>{
   if(game)input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});
   keyboard.setEnabled(!game||source.value==='keyboard');
@@ -150,10 +172,11 @@ source.addEventListener('change',()=>{
 });
 clearSpace.addEventListener('change',()=>{
   keyboard.release();
+  el<HTMLInputElement>('start-clear-space').checked=clearSpace.checked;
   if(!clearSpace.checked) {
     if(game){const at=performance.now();game=step(game,{kind:'pose',guard:false,lean:null,source:source.value==='pose'?'pose':'keyboard',at},at);}
     input({kind:'control',action:'stop',by:'capture'});
-  } else if(!game)el('tutorial-status').textContent=`Step ${Math.min(3,tutorial.step+1)} of 3 · Press ${['K','A','J'][Math.min(2,tutorial.step)]}`;
+  } else if(!game)updateTutorial();
   clearSpace.blur();
 });
 el('stop-input').addEventListener('click',()=>{keyboard.release();input({kind:'control',action:'stop',by:'capture'});});
@@ -171,7 +194,9 @@ el('next-round').addEventListener('click',()=>{
   crowdBeat='';drawCrowd(at);paint();
 });
 crowdSize.addEventListener('change',()=>{paint();crowdSize.blur();});
-noPunch.addEventListener('change',()=>noPunch.blur());
+noPunch.addEventListener('change',()=>{updateModes();noPunch.blur();});
+el('start-no-punch').addEventListener('change',()=>{noPunch.checked=el<HTMLInputElement>('start-no-punch').checked;noPunch.dispatchEvent(new Event('change'));el('start-no-punch').blur();});
+el('start-clear-space').addEventListener('change',()=>{clearSpace.checked=el<HTMLInputElement>('start-clear-space').checked;clearSpace.dispatchEvent(new Event('change'));el('start-clear-space').blur();});
 const timer=window.setInterval(()=>{
   if(!game)return;
   const at=performance.now();
@@ -181,4 +206,4 @@ const timer=window.setInterval(()=>{
   drawCrowd(at);paint();
 },100);
 window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();});
-paint();input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});
+updateModes();paint();input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});

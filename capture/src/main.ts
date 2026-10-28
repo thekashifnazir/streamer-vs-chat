@@ -5,6 +5,7 @@ import { createCalibration } from './calibration';
 import { createKeyboard } from './keyboard';
 import { PoseCamera } from './camera';
 import { FixtureRecorder, saveJson } from './recorder';
+import { LocalReplay } from './replay';
 import { NO_POSE_MESSAGE, trackingMessage } from './tracking-status';
 
 const element = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
@@ -17,6 +18,20 @@ const cameraStatus=element('camera-status');
 const connectionStatus=element('connection-status');
 const recordStatus=element('record-status');
 const recorder=new FixtureRecorder();
+const replay=new LocalReplay();
+const replayPending=new Map<string,Promise<boolean>>();
+const replayEnabled=element<HTMLInputElement>('enable-replay');
+function options(){return {kind:'capture-options',seated:posture.value==='seated',noPunch:noPunch.checked};}
+function sendOptions(){classifier.setPunchesEnabled(!noPunch.checked);element('punch-key-guide').hidden=noPunch.checked;element('input-hint').textContent=noPunch.checked?'Guard and lean are the defence. Clean defences counter automatically; punches are off.':'Keyboard and webcam are equal inputs. Guard and lean are the defence; punches add bonus damage.';if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(options()));}
+function replayLinks(){
+  const list=element('replay-downloads');list.textContent='';
+  for(const item of replay.entries()){const row=document.createElement('li'),link=document.createElement('a');link.href=item.url;link.download=`${item.id.replace(/[^a-zA-Z0-9_-]/g,'-')}.webm`;link.textContent='Download local highlight replay';row.append(link);list.append(row);}
+}
+function updateReplay(){
+  if(replayEnabled.checked&&clearSpace.checked&&cameraRunning&&video.srcObject){
+    element('replay-status').textContent=replay.start(video.srcObject as MediaStream)?'Local camera replay enabled. Highlight snapshots stay here.':'MediaRecorder is unavailable. Highlights will use stats.';
+  }else{replay.stop();element('replay-status').textContent='Replay off. Saved replays remain available until this page closes.';}
+}
 let socket:WebSocket;
 let disposed=false;
 let stopped=false;
@@ -61,15 +76,26 @@ function emit(input:StreamerInput) {
 function connect() {
   socket=new WebSocket(`ws://${location.hostname}:3000/ws`);
   socket.addEventListener('open',()=>{
-    connectionStatus.textContent='Server connected';
+    connectionStatus.textContent='Server connected';sendOptions();
     transmit(neutral());
     if(stopped) transmit({kind:'control',action:'stop',by:'capture'});
   });
   socket.addEventListener('message',event=>{
     try {
       const message=JSON.parse(String(event.data));
-      if(message.kind==='input-status') {
-        element('input-state').textContent=`SERVER · ${message.stopped?'STOPPED':'READY'}\n${message.state.source.toUpperCase()} · GUARD ${message.state.guard?'ON':'OFF'} · LEAN ${message.state.lean??'—'}\n${message.lastPunch?`LAST BONUS PUNCH ${message.lastPunch.side}`:'NO BONUS PUNCH YET'}`;
+      if(message.kind==='replay-capture') {
+        if(typeof message.highlightId!=='string')return;
+        const saving=replayEnabled.checked?replay.save(message.highlightId):Promise.resolve(false);
+        replayPending.set(message.highlightId,saving);
+        while(replayPending.size>32)replayPending.delete(replayPending.keys().next().value!);
+        void saving.then(()=>replayLinks());
+      } else if(message.kind==='replay-request') {
+        if(typeof message.highlightId!=='string')return;
+        void (replayPending.get(message.highlightId)??Promise.resolve(replay.has(message.highlightId))).then(()=>{
+          if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({kind:'replay-result',highlightId:message.highlightId,available:replay.has(message.highlightId)}));
+        });
+      } else if(message.kind==='input-status') {
+        element('input-state').textContent=`SERVER · ${message.stopped?'STOPPED':'READY'}\n${message.state.source.toUpperCase()} · GUARD ${message.state.guard?'ON':'OFF'} · LEAN ${message.state.lean??'—'}\n${noPunch.checked?'PUNCHES OFF':message.lastPunch?`LAST BONUS PUNCH ${message.lastPunch.side}`:'NO BONUS PUNCH YET'}`;
       } else if(message.kind==='tick') {
         const game=message.state;
         element('game-status').textContent=!message.started?'Press START MATCH when ready.':game.match.winner?`MATCH OVER: ${game.match.winner.toUpperCase()} wins. Press START MATCH to play again.`:game.paused?'GAME PAUSED: Resume inputs or !resume.':game.round.over?`ROUND ${game.round.number} OVER: ${game.round.winner.toUpperCase()} wins.`:`ROUND ${game.round.number} · ${Math.ceil(game.round.remaining_ms/1000)} s`;
@@ -105,17 +131,17 @@ const camera=new PoseCamera(video,sample=>{
   element('fps-debug').textContent=metrics?`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms`:NO_POSE_MESSAGE;
   element('diagnostics').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms inference\n${metrics?`g ${metrics.g.toFixed(2)} · tilt ${metrics.tilt.toFixed(2)} · S ${metrics.shoulderWidth.toFixed(3)}`:NO_POSE_MESSAGE}\n${calibrated.guardThreshold===null?'CALIBRATION REQUIRED':`guard ON ${calibrated.guardThreshold.toFixed(2)} · OFF ${(calibrated.guardThreshold-(calibrated.guardReleaseBand??.25)).toFixed(2)}`}\n${calibrated.leanThresholds?`lean ON L ${calibrated.leanThresholds.L.toFixed(2)} / R ${calibrated.leanThresholds.R.toFixed(2)}`:'LEAN CALIBRATION REQUIRED'}\n${calibrated.neutralSwayP95===null?'':`neutral sway p95 ${calibrated.neutralSwayP95.toFixed(2)} · lean floor ${calibrated.leanFloor?.toFixed(2)}`}\n${metrics?`guard anatomy ${metrics.guardAnatomy?'READY':'RAISE WRISTS ABOVE ELBOWS / MID-TORSO'}`:''}\n${(performance.now()-sample.at).toFixed(1)} ms frame → input`;
   if(recorder.recording)recordStatus.textContent=`Recording ${recorder.frameCount} frames · K/A/D/J supply labels in either input mode.`;
-},message=>{stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());});
+},message=>{replay.stop();stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());});
 
 element('start-camera').addEventListener('click',async()=>{
   const button=element<HTMLButtonElement>('start-camera');button.disabled=true;
   stopCameraButton.disabled=false;
   cameraStatus.textContent='Opening camera and loading the local lite CPU model…';
   try {cameraRunning=await camera.start();}catch(error){cameraStatus.textContent=`Camera unavailable: ${error instanceof Error?error.message:'permission denied'}. Keyboard still works.`;}
-  finally{button.disabled=false;stopCameraButton.disabled=!cameraRunning;}
+  finally{button.disabled=false;stopCameraButton.disabled=!cameraRunning;updateReplay();}
 });
 element('stop-camera').addEventListener('click',()=>{
-  camera.stop();stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();classifier.reset();
+  replay.stop();camera.stop();stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();classifier.reset();
   if(source.value==='pose')emit(neutral());cameraStatus.textContent='Camera off. Keyboard remains available.';
 });
 element('start-calibration').addEventListener('click',()=>{
@@ -125,12 +151,12 @@ element('start-calibration').addEventListener('click',()=>{
   calibration.start(posture.value==='seated'?'seated':'standing',performance.now());
 });
 posture.addEventListener('change',()=>{
-  posture.blur();
+  posture.blur();sendOptions();
   calibration.reset();classifier.reset();lastPose=neutral();
   if(source.value==='pose')emit(neutral());
 });
 source.addEventListener('change',()=>{source.blur();sessionWarning();classifier.reset();lastPose=neutral();transmit(neutral());updateKeyboard();});
-clearSpace.addEventListener('change',()=>{sessionWarning();if(!clearSpace.checked)transmit(neutral());updateKeyboard();});
+clearSpace.addEventListener('change',()=>{sessionWarning();updateReplay();if(!clearSpace.checked)transmit(neutral());updateKeyboard();});
 element('stop-input').addEventListener('click',()=>emit({kind:'control',action:'stop',by:'capture'}));
 element('resume-input').addEventListener('click',()=>{
   if(!clearSpace.checked){connectionStatus.textContent='Confirm your clear space before resuming.';return;}
@@ -166,16 +192,20 @@ const heartbeat=window.setInterval(()=>{
   }
 },100);
 window.addEventListener('beforeunload',()=>{
-  disposed=true;window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();socket?.close();
+  disposed=true;window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();replay.dispose();socket?.close();
 });
+replayEnabled.addEventListener('change',updateReplay);
+noPunch.addEventListener('change',()=>{sendOptions();noPunch.blur();});
 updateKeyboard();connect();
 
-function sessionCommand(action:'start'|'next-round') {
-  if(!allowed()){sessionWarning('Confirm your clear space and Resume inputs before starting.');return;}
-  if(source.value==='pose'&&!calibration.snapshot.ready){sessionWarning('Finish webcam calibration, or select Keyboard.');return;}
+function sessionCommand(action:'start'|'next-round'|'summary') {
+  if(action!=='summary'&&!allowed()){sessionWarning('Confirm your clear space and Resume inputs before starting.');return;}
+  if(action!=='summary'&&source.value==='pose'&&!calibration.snapshot.ready){sessionWarning('Finish webcam calibration, or select Keyboard.');return;}
   if(socket?.readyState!==WebSocket.OPEN){sessionWarning('Connect to the local server first.');return;}
-  sessionWarning();
+  sessionWarning();sendOptions();
   socket.send(JSON.stringify({kind:'session',action}));
 }
 element('start-match').addEventListener('click',()=>sessionCommand('start'));
 element('next-round').addEventListener('click',()=>sessionCommand('next-round'));
+
+element('session-summary').addEventListener('click',()=>sessionCommand('summary'));

@@ -36,3 +36,20 @@ test('the demo crowd feeds simulated votes into the same fight reducer', () => {
   expect(state.streamer.hp).toBe(100);
   expect(state.boss.hp).toBeLessThan(135);
 });
+
+test('no-punch tutorial starts a fight with guard and both leans, without J',()=>{
+  const tutorial=new InputTutorial(true);
+  expect(tutorial.keys).toEqual(['K','A','D']);
+  tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:0});
+  tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});
+  expect(tutorial.input({kind:'punch',side:'L',source:'keyboard',at:200})).toBe(false);
+  expect(tutorial.input({kind:'pose',guard:false,lean:'R',source:'keyboard',at:300})).toBe(true);
+});
+
+test('no-punch can be selected after the first two tutorial defences',()=>{
+  const tutorial=new InputTutorial();
+  tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:0});
+  tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});
+  tutorial.setNoPunch(true);
+  expect(tutorial.input({kind:'pose',guard:false,lean:'R',source:'keyboard',at:200})).toBe(true);
+});

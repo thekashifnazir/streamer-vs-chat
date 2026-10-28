@@ -89,3 +89,24 @@ it('keeps optional buffs frozen on pause and rejects simulated events in live se
  game.twist({kind:'cheer',bits:20,simulated:false});game.twist({kind:'raid',viewers:10,simulated:false});
  expect(game.state.hype).toBe(0);expect(game.state.raid.ends_at).toBe(null);game.close();
 });
+it('server no-punch mode rejects bonuses but preserves automatic defence counters and session summary',()=>{
+ const{game,at}=rig();game.configure({kind:'capture-options',seated:true,noPunch:true});game.command({kind:'session',action:'start'});
+ game.state.moves=['JAB'];at(100);game.input({kind:'punch',side:'L',source:'keyboard',at:100});expect(game.state.boss.hp).toBe(135);
+ at(2900);game.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:2900});at(3200);game.advance();
+ expect(game.state.boss.hp).toBe(124);expect(game.state.streamer.hp).toBe(100);
+ game.command({kind:'session',action:'summary'});expect(game.frozen).toBe(true);expect(game.summaryVisible).toBe(true);
+ expect(game.summary().stats.perfects).toBe(1);game.command({kind:'session',action:'start'});
+ expect(game.runId).toBe(2);expect(game.summaryVisible).toBe(false);expect(game.summary().stats.perfects).toBe(1);game.close();
+});
+it('caches unchanged summary evidence while frozen and updates duration, new damage and names',()=>{
+ const{game,at}=rig();game.command({kind:'session',action:'start'});
+ game.chat({user:'a',text:'!jab',simulated:true,role:'viewer'});at(3200);game.advance();
+ const first=game.summary();expect(first.stats.damageTaken).toBe(8);
+ expect(game.summary().stats).toBe(first.stats);
+ at(3300);game.advance();expect(game.summary().stats.durationMs).toBe(3300);expect(game.summary().stats).not.toBe(first.stats);
+ game.input({kind:'control',action:'stop',by:'capture'});const stopped=game.summary();
+ at(10000);game.advance();game.chat({user:'a',text:'hello',displayName:'Viewer A',simulated:true,role:'viewer'});
+ expect(game.summary().stats).toBe(stopped.stats);expect(game.summary().chatMvp).toMatchObject({user:'a',displayName:'Viewer A'});
+ game.input({kind:'control',action:'resume',by:'capture'});game.chat({user:'a',text:'!jab',simulated:true,role:'viewer'});at(12300);game.advance();
+ expect(game.summary().stats.damageTaken).toBeGreaterThan(8);game.close();
+});

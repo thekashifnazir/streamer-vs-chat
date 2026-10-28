@@ -1,3 +1,5 @@
+**[Play Streamer vs Chat — no login needed](https://streamervschat.kashifnazir.com)** · [Workers fallback](https://streamer-vs-chat.kash-553.workers.dev)
+
 # Streamer vs Chat
 
 Twitch chat is the boss's brain; the streamer's body is the defence. Guard blocks straight attacks, lean dodges swings, and punches add bonus damage. [SPEC.md](SPEC.md) defines the rules; [docs/HUD.md](docs/HUD.md) defines the Rails layout.
@@ -10,7 +12,7 @@ Requires Node **22.12+** and npm. Install with `npm ci`. Twitch development also
 npm run demo
 ```
 
-Open **http://localhost:4173/**. Confirm your clear space, then press **K → A → J** through the three-step tutorial. Keyboard works immediately; optional webcam mode reuses the accepted lite CPU classifier and calibration. Select0/3/50/500 simulated viewers, use seated or no-punch mode, and play best of three. Sound starts off. Esc or STOP freezes the game; Resume continues it.
+Open **http://localhost:4173/**. Choose standing or seated and optional no-punch mode on the start screen. Confirm your clear space, then press **K → A → J** through the three-step tutorial (**K → A → D** in no-punch mode). Keyboard works immediately; optional webcam mode reuses the accepted lite CPU classifier and calibration. Select 0/3/50/500 simulated viewers, use seated or no-punch mode, and play best of three. Sound starts off. Esc or STOP freezes the game; Resume continues it.
 
 ```sh
 npm run build:demo
@@ -73,7 +75,17 @@ The server stores/refreshes both identities in gitignored owner-only `tokens.jso
 
 Only broadcaster plain `stop` and moderator/broadcaster `!pause`, `!veto`, `!resume` are accepted from chat. Veto cancels the pending attack and freezes the clock. Capture Esc/STOP also freeze immediately; disconnected or stale capture inputs do not survive resume. Clear `TWURPLE_MOCK_API_PORT` before live development.
 
-Kash has verified the two-account login with `streamervschatbot`/`kashruns` and the accepted Logitech pose input on the Mac. This change does not alter the classifier. [Capture and fixture instructions](docs/CAPTURE.md) remain applicable.
+Kash has verified the two-account login with `streamervschatbot`/`kashruns` and the accepted Logitech pose input on the Mac. Guard and lean classification remain unchanged; no-punch mode disables punch detection and prompts. [Capture and fixture instructions](docs/CAPTURE.md) remain applicable.
+
+## Highlights and the session card
+
+Live KO, PERFECT and comeback moments request Twitch clips in the broadcaster's context. Requests are skipped during the stream's first minute. A Create Clip response alone never produces a link: the server polls Get Clips for up to 15 seconds and stores only confirmed IDs in gitignored `highlights.json`. Simultaneous moments share one request, prioritising KO, comeback, then PERFECT. A comeback means winning after dropping below 30 HP.
+
+For a local fallback, enable **Local replay** in capture with the webcam running. It records camera video only in that browser; media is never uploaded. The moment is saved before polling so a timeout can use it. Download links stay in capture and disappear when the page closes. Without recording support, or when offline/creation fails, the card shows stats only. Recording keeps at most six saved replays /32 MB, with recording segments rotated every90 seconds.
+
+Press **End session / show card** in capture to freeze play and show session stats, Chat MVP and the top three confirmed clips on the overlay. Match completion also shows the card. Chat MVP splits actual damage equally among counted voters for the selected move; autopilot earns no credit. The no-login demo has stats-only cards and never calls Twitch.
+
+Seated mode uses its own calibration, TILT cues and narrower fading rails. No-punch mode removes punch detection and prompts; clean blocks and dodges retain the same automatic counter damage.
 
 ## Tests and balance
 
@@ -85,4 +97,4 @@ npx tsc --noEmit
 
 Tests use local transports or mocked Twitch modules. All50 golden vectors run through the same pure `step(state,event,now)` reducer used by the server, browser demo and balance sim. The sim runs 4000 single R1 rounds per cell across five player models and 0/3/50/500 viewers, plus 4000 scouting-enabled R2 rounds per cell with real R1 evidence. Both matrices fail if casual wins leave 30–70% or no-punch falls below 30%; the scouting matrix also requires cards, exploits and fixes to occur. GitHub Actions runs `npm ci`, tests, sim and offline build.
 
-[Day 4 verification, scouting results and optional-event semantics](docs/day4-review.md). Scouting begins in round 2; fixing a habit heals up to 10 HP. Cheers add capped hype, new subscriptions heal 8 HP, and raids start a 15-second Phase 2 with inferred raider weighting capped at half the draw. Clips and day-6 feel/mix tuning remain later work.
+[Day 4 verification, scouting results and optional-event semantics](docs/day4-review.md). Scouting begins in round 2; fixing a habit heals up to 10 HP. Cheers add capped hype, new subscriptions heal 8 HP, and raids start a 15-second Phase 2 with inferred raider weighting capped at half the draw. [Day 5 verification and highlight/accessibility notes](docs/day5-review.md). Day-6 feel/mix tuning remains later work.

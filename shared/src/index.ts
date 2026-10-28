@@ -22,3 +22,6 @@ export type InputStatus = {
   kind: 'input-status'; state: PoseState; stopped: boolean;
   captureAt: number | null; receivedAt: number; lastPunch: PunchEvent | null;
 };
+
+export type CaptureOptions={kind:'capture-options';seated:boolean;noPunch:boolean};
+export type ReplayResult={kind:'replay-result';highlightId:string;available:boolean};

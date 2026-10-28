@@ -17,14 +17,15 @@
       <section id="tutorial" class="tutorial" aria-label="Three step tutorial">
         <p class="tutorial-eyebrow">YOU VS A CHAT-POWERED BOSS</p>
         <h1>The body is the defence.</h1>
-        <p>Guard blocks straight attacks. Lean away from hooks.<br />Confirm your clear space below, then start with three keys.</p>
-        <ol><li data-step="0"><kbd>K</kbd><span>Hold your guard</span></li><li data-step="1"><kbd>A</kbd><span>Lean left</span></li><li data-step="2"><kbd>J</kbd><span>Try a bonus punch</span></li></ol>
+        <p>Guard blocks straight attacks. <span id="tutorial-defence">Lean</span> away from hooks.<br />Confirm your clear space below, then start with three keys.</p>
+        <div class="judge-choices"><fieldset><legend>Choose your posture</legend><label><input type="radio" name="judge-posture" value="standing" checked /> Standing</label><label><input type="radio" name="judge-posture" value="seated" /> Seated</label></fieldset><label class="judge-check"><input id="start-no-punch" type="checkbox" /> No punches · defence still does damage</label><label class="judge-check"><input id="start-clear-space" type="checkbox" /> My space is clear and I can move comfortably.</label></div>
+        <ol><li data-step="0"><kbd>K</kbd><span>Hold your guard</span></li><li data-step="1"><kbd>A</kbd><span id="tutorial-lean-label">Lean left</span></li><li data-step="2"><kbd id="tutorial-last-key">J</kbd><span id="tutorial-last-label">Try a bonus punch</span></li></ol>
         <p id="tutorial-status" role="status">Step 1 of 3 · Press K</p>
         <small>Give yourself room to move. Keyboard works without a camera.</small>
       </section>
     </div>
     <section class="demo-controls" aria-label="Demo settings and controls">
-      <p class="control-guide"><kbd>K</kbd> guard <kbd>A</kbd><kbd>D</kbd> lean <kbd>J</kbd> bonus punch</p>
+      <p class="control-guide"><kbd>K</kbd> guard <kbd>A</kbd><kbd>D</kbd> <span id="guide-lean">lean</span> <span id="punch-guide"><kbd>J</kbd> bonus punch</span></p>
       <label class="check"><input id="clear-space" type="checkbox" /> My space is clear.</label>
       <label>Crowd <select id="crowd-size"><option value="0">0 · autopilot</option><option value="3">3 viewers</option><option value="50" selected>50 viewers</option><option value="500">500 viewers</option></select></label>
       <label>Input <select id="input-source"><option value="keyboard">Keyboard</option><option value="pose">Webcam</option></select></label>

@@ -92,6 +92,7 @@ export class PoseClassifier {
   private lastAt = -Infinity;
   private lastPunchAt = -Infinity;
   private punches = { L: freshPunch(), R: freshPunch() };
+  private punchesEnabled=true;
 
   constructor(calibration:PoseCalibration) { this.setCalibration(calibration); }
   setCalibration({guardThreshold,leanThresholds={L:.5,R:.5},guardReleaseBand,guardMedians,neutralSwayP95=0}:PoseCalibration) {
@@ -108,6 +109,10 @@ export class PoseClassifier {
     this.guardReleaseBand=band;
     this.leanThresholds={L:Math.max(floor,leanThresholds.L),R:Math.max(floor,leanThresholds.R)};
     this.reset();
+  }
+  setPunchesEnabled(enabled:boolean) {
+    if(this.punchesEnabled===enabled)return;
+    this.punchesEnabled=enabled;this.punches={L:freshPunch(),R:freshPunch()};this.lastPunchAt=-Infinity;
   }
   setGuardThreshold(value:number) {
     this.setCalibration({guardThreshold:value,leanThresholds:this.leanThresholds,guardReleaseBand:this.guardReleaseBand});
@@ -141,7 +146,7 @@ export class PoseClassifier {
         if (at - this.candidateSince >= 200) { this.lean = desired; this.candidate = null; }
       } else this.candidate = null;
     }
-    for (const side of ['L', 'R'] as const) {
+    if(this.punchesEnabled)for (const side of ['L', 'R'] as const) {
       const extension = side === 'L' ? metrics.leftExtension : metrics.rightExtension;
       const tracker = this.punches[side];
       // Returning near the shoulder rearms the next peak; a held arm never repeats.

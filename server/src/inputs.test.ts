@@ -1,5 +1,6 @@
-import { expect, it } from 'vitest';
-import { InputStore, parseStreamerInput } from './inputs';
+import { EventEmitter } from 'node:events';
+import { expect, it, vi } from 'vitest';
+import { CaptureInputs, InputStore, parseStreamerInput, parseCaptureOptions, parseReplayResult } from './inputs';
 it('keeps capture timestamps for logs and stamps authoritative receive times', () => {
   const store = new InputStore();
   expect(store.receive({kind:'pose',guard:true,lean:'L',at:5,source:'pose'},1000)).toMatchObject({
@@ -22,4 +23,20 @@ it('rejects malformed client inputs and game state', () => {
     expect(parseStreamerInput(input)).toBeNull();
   }
   expect(parseStreamerInput({kind:'pose',guard:true,lean:null,at:1,source:'keyboard'})).not.toBeNull();
+});
+
+it('only the capture owner can acknowledge replay availability or change modes',()=>{
+ const options=vi.fn(),ack=vi.fn();const channel=new CaptureInputs({onOptions:options,onReplay:ack});
+ class Client extends EventEmitter {readyState=1;send=vi.fn();terminate=vi.fn();}
+ const owner=new Client(),other=new Client();channel.attach(owner as any);channel.attach(other as any);
+ owner.emit('message',JSON.stringify({kind:'capture-options',seated:true,noPunch:true}));
+ expect(options).toHaveBeenCalledWith({kind:'capture-options',seated:true,noPunch:true});
+ expect(channel.requestReplay({kind:'replay-capture',highlightId:'moment'})).toBe(true);
+ expect(owner.send).toHaveBeenCalledWith(JSON.stringify({kind:'replay-capture',highlightId:'moment'}));
+ other.emit('message',JSON.stringify({kind:'replay-result',highlightId:'moment',available:true}));expect(ack).not.toHaveBeenCalled();
+ owner.emit('message',JSON.stringify({kind:'replay-result',highlightId:'moment',available:true,url:'blob:private-video'}));
+ expect(ack).toHaveBeenCalledWith({kind:'replay-result',highlightId:'moment',available:true});
+ expect(parseCaptureOptions({kind:'capture-options',seated:'yes',noPunch:true})).toBe(null);
+ expect(parseReplayResult({kind:'replay-result',highlightId:'x',available:'yes'})).toBe(null);
+ owner.emit('close');expect(channel.requestReplay({kind:'replay-request',highlightId:'moment'})).toBe(false);
 });

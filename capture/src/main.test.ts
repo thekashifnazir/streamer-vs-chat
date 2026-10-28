@@ -62,3 +62,14 @@ it('keeps connection and calibration warnings separate from server game status t
   expect(get('session-warning').hidden).toBe(false);
   expect(socket.send).not.toHaveBeenCalled();
 });
+
+it('reports unavailable replay metadata without sending a blob URL or media when recording is off',async()=>{
+ const{get,socket}=await page();
+ const message=(data:unknown)=>socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify(data)}));
+ message({kind:'replay-capture',highlightId:'moment'});await Promise.resolve();
+ message({kind:'replay-request',highlightId:'moment'});await Promise.resolve();await Promise.resolve();
+ expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'replay-result',highlightId:'moment',available:false}));
+ get('no-punch').checked=true;get('no-punch').change();
+ expect(get('punch-key-guide').hidden).toBe(true);
+ expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'capture-options',seated:false,noPunch:true}));
+});

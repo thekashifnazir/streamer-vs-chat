@@ -101,3 +101,38 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .boss.raid-active .vote-row{height:42px}
 .boss.raid-active .hp{height:100px}
 .boss.raid-active .hype{margin-top:6px!important;font-size:27px}
+
+/* Seated framing: narrow rails and a translucent inner edge leave shoulders clear. */
+.seated .rail{width:300px;padding:28px 20px}
+.seated .streamer{background:linear-gradient(90deg,#0a0814eb 65%,#0a081499)}
+.seated .boss{background:linear-gradient(270deg,#0a0814eb 65%,#0a081499)}
+.seated .eyebrow{font-size:26px;letter-spacing:1px}
+.seated h1{font-size:58px}.seated .boss h2{font-size:38px}
+.seated .boss .eyebrow{font-size:26px;white-space:normal}
+.seated .hp{height:130px}.seated .hp strong{font-size:120px}
+.seated .boss .hp{height:95px}.seated .boss .hp strong{font-size:90px}
+.seated .rounds,.seated .hype{font-size:26px;letter-spacing:0}
+.seated .hype span{display:block}.seated .hype-bar{height:20px}
+.seated .status-card,.seated .scouting{padding:14px 10px;margin-top:28px}
+.seated .status-card>p:nth-child(2),.seated .scouting h2{font-size:34px}
+.seated .scouting .scouting-evidence{flex-wrap:wrap;gap:5px}
+.seated .scouting p{font-size:26px}.seated .habit-share{font-size:70px}
+.seated .scouting:not([hidden])+.status-card{margin-top:16px}
+.seated footer{left:20px;right:12px;bottom:22px}
+.seated .simulated{font-size:26px;letter-spacing:0;padding:9px 7px;white-space:nowrap}
+.seated .hud-options{flex-wrap:wrap;gap:10px}.seated .connection{font-size:26px}
+.seated .vote-header{font-size:26px;white-space:normal}.seated .vote-header span{display:block}
+.seated .vote-row{grid-template-columns:105px 1fr 67px;column-gap:5px;height:55px}
+.seated .vote-command{font-size:28px}.seated .vote-command small{display:block;margin-left:0}
+.seated .vote-percent{font-size:28px}.seated .vote-track{height:18px}
+.seated .boss-sprite{width:300px;height:281px}
+.seated .telegraph{left:300px;width:1320px}.seated .lean-arrow.left{left:315px}.seated .lean-arrow.right{right:315px}
+.seated .raid-phase{padding:4px}.seated .boss.raid-active .vote-row{height:51px}
+.endcard{position:absolute;left:350px;top:145px;width:1220px;max-height:850px;overflow:auto;padding:32px 38px;border:4px solid var(--yellow);background:#100b19fa;pointer-events:auto;box-shadow:0 10px 60px #0008}
+.rails-hud .endcard h2{font-size:64px}.endcard .summary-score{margin-top:10px;font-size:32px}
+.summary-stats{display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;margin:24px 0}
+.endcard h3{font-size:26px;color:var(--yellow);margin:0 0 5px}.endcard p{font-size:29px;overflow-wrap:anywhere}
+.summary-stats>div:last-child{grid-column:1/-1}.endcard ol{margin:10px 0 0;padding-left:32px}.endcard li{margin:9px 0}
+.endcard a{color:var(--cyan);font-size:30px;text-underline-offset:5px}.endcard a:focus-visible{outline:4px solid var(--yellow);outline-offset:5px}.summary-empty{color:var(--muted)}
+.seated .scouting:not([hidden])+.status-card>p:nth-child(2){display:none}
+.seated .boss.raid-active .boss-sprite{height:200px;width:214px;left:43px}

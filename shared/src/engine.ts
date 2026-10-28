@@ -9,21 +9,22 @@ export type Counts=Record<Move,number>;
 export type Reaction={defence:'guard'|'lean';lean:Side|null;at:number;capture_at:number|null;source:PoseState['source'];reaction_ms:number|null;reaction_kind:'held'|'reacted'};
 export type DefenceInput={round:number;at:number;capture_at:number;source:PoseState['source'];guard:boolean;lean:Side|null};
 export type ScoutingFix={round:number;at:number;side:Side;hp_gained:number};
-export type Attack={round:number;beat:number;move:Move;at:number;lands_at:number;exploit:boolean;exploit_side?:Side;vetoed:boolean;guard_response?:Reaction;lean_response?:Reaction;last_attempt?:Reaction;combo_hit?:number;first_guard?:boolean;first_perfect?:boolean;combo_broken?:boolean;damage?:number};
-export type Resolution={round:number;beat:number;move:Move;at:number;outcome:Outcome;dmg:number;counter_dmg:number;guard:boolean;lean:Side|null;defence:'guard'|'lean'|'none';reaction_ms:number|null;reaction_kind:'held'|'reacted'|'none';capture_at:number|null;received_at:number|null};
-export type RoundResult={number:number;winner:Winner;at:number;reason:'ko'|'timeout';streamer_hp:number;boss_hp:number};
+export type Attack={round:number;beat:number;move:Move;at:number;lands_at:number;exploit:boolean;exploit_side?:Side;vetoed:boolean;guard_response?:Reaction;lean_response?:Reaction;last_attempt?:Reaction;combo_hit?:number;first_guard?:boolean;first_perfect?:boolean;combo_broken?:boolean;damage?:number;actual_damage?:number;supporters?:readonly string[]};
+export type Resolution={round:number;beat:number;move:Move;at:number;outcome:Outcome;dmg:number;counter_dmg:number;guard:boolean;lean:Side|null;defence:'guard'|'lean'|'none';reaction_ms:number|null;reaction_kind:'held'|'reacted'|'none';capture_at:number|null;received_at:number|null;actual_dmg?:number;actual_counter_dmg?:number;supporters?:readonly string[]};
+export type DamageCredit={round:number;beat:number;at:number;damage:number;supporters:readonly string[]};
+export type RoundResult={number:number;winner:Winner;at:number;reason:'ko'|'timeout';streamer_hp:number;boss_hp:number;min_streamer_hp?:number;duration_ms?:number};
 export type GameState={
   now:number;streamer:{hp:number;max_hp:number};boss:{hp:number;max_hp:number};
   hype:number;supers_used:number;viewers:number;history:Move[];tally:Counts;voters:number;votes:Record<string,Move>;raiders:Record<string,boolean>;raid:{ends_at:number|null};
   paused:boolean;stopped:boolean;
-  round:{number:number;over:boolean;winner:Winner|null;ended_at:number|null;end_reason:'ko'|'timeout'|null;elapsed_ms:number;remaining_ms:number};
+  round:{number:number;over:boolean;winner:Winner|null;ended_at:number|null;end_reason:'ko'|'timeout'|null;elapsed_ms:number;remaining_ms:number;min_streamer_hp?:number};
   match:{seed:number;round_wins:Record<Winner,number>;winner:Winner|null};
   scouting:{dodges:Side[];n:number;card:Side|null;fixes:number;since_fix:number;cooldown:number;last_fix:Omit<ScoutingFix,'round'>|null};
   counter:{open:boolean;closes_at:number};
   input:{guard:boolean;lean:Side|null;guard_at:number;lean_at:number;last_punch_at:number;guard_capture_at:number|null;lean_capture_at:number|null;guard_source:PoseState['source'];lean_source:PoseState['source'];guard_received_at:number|null;lean_received_at:number|null};
   clock:{started_at:number;ends_at:number;next_beat:number;beat:number;paused_at:number|null};
   activeAttack:Attack|null;
-  log:{telegraphs:Attack[];resolved:Resolution[];rounds:RoundResult[];inputs:DefenceInput[];fixes:ScoutingFix[]};
+  log:{telegraphs:Attack[];resolved:Resolution[];rounds:RoundResult[];inputs:DefenceInput[];fixes:ScoutingFix[];damage:DamageCredit[]};
   rng:number;moves?:Move[];
 };
 export type EngineVote=ChatVote&{raider?:boolean};
@@ -75,12 +76,12 @@ export function createGame(options:{seed?:number;roundSeed?:number;viewers?:numb
   const now=options.now??0,number=options.roundNumber??1,seed=options.seed??0;
   return {now,streamer:{hp:100,max_hp:100},boss:{hp:135,max_hp:135},hype:0,supers_used:0,
     viewers:Math.max(0,Math.floor(options.viewers??0)),history:[],tally:emptyCounts(),voters:0,votes:{},raiders:{},raid:{ends_at:null},paused:false,stopped:false,
-    round:{number,over:false,winner:null,ended_at:null,end_reason:null,elapsed_ms:0,remaining_ms:75000},
+    round:{number,over:false,winner:null,ended_at:null,end_reason:null,elapsed_ms:0,remaining_ms:75000,min_streamer_hp:100},
     match:{seed,round_wins:{streamer:0,boss:0},winner:null},
     scouting:{dodges:[],n:0,card:null,fixes:0,since_fix:0,cooldown:0,last_fix:null},counter:{open:false,closes_at:0},
     input:{guard:false,lean:null,guard_at:-Infinity,lean_at:-Infinity,last_punch_at:-Infinity,guard_capture_at:null,lean_capture_at:null,guard_source:'keyboard',lean_source:'keyboard',guard_received_at:null,lean_received_at:null},
     clock:{started_at:now,ends_at:now+75000,next_beat:now+2400,beat:0,paused_at:null},activeAttack:null,
-    log:{telegraphs:[],resolved:[],rounds:[],inputs:[],fixes:[]},rng:(options.roundSeed??(seed+number))>>>0,
+    log:{telegraphs:[],resolved:[],rounds:[],inputs:[],fixes:[],damage:[]},rng:(options.roundSeed??(seed+number))>>>0,
     ...(options.moves===undefined?{}:{moves:[...options.moves]}),
   };
 }
@@ -118,17 +119,24 @@ function finish(s:GameState,winner:Winner,at:number,reason:'ko'|'timeout'){
   if(s.match.round_wins[winner]>=2)s.match.winner=winner;
   s.activeAttack=null;s.counter.open=false;
   s.tally=emptyCounts();s.votes={};s.raiders={};s.voters=0;
-  s.log.rounds=[...s.log.rounds,{number:s.round.number,winner,at,reason,streamer_hp:s.streamer.hp,boss_hp:s.boss.hp}];
+  s.log.rounds=[...s.log.rounds,{number:s.round.number,winner,at,reason,streamer_hp:s.streamer.hp,boss_hp:s.boss.hp,min_streamer_hp:Math.min(s.round.min_streamer_hp??100,s.streamer.hp),duration_ms:s.round.elapsed_ms}];
 }
 function ko(s:GameState,at:number){
   if(s.streamer.hp<=0){s.streamer.hp=0;finish(s,'boss',at,'ko');}
   else if(s.boss.hp<=0){s.boss.hp=0;finish(s,'streamer',at,'ko');}
 }
-function damage(s:GameState,amount:number):number{
-  const dealt=amount*(s.streamer.hp<30?.6:1);s.streamer.hp=Math.max(0,s.streamer.hp-dealt);return dealt;
+function damage(s:GameState,amount:number,at:number):number{
+  const before=s.streamer.hp,dealt=amount*(before<30?.6:1);s.streamer.hp=Math.max(0,before-dealt);
+  s.round.min_streamer_hp=Math.min(s.round.min_streamer_hp??100,s.streamer.hp);
+  if(s.activeAttack){
+    const actual=before-s.streamer.hp;
+    s.activeAttack.actual_damage=(s.activeAttack.actual_damage??0)+actual;
+    if(actual>0)s.log.damage=[...s.log.damage,{round:s.round.number,beat:s.activeAttack.beat,at,damage:actual,supporters:s.activeAttack.supporters??[]}];
+  }
+  return dealt;
 }
 function resolved(s:GameState,attack:Attack,at:number,outcome:Outcome,dmg:number){
-  const counter=outcome==='PERFECT'?11:outcome==='BLOCK'?8:outcome==='DODGE'?9:0;
+  const bossBefore=s.boss.hp,counter=outcome==='PERFECT'?11:outcome==='BLOCK'?8:outcome==='DODGE'?9:0;
   if(counter){s.boss.hp=Math.max(0,s.boss.hp-counter);s.counter={open:true,closes_at:at+700};}
   const straight=attack.move==='JAB'||attack.move==='COMBO';
   const reaction=straight&&s.input.guard?attack.guard_response:
@@ -136,7 +144,8 @@ function resolved(s:GameState,attack:Attack,at:number,outcome:Outcome,dmg:number
     s.input.lean?attack.lean_response:attack.last_attempt??attack.guard_response??attack.lean_response;
   s.log.resolved=[...s.log.resolved,{round:s.round.number,beat:attack.beat,move:attack.move,at,outcome,dmg,counter_dmg:counter,
     guard:s.input.guard,lean:s.input.lean,defence:reaction?.defence??'none',reaction_ms:reaction?.reaction_ms??null,
-    reaction_kind:reaction?.reaction_kind??'none',capture_at:reaction?.capture_at??null,received_at:reaction?.at??null}];
+    reaction_kind:reaction?.reaction_kind??'none',capture_at:reaction?.capture_at??null,received_at:reaction?.at??null,
+    actual_dmg:attack.actual_damage??0,actual_counter_dmg:bossBefore-s.boss.hp,supporters:attack.supporters??[]}];
   if(outcome==='DODGE'&&s.input.lean){s.scouting.dodges=[...s.scouting.dodges,s.input.lean];scout(s,true,at);}
   else scout(s);
   s.activeAttack=null;ko(s,at);
@@ -146,12 +155,12 @@ function hit(s:GameState,at:number){
   if(attack.move==='COMBO'){
     if(!attack.combo_hit){
       attack.combo_hit=1;attack.first_guard=s.input.guard;attack.first_perfect=s.input.guard&&at-s.input.guard_at<=400;
-      attack.damage=s.input.guard?0:damage(s,7);
+      attack.damage=s.input.guard?0:damage(s,7,at);
       // A lethal first hit is resolved immediately; no post-KO second hit exists.
       if(s.streamer.hp<=0)resolved(s,attack,at,'HIT',attack.damage);
     }else{
       const secondGuard=s.input.guard&&!attack.combo_broken;
-      const dmg=(attack.damage??0)+(secondGuard?0:damage(s,7));
+      const dmg=(attack.damage??0)+(secondGuard?0:damage(s,7,at));
       const blocked=attack.first_guard&&secondGuard;
       resolved(s,attack,at,blocked?(attack.first_perfect?'PERFECT':'BLOCK'):'HIT',dmg);
     }
@@ -159,12 +168,12 @@ function hit(s:GameState,at:number){
   }
   if(attack.move==='JAB'){
     const outcome=s.input.guard?(at-s.input.guard_at<=400?'PERFECT':'BLOCK'):'HIT';
-    resolved(s,attack,at,outcome,outcome==='HIT'?damage(s,8):0);return;
+    resolved(s,attack,at,outcome,outcome==='HIT'?damage(s,8,at):0);return;
   }
   const dodge=attack.move==='SUPER'?s.input.lean!==null:attack.move==='HOOK_L'?s.input.lean==='R':s.input.lean==='L';
   const outcome=dodge?'DODGE':s.input.guard?'CHIP':'HIT';
   const raw=outcome==='DODGE'?0:outcome==='CHIP'?(attack.move==='SUPER'?10:3):(attack.move==='SUPER'?25:12);
-  resolved(s,attack,at,outcome,raw?damage(s,raw):0);
+  resolved(s,attack,at,outcome,raw?damage(s,raw,at):0);
 }
 function draw(s:GameState,at:number){
   const beat=s.clock.beat++;
@@ -185,7 +194,10 @@ function draw(s:GameState,at:number){
       at:(defence==='guard'?s.input.guard_received_at:s.input.lean_received_at)??(defence==='guard'?s.input.guard_at:s.input.lean_at),
       capture_at:defence==='guard'?s.input.guard_capture_at:s.input.lean_capture_at,
       source:defence==='guard'?s.input.guard_source:s.input.lean_source,reaction_ms:null,reaction_kind:'held'});
-    const attack:Attack={round:s.round.number,beat,move,at,lands_at:at+800,exploit,vetoed:false,
+    // Snapshot only real counted identities whose final move has positive draw influence.
+    // Synthetic aggregate/autopilot attacks have no individual credit.
+    const weights=weightedTally(s),supporters=weights[move]>0?Object.entries(s.votes).filter(([,vote])=>vote===move).map(([user])=>user).sort():[];
+    const attack:Attack={round:s.round.number,beat,move,at,lands_at:at+800,exploit,vetoed:false,supporters:Object.freeze(supporters),
       ...(exploit?{exploit_side:s.scouting.card!}:{}),
       ...(s.input.guard?{guard_response:held('guard')}:{}),...(s.input.lean?{lean_response:held('lean')}:{}),
     };

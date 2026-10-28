@@ -10,3 +10,6 @@ tokens.json.*
 
 dist-demo/
 .wrangler/
+
+highlights.json
+highlights.json.tmp

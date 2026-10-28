@@ -2,8 +2,9 @@ import { ApiClient } from '@twurple/api';
 import type { AuthProvider, AccessTokenWithUserId } from '@twurple/auth';
 import { EventSubWsListener } from '@twurple/eventsub-ws';
 import type { ChatRole } from './chat-controls';
+import type { ClipTransport } from './clips';
 
-export type IncomingChat = { user: string; text: string; simulated: boolean; role:ChatRole };
+export type IncomingChat = { user: string; text: string; simulated: boolean; role:ChatRole; displayName?:string };
 export type IncomingTwist = { simulated:boolean } & ({kind:'cheer';bits:number}|{kind:'subscribe'}|{kind:'raid';viewers:number});
 export type MockEventCommand = {type:'channel.cheer'|'channel.subscribe'|'channel.raid';subscriptionId:string;sessionId:string;command:string;args:string[]};
 export const MOCK_BOT_ID = '9001';
@@ -88,7 +89,7 @@ export function createTwitchSession(options: {
   });
   listener.onChannelChatMessage(broadcasterId, botId, (event) => {
     const role:ChatRole=event.chatterId===broadcasterId?'broadcaster':Object.hasOwn(event.badges??{},'moderator')?'mod':'viewer';
-    const message = { user: event.chatterId, text: event.messageText, simulated: options.mock,role };
+    const message = { user: event.chatterId, text: event.messageText, simulated: options.mock,role,...(typeof event.chatterDisplayName==='string'&&event.chatterDisplayName?{displayName:event.chatterDisplayName}:{}) };
     console.log(`[chat ${options.mock ? 'SIMULATED' : 'LIVE'}] ${event.chatterName}: ${event.messageText}`);
     options.onMessage(message);
   });
@@ -99,7 +100,25 @@ export function createTwitchSession(options: {
   else console.warn('[eventsub] Subscriptions disabled: reauthorize /auth/broadcaster with channel:read:subscriptions; chat remains available.');
   listener.onChannelRaidTo(broadcasterId,event=>options.onTwist?.({kind:'raid',viewers:event.viewers,simulated:options.mock}));
   listener.start();
+  const clips:ClipTransport={
+    async getStream(){
+      if(options.mock)return null;
+      const stream=await apiClient.asUser(broadcasterId,ctx=>ctx.streams.getStreamByUserId(broadcasterId));
+      return stream?{startedAt:stream.startDate.getTime()}:null;
+    },
+    async createClip(){
+      if(options.mock)return null;
+      if(!scopes.includes('clips:edit'))return null;
+      return await apiClient.asUser(broadcasterId,ctx=>ctx.clips.createClip({channel:broadcasterId}));
+    },
+    async getClip(id){
+      if(options.mock)return null;
+      const clip=await apiClient.asUser(broadcasterId,ctx=>ctx.clips.getClipById(id));
+      return clip?{id:clip.id,url:clip.url}:null;
+    },
+  };
   return {
+    clips,
     stop:()=>listener.stop(),
     mockCommands,
     async viewers():Promise<number> {

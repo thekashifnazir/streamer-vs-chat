@@ -2,9 +2,12 @@ import type { Move, TallySnapshot } from '@svc/shared';
 import { weightedTally, type GameState } from '../../shared/src/engine';
 import { BossSprite, moveClip } from './assets';
 import { GameSound } from './sound';
+import type { GameSummary } from '../../shared/src/highlights';
+import { createSummaryView, type EndcardClip } from './summary';
+export type HudModes={seated:boolean;noPunch:boolean};
 
 const commands:[Move,string][]=[['JAB','!jab'],['HOOK_L','!hookl'],['HOOK_R','!hookr'],['COMBO','!combo'],['SUPER','!super']];
-export const defenceCue=(move:Move)=>move==='HOOK_L'?'LEAN →':move==='HOOK_R'?'← LEAN':move==='SUPER'?'LEAN ANY WAY':'GUARD';
+export const defenceCue=(move:Move,seated=false)=>{const verb=seated?'TILT':'LEAN';return move==='HOOK_L'?`${verb} →`:move==='HOOK_R'?`← ${verb}`:move==='SUPER'?`${verb} ANY WAY`:'GUARD';};
 const names:Record<Move,string>={JAB:'JAB',HOOK_L:'HOOK LEFT',HOOK_R:'HOOK RIGHT',COMBO:'COMBO',SUPER:'SUPER'};
 export function isTallySnapshot(value:unknown):value is TallySnapshot {
   if(!value||typeof value!=='object')return false;
@@ -53,7 +56,7 @@ export function exploitHabitNote(state:GameState):string {
 }
 
 /** The same view consumes server ticks and local demo reducer states; it owns no game rules. */
-export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean}={}) {
+export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean;seated?:boolean;noPunch?:boolean}={}) {
   host.classList.add('rails-host');
   host.innerHTML=`<main class="rails-hud" aria-label="Streamer vs Chat">
   <aside class="rail streamer"><header><p class="eyebrow">STREAMER</p><h1>KASH</h1></header>
@@ -68,7 +71,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
   <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · MAX 50% TOGETHER</span></section>
   <div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
-  <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="440" role="img" aria-label="Chat Golem boss"></canvas></aside></main>`;
+  <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="440" role="img" aria-label="Chat Golem boss"></canvas></aside><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
   const setText=(id:string,value:string)=>{const element=el(id);if(element.textContent!==value)element.textContent=value;};
@@ -97,6 +100,16 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   const muteKey=(event:KeyboardEvent)=>{if(event.code==='KeyM'&&!event.repeat&&!['INPUT','TEXTAREA','SELECT'].includes((event.target as HTMLElement)?.tagName)){void toggle();}};
   window.addEventListener('keydown',muteKey);
   let current:GameState|undefined;
+  let currentSimulated=!!options.simulated;
+  let modes:HudModes={seated:!!options.seated,noPunch:!!options.noPunch};
+  const summaryView=createSummaryView(el('endcard'));
+  function setModes(next:Partial<HudModes>) {
+    const updated={...modes,...next};if(updated.seated===modes.seated&&updated.noPunch===modes.noPunch&&stage.dataset.modesReady)return;
+    modes=updated;stage.dataset.modesReady='true';stage.classList.toggle('seated',modes.seated);stage.classList.toggle('no-punch',modes.noPunch);
+    for(const side of ['left','right'])el(side+'-arrow').querySelector('span')!.textContent=modes.seated?'TILT':'LEAN';
+    if(current)render(current,currentSimulated);
+  }
+  setModes(modes);
   let previous:GameState|undefined;
   let clip='idle',clipAt=0;
   const heard=new Set<string>();
@@ -115,7 +128,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   }
   function render(state:GameState,simulated=!!options.simulated) {
     if(previous&&(state.round.number<previous.round.number||state.log.rounds.length<previous.log.rounds.length)){heard.clear();previous=undefined;}
-    current=state;
+    current=state;currentSimulated=simulated;
     const hp=(id:string,value:number,max:number)=>{el(id+'-hp').textContent=String(Math.max(0,Math.round(value/max*100)));el(id+'-bar').setAttribute('aria-label',`${id} HP ${Math.max(0,Math.round(value))} / ${max}`);el(id+'-bar').querySelector<HTMLElement>('span')!.style.width=`${Math.max(0,value/max*100)}%`;el(id+'-bar').querySelector<HTMLElement>('i')!.style.width=`${Math.max(0,value/max*100)}%`;};
     hp('streamer',state.streamer.hp,state.streamer.max_hp);hp('boss',state.boss.hp,state.boss.max_hp);
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
@@ -148,13 +161,13 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     const telegraph=!!attack&&!attack.vetoed&&(state.clock.paused_at??state.now)<attack.lands_at&&!state.round.over;
     const counter=state.counter.open&&!state.round.over;
     el('telegraph').hidden=!(telegraph||counter);el('telegraph').classList.toggle('counter',counter&&!telegraph);
-    el('banner').textContent=telegraph?'HANDS UP!':'COUNTER!';
-    el('move').textContent=telegraph?names[attack!.move]:'BONUS PUNCH';el('cue').textContent=telegraph?defenceCue(attack!.move):'J';
+    el('banner').textContent=telegraph?'HANDS UP!':modes.noPunch?'CLEAN DEFENCE!':'COUNTER!';
+    el('move').textContent=telegraph?names[attack!.move]:modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=telegraph?defenceCue(attack!.move,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
     el('exploit-note').textContent=telegraph?exploitHabitNote(state):'';
     el('left-arrow').hidden=!(telegraph&&(attack!.move==='HOOK_R'||attack!.move==='SUPER'));
     el('right-arrow').hidden=!(telegraph&&(attack!.move==='HOOK_L'||attack!.move==='SUPER'));
     el('phase').textContent=state.paused?'PAUSED':state.round.over?'ROUND OVER':superReady?'SUPER READY':'DEFENCE FIRST';
-    el('status').textContent=state.round.over?`${state.round.winner==='streamer'?'STREAMER':'CHAT'} WINS`:state.paused?'RESUME WHEN READY.':'GUARD STRAIGHTS.\nLEAN FROM SWINGS.';
+    el('status').textContent=state.round.over?`${state.round.winner==='streamer'?'STREAMER':'CHAT'} WINS`:state.paused?'RESUME WHEN READY.':`GUARD STRAIGHTS.\n${modes.seated?'TILT':'LEAN'} FROM SWINGS.`;
     el('result').textContent=state.round.over?(state.match.winner?'MATCH COMPLETE':'NEXT ROUND WHEN READY'):'';
     if(!previous){
       for(const entry of state.log.telegraphs)heard.add(`tell:${entry.round}:${entry.beat}`);
@@ -177,7 +190,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     if(previous&&state.hype>=100&&previous.hype<100)sound.play('super');
     if(previous&&state.scouting.card&&!previous.scouting.card)sound.play('weakness',true,true);
     if(previous&&state.scouting.fixes>previous.scouting.fixes){sound.play('fixed',true,true);sound.play('cheer');}
-    if(previous&&state.boss.hp<previous.boss.hp&&state.log.resolved.length===previous.log.resolved.length)sound.play('bonus');
+    if(!modes.noPunch&&previous&&state.boss.hp<previous.boss.hp&&state.log.resolved.length===previous.log.resolved.length)sound.play('bonus');
     const result=state.log.rounds.at(-1);
     if(result)once(`round-end:${result.number}`,()=>{sound.play(result.winner==='streamer'?'streamerWins':'chatWins',true);if(result.reason==='ko'){sound.play('ko');sound.play('koVoice',true);}});
     // Animation selection is a pure view of the latest snapshot; reconnecting
@@ -194,5 +207,5 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   let frameId:number;
   const animate=()=>{if(disposed)return;if(current){const age=Math.max(0,(current.clock.paused_at??current.now)-clipAt);const transient=!['idle','victory','ko'].includes(clip)&&!clip.endsWith('_windup');sprite.draw(transient&&age>520?'idle':clip,transient&&age>520?current.round.elapsed_ms:age);}else sprite.draw('idle',performance.now());frameId=requestAnimationFrame(animate);};
   frameId=requestAnimationFrame(animate);
-  return {render,renderTally,setConnection(text:string){el('connection').textContent=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();window.removeEventListener('keydown',muteKey);host.innerHTML='';}};
+  return {render,renderTally,setModes,setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){summaryView.render(summary,clips);},setConnection(text:string){el('connection').textContent=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();window.removeEventListener('keydown',muteKey);host.innerHTML='';}};
 }

@@ -1,34 +1,73 @@
+import { randomUUID } from 'node:crypto';
+import { writeFile,rename } from 'node:fs/promises';
+import { highlightCandidates } from '../../shared/src/highlights.js';
+import { ServerHighlightCoordinator, type HighlightEntry } from './clips.js';
 import { createServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { CaptureInputs } from './inputs.js';
 import { createAuth } from './auth.js';
 import { createTwitchSession, type IncomingChat, type IncomingTwist } from './twitch.js';
 import { GameSession } from './game-session.js';
+import { createWireProjection } from './wire-state.js';
+import { parseChatControl } from './chat-controls.js';
 
 const mock=process.argv.includes('--mock')||process.env.TWITCH_MOCK==='1';
 if(!mock)await import('dotenv/config');
 let twitch:ReturnType<typeof createTwitchSession>|undefined;
 const sockets=new WebSocketServer({noServer:true,maxPayload:16*1024});
-const game=new GameSession({mock,sendResult:async(text,simulated)=>{
+const sessionId=randomUUID();
+let persisted=Promise.resolve();
+const confirmedHighlights=new Map<string,HighlightEntry>();
+const replayTimeouts=new Map<string,ReturnType<typeof setTimeout>>();
+function entries(){return [...confirmedHighlights.values(),...highlights.snapshot().filter(entry=>!confirmedHighlights.has(entry.highlight.id))];}
+const highlights=new ServerHighlightCoordinator({transport:{
+  getStream:async()=>twitch?.clips.getStream()??null,
+  createClip:async()=>twitch?.clips.createClip()??null,
+  getClip:async id=>twitch?.clips.getClip(id)??null,
+},onReplayRequest:request=>{
+  if(!captureInputs.requestReplay({kind:'replay-request',...request}))highlights.ackReplay(request.highlightId,false);
+  else replayTimeouts.set(request.highlightId,setTimeout(()=>{replayTimeouts.delete(request.highlightId);highlights.ackReplay(request.highlightId,false);},5000));
+},onChange:()=>{
+  let changed=false;
+  for(const entry of highlights.snapshot())if(entry.status==='confirmed'&&!confirmedHighlights.has(entry.highlight.id)){confirmedHighlights.set(entry.highlight.id,entry);changed=true;}
+  broadcast();if(!changed)return;
+  const confirmed=[...confirmedHighlights.values()];
+  const contents=JSON.stringify({sessionId,clips:confirmed},null,2);
+  persisted=persisted.catch(()=>{}).then(async()=>{await writeFile('highlights.json.tmp',contents,{mode:0o600});await rename('highlights.json.tmp','highlights.json');}).catch(()=>console.error('[highlights] Could not save confirmed clip metadata.'));
+}});
+const game=new GameSession({mock,onState:(previous,next)=>{
+  const candidates=highlightCandidates(previous,next);
+  for(const candidate of candidates.filter((item,index)=>!candidates.slice(0,index).some(other=>other.at===item.at))) {
+    const highlight={...candidate,id:`${sessionId}:m${game.runId}:${candidate.id}`};
+    captureInputs.requestReplay({kind:'replay-capture',highlightId:highlight.id,at:highlight.at});
+    highlights.enqueue(highlight);
+  }
+},sendResult:async(text,simulated)=>{
   if(!twitch)throw new Error('Round result transport is not connected');
   await twitch.sendRoundResult(text,simulated);
 },onError:()=>console.error('[bot] Round result could not be sent; check the Twitch connection or local mock shim.')});
-function messages(){return [game.tally(),{kind:'tick',state:game.state,simulated:mock,started:game.started}];}
+const projectState=createWireProjection();
+function messages(){
+  const visible=game.summaryVisible||!!game.state.match.winner;
+  return [game.tally(),{kind:'tick',state:projectState(game.state),simulated:mock,started:game.started,modes:game.modes},
+    {kind:'highlights',...(visible?{summary:game.summary()}:{}),entries:entries(),visible}];
+}
 function broadcast(){
   for(const message of messages()) {
     const json=JSON.stringify(message);
     for(const client of sockets.clients)if(client.readyState===WebSocket.OPEN)client.send(json);
   }
 }
-const captureInputs=new CaptureInputs({onInput:(event,at)=>{
-  game.input(event,at);captureInputs.setStopped(game.frozen,at);broadcast();
+const captureInputs=new CaptureInputs({onOptions:options=>{game.configure(options);broadcast();},onReplay:result=>{clearTimeout(replayTimeouts.get(result.highlightId));replayTimeouts.delete(result.highlightId);highlights.ackReplay(result.highlightId,result.available);},onInput:(event,at)=>{
+  game.input(event,at);captureInputs.setStopped(game.frozen,at);if(event.kind==='control')broadcast();
 },onSession:event=>{
   game.command(event);captureInputs.setStopped(game.frozen,Date.now());broadcast();
 }});
 const onMessage=(message:IncomingChat)=>{
-  game.chat(message);captureInputs.setStopped(game.frozen,Date.now());broadcast();
+  game.chat(message);captureInputs.setStopped(game.frozen,Date.now());
+  if(message.simulated===mock&&parseChatControl(message.text,message.user,message.role))broadcast();
 };
-const onTwist=(event:IncomingTwist)=>{game.twist(event);broadcast();};
+const onTwist=(event:IncomingTwist)=>{game.twist(event);};
 async function updateViewers(){
   try {if(twitch)game.viewers(await twitch.viewers());}
   catch {console.error('[viewers] Could not refresh viewer count; retaining the last value.');}
@@ -57,6 +96,8 @@ server.on('upgrade',(req,socket,head)=>{
     captureInputs.attach(client);
   });
 });
+// Routine chat, pose and optional-event views share this 10 Hz clock. Safety controls,
+// session commands, options and highlight status changes flush immediately.
 const ticks=setInterval(()=>{captureInputs.expire(Date.now());game.advance();captureInputs.setStopped(game.frozen,Date.now());broadcast();},100);
 const viewers=setInterval(()=>void updateViewers(),60000);
 server.listen(3000,'127.0.0.1',()=>{
@@ -65,7 +106,7 @@ server.listen(3000,'127.0.0.1',()=>{
 });
 let closing=false;
 async function close(){
-  if(closing)return;closing=true;clearInterval(ticks);clearInterval(viewers);game.close();twitch?.stop();await auth?.close();
+  if(closing)return;closing=true;clearInterval(ticks);clearInterval(viewers);game.close();for(const timer of replayTimeouts.values())clearTimeout(timer);highlights.close();await persisted;twitch?.stop();await auth?.close();
   for(const client of sockets.clients)client.terminate();sockets.close();server.close();
 }
 process.on('SIGINT',()=>void close());process.on('SIGTERM',()=>void close());
