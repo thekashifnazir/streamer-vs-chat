@@ -4,14 +4,23 @@ import type { AddressInfo } from 'node:net';
 import { createServer as createHttpServer, type Server } from 'node:http';
 import { once } from 'node:events';
 import config from '../vite.config';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {boundedTeardown} from './test-teardown';
 
 let server: ViteDevServer;
 let base: string;
 let http: Server;
+let cacheDir:string;
 beforeAll(async () => {
+  cacheDir=await mkdtemp(join(tmpdir(),'svc-route-cold-'));
   server = await createServer({
-    ...config, configFile: false,
-    server: { ...config.server, middlewareMode: true, hmr: false, watch: null },
+    ...config, configFile: false,cacheDir,
+    // HTTP route tests never execute the page JS. Fresh-cache background warmups
+    // otherwise wait on dependency transforms while middleware close awaits them.
+    optimizeDeps:{noDiscovery:true,include:[]},
+    server: { ...config.server, middlewareMode: true, hmr: false, watch: null, preTransformRequests:false },
   });
   http = createHttpServer(server.middlewares);
   http.listen(0, '127.0.0.1');
@@ -25,9 +34,12 @@ afterAll(async () => {
     if (http?.listening) {
       const closed = new Promise<void>((resolve, reject) => http.close(error => error ? reject(error) : resolve()));
       http.closeAllConnections();
-      await closed;
+      await boundedTeardown('HTTP listener',()=>closed,200);
     }
-  } finally { await server?.close(); }
+  } finally {
+    try{if(server)await boundedTeardown('Vite middleware server.close()',()=>server.close());}
+    finally{if(cacheDir)await rm(cacheDir,{recursive:true,force:true});}
+  }
 });
 
 it.each(['/overlay', '/capture', '/play'])('redirects %s and serves the page', async path => {
