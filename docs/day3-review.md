@@ -28,7 +28,7 @@ PASS: casual 30–70% and no-punch ≥30% at every crowd size. The single-round 
 
 ## Static demo and assets
 
-`npm run build:demo` succeeds with the existing ignored token store present: neither builder nor static preview loads it or `.env`. The output contains one SIMD WASM binary and the local lite model, selected boss atlas, Anton/Barlow fonts, audio and licence/provenance notices. Runtime URLs are local. The build audit rejects credential files, extra WASM binaries, missing assets (including unquoted CSS URLs), external script/link dependencies and missing same-origin CSP. Approximate size: 25 MB raw /15.2 MB gzip total; pose-only assets 8.4 MB gzip.
+`npm run build:demo` succeeds with the existing ignored token store present: neither builder nor static preview loads it or `.env`. The output contains one SIMD WASM binary and the local lite model, selected boss atlas, Anton/Barlow fonts, audio and licence/provenance notices. Runtime URLs are local. The build audit rejects credential files, extra WASM binaries, missing assets (including unquoted CSS URLs), external script/link dependencies and missing same-origin CSP. Approximate size: 25 MB raw / 15.2 MB gzip total; pose-only assets 8.4 MB gzip.
 
 Browser smoke test: clear-space confirmation then K → A → J started the shared-engine fight immediately, with SIMULATED CHAT, a live crowd tally and SOUND OFF. Esc paused gameplay. Basic local boss sprite, rails and controls were checked visually; no camera permission or hardware pose run was performed for this pass. Optional webcam reuses the accepted classifier and full calibration settings. Audio remains opt-in; no day-6 feel effects were added.
 

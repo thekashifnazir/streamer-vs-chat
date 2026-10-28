@@ -4,7 +4,7 @@
 
 Confirm clear space and press K, A, J to start. The same production reducer owns the local demo game; the server owns state in the Twitch version. Both use the same defence rules, clock, weighted crowd votes and best-of-three lifecycle. Source generation refuses an explicitly loaded live token unless mock mode is specified, and the live server refuses simulated votes/results. The static demo has no credential transport with which to connect to a live channel.
 
-The webcam loads local Pose Landmarker lite with CPU delegate and exactly one SIMD WASM fileset. Normal Chrome supports the required SIMD/video frame APIs. No unused no-SIMD WASM binary, server secrets or auth code is shipped. WASM+model are approximately 17.2 MB raw /8.4 MB gzip; the full selected visual/audio bundle is approximately 25 MB raw /15.2 MB gzip. The model checksum is verified at build time. Fonts, sprites, audio and atlas JSON use local bundled URLs. CSP limits connections to the same origin.
+The webcam loads local Pose Landmarker lite with CPU delegate and exactly one SIMD WASM fileset. Normal Chrome supports the required SIMD/video frame APIs. No unused no-SIMD WASM binary, server secrets or auth code is shipped. WASM+model are approximately 17.2 MB raw / 8.4 MB gzip; the full selected visual/audio bundle is approximately 25 MB raw / 15.2 MB gzip. The model checksum is verified at build time. Fonts, sprites, audio and atlas JSON use local bundled URLs. CSP limits connections to the same origin.
 
 Sound is off by default. Enabling it is an explicit user gesture; the pass wires basic atlas clips, cues, SFX and voices, without day-6 feel effects or mix tuning.
 

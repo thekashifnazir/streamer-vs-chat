@@ -27,7 +27,7 @@ Open **http://localhost:4173/**. Choose standing or seated and optional no-punch
 npm run build:demo
 ```
 
-Produces `dist-demo/` with all runtime assets, one SIMD WASM binary, the vendored lite model, local fonts, boss art, SFX and voices. The no-login demo needs no CDN or external runtime downloads; optional `/play` connects to Twitch. The builder/preview never loads `.env` or the server token store. The complete bundle is about25 MB raw /15 MB gzip; pose-only assets are about8.4 MB gzip. See [demo and deployment notes](docs/DEMO.md).
+Produces `dist-demo/` with all runtime assets, one SIMD WASM binary, the vendored lite model, local fonts, boss art, SFX and voices. The no-login demo needs no CDN or external runtime downloads; optional `/play` connects to Twitch. The builder/preview never loads `.env` or the server token store. The complete bundle is about 25 MB raw / 15 MB gzip; pose-only assets are about 8.4 MB gzip. See [demo and deployment notes](docs/DEMO.md).
 
 ## Play-test and record a cold open
 
@@ -59,7 +59,7 @@ To configure a hosted build, register **both exact redirect URIs** on a Twitch a
 - `https://streamervschat.kashifnazir.com/`
 - `http://localhost:5173/`
 
-Set the **public** client ID in the build environment, then run `npm run build:demo` (or `npm run demo`). For example: `VITE_TWITCH_CLIENT_ID=your_public_client_id npm run build:demo`. The builder reads this variable explicitly and does not load `.env`. No client secret belongs in this build. For development login, run `VITE_TWITCH_CLIENT_ID=your_public_client_id npm run dev`, then open `http://localhost:5173/play`. The4173 preview and Workers fallback still serve the no-login demo; Twitch login uses the two registered origins above. `npm run dev` also serves `/play` on5173; the local Node + OBS Browser Source workflow below stays available. See [hosted-mode verification and Needs Kash](docs/stretch-2-review.md) for registration/login/deployment checks.
+Set the **public** client ID in the build environment, then run `npm run build:demo` (or `npm run demo`). For example: `VITE_TWITCH_CLIENT_ID=your_public_client_id npm run build:demo`. The builder reads this variable explicitly and does not load `.env`. No client secret belongs in this build. For development login, run `VITE_TWITCH_CLIENT_ID=your_public_client_id npm run dev`, then open `http://localhost:5173/play`. The 4173 preview and Workers fallback still serve the no-login demo; Twitch login uses the two registered origins above. `npm run dev` also serves `/play` on 5173; the local Node + OBS Browser Source workflow below stays available. See [hosted-mode verification and Needs Kash](docs/stretch-2-review.md) for registration/login/deployment checks.
 
 ## Twitch development
 
@@ -67,7 +67,7 @@ Set the **public** client ID in the build environment, then run `npm run build:d
 npm run dev:mock
 ```
 
-Starts CLI mock8080 → chat injection shim8081 → server3000 and Vite5173. Open [capture](http://localhost:5173/capture) and [overlay](http://localhost:5173/overlay). Add the overlay as a1920×1080 OBS Browser Source, with the webcam source beneath its transparent centre. Use a normal Chrome window for capture.
+Starts CLI mock 8080 → chat injection shim 8081 → server 3000 and Vite 5173. Open [capture](http://localhost:5173/capture) and [overlay](http://localhost:5173/overlay). Add the overlay as a 1920×1080 OBS Browser Source, with the webcam source beneath its transparent centre. Use a normal Chrome window for capture.
 
 After `channel.chat.message active (SIMULATED)`:
 
@@ -76,7 +76,7 @@ curl -X POST localhost:8081/inject -H 'Content-Type: application/json' \
   -d '{"user":"viewer-1","text":"!jab"}'
 ```
 
-An empty POST also injects `!jab`. Before a match starts, the input preview shows JAB1 and SIMULATED CHAT. Confirm clear space and press **START MATCH** in capture when ready. During a fight the server resets votes every2400 ms, keeping each viewer's latest eligible command. SUPER is accepted only at full hype and below the three-super cap. Attacks use a weighted draw, including autopilot when nobody votes.
+An empty POST also injects `!jab`. Before a match starts, the input preview shows JAB 1 and SIMULATED CHAT. Confirm clear space and press **START MATCH** in capture when ready. During a fight the server resets votes every 2400 ms, keeping each viewer's latest eligible command. SUPER is accepted only at full hype and below the three-super cap. Attacks use a weighted draw, including autopilot when nobody votes.
 
 Mock moderation and results stay local:
 
@@ -112,7 +112,7 @@ Copy `.env.example` to `.env`, fill the app credentials locally, and register **
 
 Existing broadcaster tokens without the two added scopes keep chat working; reconnect the broadcaster account to enable cheers/subscriptions. Raid notifications need no added scope. Optional events are tested locally with the CLI mock; no scripted events are sent to live Twitch.
 
-The server stores/refreshes both identities in gitignored owner-only `tokens.json`. Start the match from capture; round results are sent in the bot's user context, at most once per10 seconds with a three-message drop-oldest queue. No results are generated before explicit START. Viewer count is polled every60 seconds, with0 offline. Round two starts after a short results pause unless stopped; START MATCH resets the match.
+The server stores/refreshes both identities in gitignored owner-only `tokens.json`. Start the match from capture; round results are sent in the bot's user context, at most once per 10 seconds with a three-message drop-oldest queue. No results are generated before explicit START. Viewer count is polled every 60 seconds, with 0 offline. Round two starts after a short results pause unless stopped; START MATCH resets the match.
 
 Only broadcaster plain `stop` and moderator/broadcaster `!pause`, `!veto`, `!resume` are accepted from chat. Veto cancels the pending attack and freezes the clock. Capture Esc/STOP also freeze immediately; disconnected or stale capture inputs do not survive resume. Clear `TWURPLE_MOCK_API_PORT` before live development.
 
@@ -122,7 +122,7 @@ Kash has verified the two-account login with `streamervschatbot`/`kashruns` and 
 
 Live KO, PERFECT and comeback moments request Twitch clips in the broadcaster's context. Requests are skipped during the stream's first minute. A Create Clip response alone never produces a link: the server polls Get Clips for up to 15 seconds and stores only confirmed IDs in gitignored `highlights.json`. Simultaneous moments share one request, prioritising KO, comeback, then PERFECT. A comeback means winning after dropping below 30 HP.
 
-For a local fallback, enable **Local replay** in capture with the webcam running. It records camera video only in that browser; media is never uploaded. The moment is saved before polling so a timeout can use it. Download links stay in capture and disappear when the page closes. Without recording support, or when offline/creation fails, the card shows stats only. Recording keeps at most six saved replays /32 MB, with recording segments rotated every90 seconds.
+For a local fallback, enable **Local replay** in capture with the webcam running. It records camera video only in that browser; media is never uploaded. The moment is saved before polling so a timeout can use it. Download links stay in capture and disappear when the page closes. Without recording support, or when offline/creation fails, the card shows stats only. Recording keeps at most six saved replays / 32 MB, with recording segments rotated every 90 seconds.
 
 Press **End session / show card** in capture to freeze play and show session stats, Chat MVP and the top three confirmed clips on the overlay. Match completion also shows the card. Chat MVP splits actual damage equally among counted voters for the selected move; autopilot earns no credit. The no-login demo has stats-only cards and never calls Twitch.
 
