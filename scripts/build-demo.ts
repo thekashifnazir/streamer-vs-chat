@@ -33,6 +33,7 @@ export async function buildDemo(options: {mock?:boolean} = {}) {
   for(const [source,name]of [
     ['CREDITS.md','CREDITS.txt'],['assets/fonts/anton-OFL.txt','anton-OFL.txt'],
     ['assets/fonts/barlowcondensed-OFL.txt','barlowcondensed-OFL.txt'],
+    ['assets/fonts/Bungee-OFL.txt','Bungee-OFL.txt'],['assets/fonts/RussoOne-OFL.txt','RussoOne-OFL.txt'],['assets/fonts/inter-OFL.txt','inter-OFL.txt'],
     ['assets/licences/Apache-2.0.txt','Apache-2.0.txt'],
     ['assets/SOUNDS.md','sound-provenance.txt'],['assets/voice/README.md','voice-provenance.txt'],
     ['assets/boss/README.md','boss-provenance.txt'],['capture/public/models/README.md','model-provenance.txt'],
