@@ -8,6 +8,6 @@ const server=await preview({
   build:{outDir:join(projectRoot,'dist-demo')},
   preview:{host:'127.0.0.1',port:4173,strictPort:true},
 });
-console.log('[demo] SIMULATED CHAT · no Twitch login · keyboard works without camera');
+console.log('[demo] / = SIMULATED CHAT, no login · /play/ = optional Twitch-connected play');
 server.printUrls();
 for(const signal of ['SIGINT','SIGTERM'] as const) process.once(signal,()=>server.httpServer.close());

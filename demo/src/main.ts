@@ -21,7 +21,8 @@ const posture=el<HTMLSelectElement>('posture');
 const clearSpace=el<HTMLInputElement>('clear-space');
 const noPunch=el<HTMLInputElement>('no-punch');
 const avatar=el('keyboard-avatar');
-const hud=createRailsHud(host,{simulated:true});
+const liveMode=location.pathname==='/play'||location.pathname.startsWith('/play/');
+const hud=createRailsHud(host,{simulated:!liveMode});
 const tutorial=new InputTutorial();
 const classifier=new PoseClassifier({guardThreshold:0});
 let game:GameState|null=null;
@@ -31,6 +32,17 @@ let cameraRunning=false;
 let lastFrameAt=-Infinity;
 let lastPose:PoseState={kind:'pose',guard:false,lean:null,source:'pose',at:0};
 let seed=20261027;
+let hosted:ReturnType<typeof import('./play').mountHostedPlay>|null=null;
+let metricsRound:string|null=null;
+let liveViewers=0;
+let showSessionSummary=false;
+function trackFight(){
+  if(!hosted||!game)return;
+  const key=`${game.match.seed}:${game.round.number}`;
+  if(metricsRound!==key){hosted.endFight();hosted.startFight();metricsRound=key;}
+  if(game.round.over)hosted.endFight();
+}
+
 function updateTutorial() {
   tutorial.setNoPunch(noPunch.checked);
   el('tutorial-last-key').textContent=tutorial.keys[2];
@@ -57,30 +69,33 @@ function updateModes() {
 function resize(){host.style.transform=`scale(${stage.clientWidth/1920})`;}
 new ResizeObserver(resize).observe(stage);resize();
 function paint() {
-  hud.render(game??createGame({seed,viewers:Number(crowdSize.value),now:0}),true);
-  hud.setConnection('OFFLINE DEMO · SIMULATED CHAT');
-  hud.setEndcard(game?.round.over?summarizeGame(game,game.match.winner?undefined:game.round.number):null);
+  hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0}),!liveMode);
+  hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
+  trackFight();
+  hud.setEndcard(game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null);
   if(game) {
-    el('next-round').hidden=!game.round.over||Boolean(game.match.winner);
+    el('next-round').hidden=!game.round.over||Boolean(game.match.winner)||showSessionSummary;
     el('restart').hidden=false;
-    el('resume-input').hidden=!game.paused;
+    el('resume-input').hidden=!game.paused||showSessionSummary||(liveMode&&!hosted?.ready);
     crowdSize.disabled=!game.round.over;
     el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':`Straight attacks → K guard · HOOK LEFT → D ${posture.value==='seated'?'tilt':'lean'} · HOOK RIGHT → A ${posture.value==='seated'?'tilt':'lean'} · SUPER → either side${noPunch.checked?' · NO PUNCHES':''}`;
   }
 }
 function drawCrowd(at:number) {
-  if(!game||!crowd||game.round.over||game.paused)return;
+  if(liveMode||!game||!crowd||game.round.over||game.paused)return;
   const key=`${game.round.number}:${Math.floor(game.round.elapsed_ms/2400)}`;
   if(key===crowdBeat)return;
   crowdBeat=key;
   game=step(game,{kind:'vote-batch',votes:crowd.votes(game,at)},at);
 }
 function startFight() {
+  if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Connect Twitch and wait for LIVE before starting.';return;}
   if(!clearSpace.checked){el('tutorial-status').textContent='Confirm your clear space below before starting.';return;}
+  hosted?.endFight();showSessionSummary=false;
   const at=performance.now();
-  game=createGame({seed:seed++,viewers:Number(crowdSize.value),now:at});
-  // This static page has no credential transport and never imports the server.
-  crowd=createSimulationSource({viewers:Number(crowdSize.value),seed:seed+100,liveTokenLoaded:false});
+  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at});
+  // Live chat and the offline crowd both feed the shared reducer; no server import.
+  crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+100,liveTokenLoaded:hosted?.hasToken??false});
   crowdBeat='';drawCrowd(at);
   el('tutorial').hidden=true;
   keyboard.setEnabled(source.value==='keyboard');
@@ -88,6 +103,7 @@ function startFight() {
   paint();
 }
 function input(event:StreamerInput) {
+  if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||(liveMode&&!hosted?.ready)))return;
   const at=performance.now();
   if(event.kind!=='control'&&!clearSpace.checked) {
     if(!game)el('tutorial-status').textContent='Check “My space is clear” below, then press K.';
@@ -186,11 +202,11 @@ el('resume-input').addEventListener('click',()=>{
 });
 el('restart').addEventListener('click',startFight);
 el('next-round').addEventListener('click',()=>{
-  if(!game)return;
+  if(!game||showSessionSummary||(liveMode&&!hosted?.ready))return;
   const at=performance.now();
   game=step(game,{kind:'next-round'},at);
-  game=step(game,{kind:'viewers',count:Number(crowdSize.value)},at);
-  crowd=createSimulationSource({viewers:Number(crowdSize.value),seed:seed+game.round.number,liveTokenLoaded:false});
+  game=step(game,{kind:'viewers',count:liveMode?liveViewers:Number(crowdSize.value)},at);
+  crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+game.round.number,liveTokenLoaded:hosted?.hasToken??false});
   crowdBeat='';drawCrowd(at);paint();
 });
 crowdSize.addEventListener('change',()=>{paint();crowdSize.blur();});
@@ -205,5 +221,20 @@ const timer=window.setInterval(()=>{
   else if(!cameraRunning||at-lastFrameAt>=500)game=step(game,{kind:'pose',guard:false,lean:null,source:'pose',at},at);
   drawCrowd(at);paint();
 },100);
-window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();});
+window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();hosted?.dispose();});
+if(liveMode){
+  const {mountHostedPlay}=await import('./play');
+  const freeze=()=>{if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}};
+  hosted=mountHostedPlay({onVote:vote=>{
+    if(!game||game.round.over||game.paused)return false;
+    game=step(game,vote,performance.now());paint();
+    return game.votes[vote.user]===vote.move;
+  },onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!clearSpace.checked)return;input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{showSessionSummary=true;freeze();}});
+  crowdSize.closest('label')!.hidden=true;
+  document.querySelector('.demo-tag')!.textContent='LIVE · YOUR TWITCH CHAT';
+  document.title='Streamer vs Chat · Try it on your channel';
+  el('tutorial').insertAdjacentHTML('beforeend','<button id="start-live">Start live fight</button>');
+  el('start-live').addEventListener('click',startFight);
+  el('demo-status').textContent='Connect your own Twitch channel. Keyboard and webcam use the same rules.';
+}
 updateModes();paint();input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});

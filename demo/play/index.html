@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Streamer vs Chat: connect your Twitch chat and defend with keyboard or webcam." />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://id.twitch.tv https://api.twitch.tv wss://eventsub.wss.twitch.tv; media-src 'self' blob:; worker-src 'self' blob:" />
+  <title>Streamer vs Chat · Twitch play</title>
+</head>
+<body>
+  <header class="demo-header"><a class="wordmark" href="/">STREAMER <span>VS</span> CHAT</a><span class="demo-tag">TWITCH PLAY · YOUR CHAT</span></header>
+  <main>
+    <p class="demo-status"><a href="/">Play the no-login demo →</a></p>
+    <div id="stage" class="demo-stage">
+      <video id="camera" autoplay muted playsinline aria-label="Mirrored webcam preview" hidden></video>
+      <div id="keyboard-avatar" aria-hidden="true"><div class="avatar-head"></div><div class="avatar-body"></div><div class="avatar-arm left"></div><div class="avatar-arm right"></div><span>KEYBOARD STREAMER</span></div>
+      <div id="game-hud"></div>
+      <section id="tutorial" class="tutorial" aria-label="Three step tutorial">
+        <p class="tutorial-eyebrow">YOU VS A CHAT-POWERED BOSS</p>
+        <h1>The body is the defence.</h1>
+        <p>Guard blocks straight attacks. <span id="tutorial-defence">Lean</span> away from hooks.<br />Confirm your clear space below, then start with three keys.</p>
+        <div class="judge-choices"><fieldset><legend>Choose your posture</legend><label><input type="radio" name="judge-posture" value="standing" checked /> Standing</label><label><input type="radio" name="judge-posture" value="seated" /> Seated</label></fieldset><label class="judge-check"><input id="start-no-punch" type="checkbox" /> No punches · defence still does damage</label><label class="judge-check"><input id="start-clear-space" type="checkbox" /> My space is clear and I can move comfortably.</label></div>
+        <ol><li data-step="0"><kbd>K</kbd><span>Hold your guard</span></li><li data-step="1"><kbd>A</kbd><span id="tutorial-lean-label">Lean left</span></li><li data-step="2"><kbd id="tutorial-last-key">J</kbd><span id="tutorial-last-label">Try a bonus punch</span></li></ol>
+        <p id="tutorial-status" role="status">Step 1 of 3 · Press K</p>
+        <small>Give yourself room to move. Keyboard works without a camera.</small>
+      </section>
+    </div>
+    <section class="demo-controls" aria-label="Demo settings and controls">
+      <p class="control-guide"><kbd>K</kbd> guard <kbd>A</kbd><kbd>D</kbd> <span id="guide-lean">lean</span> <span id="punch-guide"><kbd>J</kbd> bonus punch</span></p>
+      <label class="check"><input id="clear-space" type="checkbox" /> My space is clear.</label>
+      <label>Crowd <select id="crowd-size"><option value="0">0 · autopilot</option><option value="3">3 viewers</option><option value="50" selected>50 viewers</option><option value="500">500 viewers</option></select></label>
+      <label>Input <select id="input-source"><option value="keyboard">Keyboard</option><option value="pose">Webcam</option></select></label>
+      <label class="check"><input id="no-punch" type="checkbox" /> No punches</label>
+      <button id="stop-input" class="stop">STOP <span>Esc</span></button>
+      <button id="resume-input" hidden>Resume</button>
+      <button id="next-round" hidden>Next round</button>
+      <button id="restart" hidden>New match</button>
+    </section>
+    <p id="demo-status" class="demo-status" role="status">Connect your own Twitch channel. Keyboard and webcam use the same rules.</p>
+    <details id="webcam-settings" class="webcam-settings">
+      <summary>Optional webcam · calibrated guard and lean</summary>
+      <div class="webcam-controls">
+        <label>Posture <select id="posture"><option value="standing">Standing</option><option value="seated">Seated</option></select></label>
+        <button id="start-camera">Start camera</button><button id="stop-camera" disabled>Stop camera</button><button id="start-calibration" disabled>Calibrate</button>
+      </div>
+      <p id="camera-status" role="status">Use Chrome. Camera stays in this browser. Head, shoulders and both wrists must stay in frame.</p>
+      <progress id="calibration-progress" max="1" value="0" aria-label="Calibration progress"></progress>
+      <p id="calibration-status" role="status">Relax arms, rest hands at your waist, then hold a face-height guard for 3 s each. Lean comfortably both ways for 1.5 s. Seated: sit ~1 m further back than feels natural.</p>
+      <button id="play-webcam" disabled>Start webcam fight</button>
+    </details>
+  </main>
+  <footer>Streamer vs Chat · Codex × TwitchCon Hackathon · Browser Twitch play · Sound starts off · <a href="/credits/CREDITS.txt">Credits</a></footer>
+  <script type="module" src="/src/entry.ts"></script>
+</body>
+</html>

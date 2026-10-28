@@ -22,3 +22,5 @@ kbd{display:inline-grid;place-items:center;min-width:23px;height:25px;padding:0 
 .judge-choices legend{font-size:11px;color:#c9bfd4;padding:0 4px}.judge-choices label{font-size:13px;display:flex;align-items:center;gap:5px}.judge-choices input{accent-color:#ffdc43}
 .tutorial{max-height:95%;overflow:auto}.tutorial ol{margin:16px 0}
 .tutorial{box-sizing:border-box}
+
+.hosted-panel {max-width:1100px;margin:1rem auto;padding:1rem;background:#171c27;border:1px solid #44516a;border-radius:10px;color:#fff}.hosted-panel h1{font-size:1.8rem}.hosted-actions{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}.hosted-panel pre{white-space:pre-wrap;max-height:320px;overflow:auto}.demo-stage.chroma-green{background:#00ff00}.chroma-green #keyboard-avatar{display:none}.chroma-green video{visibility:hidden}.hosted-panel button{padding:.6rem 1rem;cursor:pointer}

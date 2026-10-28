@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { InputTutorial } from './tutorial';
+import {setLiveCredentials} from './credentials';
 import { assertSimulationAllowed } from './safety';
 import { createSimulationSource } from './source';
 import { createGame, step } from '../../shared/src/engine';
@@ -52,4 +53,12 @@ test('no-punch can be selected after the first two tutorial defences',()=>{
   tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});
   tutorial.setNoPunch(true);
   expect(tutorial.input({kind:'pose',guard:false,lean:'R',source:'keyboard',at:200})).toBe(true);
+});
+
+test('actual hosted credentials prevent simulation even when a caller passes false',()=>{
+  setLiveCredentials(true);
+  try{
+    expect(()=>createSimulationSource({viewers:3,seed:1,liveTokenLoaded:false})).toThrow(/refuses/);
+    expect(()=>createSimulationSource({viewers:3,seed:1,liveTokenLoaded:false,mock:true})).not.toThrow();
+  }finally{setLiveCredentials(false);}
 });

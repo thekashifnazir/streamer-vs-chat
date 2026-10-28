@@ -23,7 +23,7 @@ afterAll(async () => {
   if (http?.listening) await new Promise<void>((resolve, reject) => http.close(error => error ? reject(error) : resolve()));
 });
 
-it.each(['/overlay', '/capture'])('redirects %s and serves the page', async path => {
+it.each(['/overlay', '/capture', '/play'])('redirects %s and serves the page', async path => {
   const response = await fetch(`${base}${path}`, { redirect: 'manual' });
   expect(response.status).toBe(302);
   expect(response.headers.get('location')).toBe(`${path}/`);
@@ -32,8 +32,22 @@ it.each(['/overlay', '/capture'])('redirects %s and serves the page', async path
   expect(page.url).toBe(`${base}${path}/`);
   expect(await page.text()).toContain('<!doctype html>');
 });
-it.each(['/overlay', '/capture'])('preserves query parameters when redirecting %s', async path => {
+it.each(['/overlay', '/capture', '/play'])('preserves query parameters when redirecting %s', async path => {
   const response = await fetch(`${base}${path}?mode=obs`, { redirect: 'manual' });
   expect(response.status).toBe(302);
   expect(response.headers.get('location')).toBe(`${path}/?mode=obs`);
+});
+it('serves root OAuth callback page without dropping query or hash handling entry',async()=>{
+  const response=await fetch(`${base}/?code=callback`);
+  expect(response.status).toBe(200);
+  expect(await response.text()).toContain('/src/entry.ts');
+});
+it.each([
+  ['/assets/pose/vision_wasm_internal.js','application/javascript'],
+  ['/assets/pose/vision_wasm_internal.wasm','application/wasm'],
+  ['/assets/pose/pose_landmarker_lite.task','application/octet-stream'],
+])('serves local runtime file %s in development',async(path,mime)=>{
+  const response=await fetch(`${base}${path}`);
+  expect(response.status).toBe(200);expect(response.headers.get('content-type')).toBe(mime);
+  expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(1000);
 });

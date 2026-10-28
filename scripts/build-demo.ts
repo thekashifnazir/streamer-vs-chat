@@ -18,8 +18,9 @@ export async function buildDemo(options: {mock?:boolean} = {}) {
     throw new Error('Vendored lite model checksum does not match capture/public/models/README.md.');
   }
   await build({
-    configFile:false, root:join(projectRoot,'demo'), publicDir:false, envDir:false, base:'/',
-    build:{outDir:output,emptyOutDir:true,target:'es2022'},
+    configFile:false, root:join(projectRoot,'demo'), publicDir:false, envDir:false, envPrefix:[], base:'/',
+    define:{'import.meta.env.VITE_TWITCH_CLIENT_ID':JSON.stringify(process.env.VITE_TWITCH_CLIENT_ID??'')},
+    build:{outDir:output,emptyOutDir:true,target:'es2022',manifest:true,rollupOptions:{input:{index:join(projectRoot,'demo/index.html'),play:join(projectRoot,'demo/play/index.html')}}},
   });
   const poseOutput=join(output,'assets/pose');
   await mkdir(poseOutput,{recursive:true});
@@ -47,7 +48,7 @@ export async function buildDemo(options: {mock?:boolean} = {}) {
     }
   }
   await measure(output);
-  console.log(`[demo] Offline dist-demo ready: ${(rawBytes/1e6).toFixed(1)} MB raw / ${(gzipBytes/1e6).toFixed(1)} MB gzip. No server credentials or network services included.`);
+  console.log(`[demo] Offline dist-demo ready: ${(rawBytes/1e6).toFixed(1)} MB raw / ${(gzipBytes/1e6).toFixed(1)} MB gzip. No server credentials included; offline demo and optional Twitch play are separate routes.`);
   return output;
 }
 

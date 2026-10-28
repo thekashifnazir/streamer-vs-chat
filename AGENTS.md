@@ -47,3 +47,10 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - Chat MVP uses the actual-damage ledger, including interrupted COMBO hits. Split credit equally among counted supporters of the selected move; autopilot earns none. Historical attribution stays server-side; routine wire updates run at10 Hz with immediate control/safety updates.
 - Seated and no-punch are start-screen choices. Seated has separate calibration and TILT cues. No-punch disables detection and prompts while automatic defence counters keep their damage. Guard/lean classifier math remains accepted; punch-gating changes retain the recorded-fixture equivalence test.
 - End session / show card freezes play and shows session stats/top confirmed clips/MVP; START creates a new match without clearing session totals.
+
+## Hosted channel mode
+- /play is the authorised no-server exception: the browser owns this mode's state and calls the same shared reducer. The no-login landing remains offline and simulated; local Node/OBS Browser Source paths remain supported.
+- OAuth implicit uses only user:read:chat. Keep tokens in memory, strip callback hashes immediately, validate at start/hourly, check random state; sessionStorage may retain only the CSRF nonce. No client secret, persisted token or analytics service.
+- Build/dev read only explicit public VITE_TWITCH_CLIENT_ID, never .env/server tokens. Redirect origins are primarydomain root and localhost:5173 root; other previews direct users to a registered origin. No deployment by agents.
+- Live credential state must gate simulated source creation even if a caller incorrectly passes false. LIVE transport loss freezes play until connected and explicitly resumed. Hosted mode never sends chat.
+- Metrics export only counts/rates. Salted SHA-256 identities and fresh session salt stay in memory, never persisted/exported; never retain/export chat text or usernames. Baseline is up to10 observed minutes before the first round; each round is a fight.

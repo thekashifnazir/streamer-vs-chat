@@ -18,7 +18,29 @@ Open **http://localhost:4173/**. Choose standing or seated and optional no-punch
 npm run build:demo
 ```
 
-Produces `dist-demo/` with all runtime assets, one SIMD WASM binary, the vendored lite model, local fonts, boss art, SFX and voices. No login, CDN or external runtime downloads. The builder/preview never loads `.env` or the server token store. The complete bundle is about25 MB raw /15 MB gzip; pose-only assets are about8.4 MB gzip. See [demo and deployment notes](docs/DEMO.md).
+Produces `dist-demo/` with all runtime assets, one SIMD WASM binary, the vendored lite model, local fonts, boss art, SFX and voices. The no-login demo needs no CDN or external runtime downloads; optional `/play` connects to Twitch. The builder/preview never loads `.env` or the server token store. The complete bundle is about25 MB raw /15 MB gzip; pose-only assets are about8.4 MB gzip. See [demo and deployment notes](docs/DEMO.md).
+
+## Try it on your channel
+
+Open **[Try it on your channel](https://streamervschat.kashifnazir.com/play)**. This hosted mode runs entirely in your browser, using the same game reducer as the offline demo and local server. Connect with Twitch, confirm clear space, and start with keyboard or a calibrated webcam. Standing, seated and no-punch choices remain available.
+
+It requests **`user:read:chat`** to read messages from your own channel. It does not request chat-writing permission or post results to chat. OAuth uses the implicit flow; the token is removed from the URL immediately and kept only in this document's memory. Reloading or disconnecting signs you out; expired authorization shows Reconnect. LIVE mode never starts a simulated crowd. With no votes, the normal game-rule autopilot still chooses attacks.
+
+For OBS:
+
+1. Open `/play` in a normal Chrome window and connect Twitch.
+2. Add **Window Capture** in OBS and select that window.
+3. Enable **Green background** in the page; add an OBS **Chroma Key** filter set to green.
+4. Crop to the game frame, check both Rails are visible, then go live.
+
+Before the first fight, the page measures up to ten minutes of baseline chat. Each round counts as a fight. End session / Copy results exports counts and rates only: messages/min, unique chatters, accepted voters, fights played and session minutes. Chat text, usernames, IDs, hashes and the random session salt are never exported or persisted. Nothing is sent to an analytics service.
+
+To configure a hosted build, register **both exact redirect URIs** on a Twitch application:
+
+- `https://streamervschat.kashifnazir.com/`
+- `http://localhost:5173/`
+
+Set the **public** client ID in the build environment, then run `npm run build:demo` (or `npm run demo`). For example: `VITE_TWITCH_CLIENT_ID=your_public_client_id npm run build:demo`. The builder reads this variable explicitly and does not load `.env`. No client secret belongs in this build. For development login, run `VITE_TWITCH_CLIENT_ID=your_public_client_id npm run dev`, then open `http://localhost:5173/play`. The4173 preview and Workers fallback still serve the no-login demo; Twitch login uses the two registered origins above. `npm run dev` also serves `/play` on5173; the local Node + OBS Browser Source workflow below stays available. See [hosted-mode verification and Needs Kash](docs/stretch-2-review.md) for registration/login/deployment checks.
 
 ## Twitch development
 
