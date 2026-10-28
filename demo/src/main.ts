@@ -1,3 +1,5 @@
+import type {ForgeSnapshot} from '../../shared/src/forge-view';
+import type {BossDef} from '../../shared/src/boss-def';
 import '../../overlay/src/style.css';
 import './style.css';
 import { createRailsHud } from '../../overlay/src/hud';
@@ -28,6 +30,9 @@ const liveMode=location.pathname==='/play'||location.pathname.startsWith('/play/
 const hud=createRailsHud(host,{simulated:!liveMode});
 const tutorial=new InputTutorial();
 const classifier=new PoseClassifier({guardThreshold:0});
+let pendingBoss:BossDef|null=null;
+let forgeSnapshot:ForgeSnapshot|null=null;
+let forgePanel:ReturnType<typeof import('./forge').mountDemoForge>|null=null;
 let game:GameState|null=null;
 let crowd:ReturnType<typeof createSimulationSource>|null=null;
 let crowdBeat='';
@@ -82,6 +87,8 @@ function updateModes() {
 function resize(){host.style.transform=`scale(${stage.clientWidth/1920})`;}
 new ResizeObserver(resize).observe(stage);resize();
 function paint() {
+  forgePanel?.update();
+  hud.setForge(forgeSnapshot,!game||game.round.over);
   if(game&&coldOpenAt===null)viewerMemory?.observe(game);
   hud.setMemory(viewerMemory?.view()??null);
   hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0}),!liveMode);
@@ -94,7 +101,7 @@ function paint() {
     el('restart').hidden=false;
     el('resume-input').hidden=!game.paused||showSessionSummary||(liveMode&&!hosted?.ready);
     crowdSize.disabled=!game.round.over;
-    el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':`Straight attacks → K guard · HOOK LEFT → D ${posture.value==='seated'?'tilt':'lean'} · HOOK RIGHT → A ${posture.value==='seated'?'tilt':'lean'} · SUPER → either side${noPunch.checked?' · NO PUNCHES':''}`;
+    el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':game.bossDef?`${game.bossDef.name} · Follow each move’s defence cue. K guard · A/D ${posture.value==='seated'?'tilt':'lean'}${noPunch.checked?'':' · J bonus'}`:`Straight attacks → K guard · HOOK LEFT → D ${posture.value==='seated'?'tilt':'lean'} · HOOK RIGHT → A ${posture.value==='seated'?'tilt':'lean'} · SUPER → either side${noPunch.checked?' · NO PUNCHES':''}`;
   }
 }
 function drawCrowd(at:number) {
@@ -112,7 +119,7 @@ function startFight() {
   if(!clearSpace.checked){el('tutorial-status').textContent='Confirm your clear space below before starting.';return;}
   hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
   const at=performance.now();
-  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at});
+  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,...(!liveMode&&pendingBoss?{bossDef:pendingBoss}:{})});
   // Live chat and the offline crowd both feed the shared reducer; no server import.
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+100,liveTokenLoaded:hosted?.hasToken??false});
   trackLocalRound();crowdBeat='';drawCrowd(at);
@@ -223,7 +230,7 @@ el('restart').addEventListener('click',startFight);
 el('next-round').addEventListener('click',()=>{
   if(!game||showSessionSummary||(liveMode&&!hosted?.ready))return;
   const at=performance.now();
-  game=step(game,{kind:'next-round'},at);
+  game=step(game,{kind:'next-round',...(!liveMode?{bossDef:pendingBoss}:{})},at);
   game=step(game,{kind:'viewers',count:liveMode?liveViewers:Number(crowdSize.value)},at);
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+game.round.number,liveTokenLoaded:hosted?.hasToken??false});
   trackLocalRound();crowdBeat='';drawCrowd(at);paint();
@@ -247,7 +254,7 @@ const timer=window.setInterval(()=>{
   }
   drawCrowd(at);paint();
 },100);
-window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();hosted?.dispose();playtest.dispose();void viewerMemory?.close();});
+window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();playtest.dispose();void viewerMemory?.close();});
 el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
 el('cold-open').addEventListener('click',()=>{
@@ -258,6 +265,7 @@ el('cold-open').addEventListener('click',()=>{
  game=startColdOpen(at,seed++,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose);
  el('tutorial').hidden=true;stage.classList.remove('cold-open-tally');paint();
 });
+if(!liveMode){const {mountDemoForge}=await import('./forge');const panel=document.createElement('section');el('friend-tools').after(panel);forgePanel=mountDemoForge(panel,{betweenRounds:()=>!game||game.round.over,onAccepted:boss=>{pendingBoss=boss;},onSnapshot:snapshot=>{forgeSnapshot=snapshot;hud.setForge(snapshot,!game||game.round.over);}});}
 if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');

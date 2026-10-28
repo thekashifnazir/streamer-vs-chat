@@ -1,3 +1,4 @@
+import {type BossDef} from './boss-def.js';
 export const MOVES = ['JAB', 'HOOK_L', 'HOOK_R', 'COMBO', 'SUPER'] as const;
 export type Move = typeof MOVES[number];
 export type ChatVote = { kind: 'vote'; user: string; move: Move; at: number; simulated: boolean };
@@ -10,9 +11,9 @@ export type Telegraph = { kind: 'telegraph'; move: Move; landsAt: number; exploi
 export type Resolved = { kind: 'resolved'; move: Move; outcome: 'HIT'|'BLOCK'|'PERFECT'|'DODGE'|'CHIP'; dmg: number; counterDmg: number };
 export type TallySnapshot = { kind: 'tally'; tally: Record<Move, number>; weights?: Record<Move, number>; voters: number; simulated: boolean };
 const COMMANDS: Record<string, Move> = { '!jab':'JAB', '!hookl':'HOOK_L', '!hookr':'HOOK_R', '!combo':'COMBO', '!super':'SUPER' };
-export function parseChatVote(text: string, user: string, at: number, simulated: boolean): ChatVote | null {
+export function parseChatVote(text: string, user: string, at: number, simulated: boolean,bossDef?:BossDef): ChatVote | null {
   const command = text.trim().split(/\s+/, 1)[0]?.toLowerCase();
-  const move = Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined;
+  const move = bossDef?MOVES[bossDef.moves.findIndex(move=>move.command===command)] : Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined;
   return move ? { kind: 'vote', user, move, at, simulated } : null;
 }
 

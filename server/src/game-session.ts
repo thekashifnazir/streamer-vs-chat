@@ -1,3 +1,4 @@
+import {type BossDef,isDefaultBoss,validateBoss} from '../../shared/src/boss-def';
 import { parseChatVote, type StreamerInput, type TallySnapshot, type PoseState } from '@svc/shared';
 import { createGame, step, weightedTally, type EngineEvent, type GameState } from '../../shared/src/engine';
 import { parseChatControl, type ChatRole } from './chat-controls';
@@ -18,6 +19,13 @@ export type SessionChat={user:string;text:string;simulated:boolean;role:ChatRole
 export class GameSession {
   private current:GameState;
   private armed=false;
+  private pendingBoss:BossDef|null|undefined;
+  private forgeHeld=false;
+  queueBoss(def:BossDef|null):boolean {if(this.armed&&!this.current.round.over)return false;if(def&&validateBoss(def,[],{allowDefault:true}).length)return false;this.pendingBoss=def&&!isDefaultBoss(def)?structuredClone(def):null;return true;}
+  cancelQueuedBoss():void {this.pendingBoss=undefined;}
+  beginForge():boolean {if(this.armed&&!this.current.round.over)return false;this.forgeHeld=true;return true;}
+  endForge():void {this.forgeHeld=false;if(this.current.round.over&&!this.current.match.winner)this.nextRoundAt=this.now()+3000;}
+  private bossEvent(){const bossDef=this.pendingBoss;this.pendingBoss=undefined;return bossDef===undefined?{}:{bossDef};}
   private archive=new SessionArchive();
   private viewerNames=new Map<string,string>();
   private summaryKey:unknown[]=[];
@@ -59,7 +67,7 @@ export class GameSession {
     if(this.armed&&!wasOver&&this.current.round.over) {
       const result=this.current.log.rounds.at(-1)!;
       const score=this.current.match.round_wins;
-      const text=`Streamer vs Chat · Round ${result.number}: ${result.winner==='streamer'?'STREAMER':'CHAT GOLEM'} wins (${Math.round(result.streamer_hp)}/100 vs ${Math.round(result.boss_hp)}/135 HP) · ${score.streamer}–${score.boss}${this.current.match.winner?' · MATCH OVER':''}`;
+      const text=`Streamer vs Chat · Round ${result.number}: ${result.winner==='streamer'?'STREAMER':this.current.bossDef?.name??'CHAT GOLEM'} wins (${Math.round(result.streamer_hp)}/100 vs ${Math.round(result.boss_hp)}/${this.current.boss.max_hp} HP) · ${score.streamer}–${score.boss}${this.current.match.winner?' · MATCH OVER':''}`;
       this.results.enqueue(text,now);
       this.nextRoundAt=this.current.match.winner?null:now+3000;
     }
@@ -68,12 +76,13 @@ export class GameSession {
     const now=this.now();
     if(command.action==='summary'){this.summaryVisible=true;this.input({kind:'control',action:'stop',by:'capture'});return;}
     if(command.action==='start') {
+      if(this.forgeHeld)return;
       if(this.armed)this.archive.add(this.current,this.runId);
       this.runId++;this.summaryVisible=false;
       this.armed=true;this.safetyFrozen=false;this.nextRoundAt=null;
-      this.apply({kind:'restart'},now);
-    } else if(this.armed&&!this.frozen&&this.current.round.over&&!this.current.match.winner) {
-      this.nextRoundAt=null;this.apply({kind:'next-round'},now);
+      this.apply({kind:'restart',...this.bossEvent()},now);
+    } else if(this.armed&&!this.frozen&&this.current.round.over&&!this.current.match.winner&&!this.forgeHeld) {
+      this.nextRoundAt=null;this.apply({kind:'next-round',...this.bossEvent()},now);
     }
   }
   queueNotice(text:string):void {this.results.enqueue(text,this.now());}
@@ -85,7 +94,7 @@ export class GameSession {
     const now=this.armed?this.now():this.current.now;
     const control=parseChatControl(message.text,message.user,message.role);
     if(control){this.input(control);return null;}
-    const vote=parseChatVote(message.text,message.user,now,message.simulated);
+    const vote=parseChatVote(message.text,message.user,now,message.simulated,this.current.bossDef);
     if(vote){
       this.apply({...vote,raider},now);
       if(this.armed&&!this.current.paused&&!this.current.round.over&&this.current.votes[message.user]===vote.move)return vote;
@@ -124,8 +133,8 @@ export class GameSession {
     const now=this.now();
     if(this.armed) {
       this.apply({kind:'advance'},now);
-      if(this.nextRoundAt!==null&&now>=this.nextRoundAt&&!this.frozen) {
-        this.nextRoundAt=null;this.apply({kind:'next-round'},now);
+      if(this.nextRoundAt!==null&&now>=this.nextRoundAt&&!this.frozen&&!this.forgeHeld) {
+        this.nextRoundAt=null;this.apply({kind:'next-round',...this.bossEvent()},now);
       }
     }
     this.results.flush(now);

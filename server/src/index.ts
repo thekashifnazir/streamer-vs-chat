@@ -14,6 +14,8 @@ import {HardeningTelemetry} from './hardening.js';
 import {attachOverlaySockets} from './overlay-sockets.js';
 import {createViewerMemory} from '../memory.js';
 import {ViewerMemorySession} from './viewer-memory-session.js';
+import {createForgeService,forgeCommand} from './forge.js';
+import {createOpenAIForgeClient} from './forge-client.js';
 
 const mock=process.argv.includes('--mock')||process.env.TWITCH_MOCK==='1';
 const hardening=process.argv.includes('--hardening');
@@ -31,6 +33,10 @@ const sessionId=randomUUID();
 const viewerMemory=await createViewerMemory({source:mock?'sim':'live'});
 const memorySession=new ViewerMemorySession({store:viewerMemory,sessionId,enqueueNotice:text=>game.queueNotice(text),onChange:()=>broadcast(),onError:()=>console.error('[memory] Viewer memory could not be saved; no acknowledgement was sent.')});
 let gameEpoch=0;
+let forge:ReturnType<typeof createForgeService>|undefined;
+let forgeRun=0,forgeRoundPending=false;
+let broadcasterNames:string[]=[],broadcasterNamesReady=false;
+const recentNames=new Map<string,string>();
 let persisted=Promise.resolve();
 const confirmedHighlights=new Map<string,HighlightEntry>();
 const replayTimeouts=new Map<string,ReturnType<typeof setTimeout>>();
@@ -52,6 +58,8 @@ function makeHighlights(){return new ServerHighlightCoordinator({transport:{
 }});}
 let highlights=makeHighlights();
 function makeGame(){gameEpoch++;return new GameSession({mock,onState:(previous,next)=>{
+  forge?.observePhase();
+  if(!previous.round.over&&next.round.over)forgeRoundPending=true;
   memorySession.transition(previous,next,`${gameEpoch}:${game.runId}`);
   telemetry?.state(previous,next,game.runId,Date.now());
   const candidates=highlightCandidates(previous,next);
@@ -66,6 +74,21 @@ function makeGame(){gameEpoch++;return new GameSession({mock,onState:(previous,n
   await twitch.sendRoundResult(text,simulated);if(telemetry)telemetry.resultsSent++;
 },onError:()=>console.error('[bot] Bot message could not be sent; check the Twitch connection or local mock shim.')});}
 let game=makeGame();
+// The key is supplied only by the existing live-server .env configuration. Mock
+// startup never constructs a network client or reads a key/token file.
+forge=createForgeService({client:!mock&&process.env.OPENAI_API_KEY?createOpenAIForgeClient({apiKey:process.env.OPENAI_API_KEY,mode:'live'}):null,
+ protectedNames:()=>[...broadcasterNames,...recentNames.values()],
+ isBetweenRounds:()=>broadcasterNamesReady&&(!game.started||game.state.round.over),
+ onChange:()=>broadcast(),onAccepted:boss=>{if(!game.queueBoss(boss))throw new Error('Round already started');},
+ log:metrics=>console.log(`[forge] ${JSON.stringify(metrics)}`),
+});
+async function runForge(){
+ if(closing||!forge||!forge.snapshot().ideas.length||!forge.snapshot().betweenRounds)return;
+ const status=forge.snapshot().status;if(['generating','validating','tuning'].includes(status))return;
+ const target=game;if(!target.beginForge())return;const run=++forgeRun;
+ try{await forge.generate();}finally{if(run===forgeRun&&target===game){target.endForge();broadcast();}}
+}
+function cancelForge(reset=false){forgeRun++;if(reset)forge?.resetBout();else{forge?.veto();game.cancelQueuedBoss();}game.endForge();}
 const projectState=createWireProjection();
 function messages(drain=false){
   const visible=game.summaryVisible||!!game.state.match.winner;
@@ -73,6 +96,7 @@ function messages(drain=false){
   const audit=telemetry?.snapshot(drain);
   return [{...game.tally(),...(audit?{hardening:audit}:{})},{kind:'tick',state:projectState(game.state),simulated:mock,started:game.started,modes:game.modes,transport,...(audit?{hardening:audit}:{})},
     {kind:'memory',memory:memorySession.view(summary)},
+    {kind:'forge',forge:forge?.snapshot()},
     {kind:'highlights',...(summary?{summary}:{}),entries:entries(),visible}];
 }
 function broadcast(){
@@ -82,16 +106,25 @@ function broadcast(){
   }
 }
 const captureInputs=new CaptureInputs({onOptions:options=>{game.configure(options);broadcast();},onReplay:result=>{clearTimeout(replayTimeouts.get(result.highlightId));replayTimeouts.delete(result.highlightId);highlights.ackReplay(result.highlightId,result.available);},onInput:(event,at)=>{
+  if(event.kind==='control'&&event.action!=='resume')cancelForge();
   game.input(event,at);captureInputs.setStopped(game.frozen,at);if(event.kind==='control')broadcast();
 },onSession:event=>{
+  if(event.action==='start')cancelForge(true);
   game.command(event);if(event.action==='summary')void memorySession.finalize(game.summary()).then(()=>broadcast()).catch(()=>console.error('[memory] Could not finalize viewer memory.'));
   captureInputs.setStopped(game.frozen,Date.now());broadcast();
 }});
 const onMessage=(message:IncomingChat)=>{
+  if(message.simulated===mock&&message.displayName){recentNames.delete(message.user);recentNames.set(message.user,message.displayName);while(recentNames.size>100)recentNames.delete(recentNames.keys().next().value!);}
+  if(message.simulated===mock&&/^!forge(?:\s|$)/i.test(message.text.trim())){
+   if(/^!forge\s*$/i.test(message.text.trim())&&(message.role==='mod'||message.role==='broadcaster'))void runForge();
+   else if(forge)void Promise.resolve(forgeCommand(forge,{viewerId:message.user,text:message.text})).catch(()=>{});
+  }
+  const control=message.simulated===mock?parseChatControl(message.text,message.user,message.role):null;
+  if(control&&control.action!=='resume')cancelForge();
   const receivedAt=Date.now();memorySession.beforeChat(message);const vote=game.chat(message);
   memorySession.acceptedVote(message,vote,`${gameEpoch}:${game.runId}:${game.state.round.number}:${game.state.clock.beat}`);
   telemetry?.message(message,game.state,game.runId,receivedAt);captureInputs.setStopped(game.frozen,Date.now());
-  if(message.simulated===mock&&parseChatControl(message.text,message.user,message.role))broadcast();
+  if(control)broadcast();
 };
 const onTwist=(event:IncomingTwist)=>{game.twist(event);};
 const onStatus=(status:typeof transport)=>{transport=status;if(typeof game!=='undefined')broadcast();};
@@ -106,13 +139,16 @@ const auth=mock?undefined:await createAuth({onReady:(authProvider,accounts)=>{
   if(closing)return;
   twitch?.stop();
   if(memorySession.channelId&&memorySession.channelId!==accounts.broadcasterId){
+    cancelForge(true);recentNames.clear();broadcasterNames=[];broadcasterNamesReady=false;
     game.input({kind:'control',action:'stop',by:'capture'});highlights.close();await highlights.idle();await memorySession.finalize(game.summary());
     for(const timer of replayTimeouts.values())clearTimeout(timer);replayTimeouts.clear();confirmedHighlights.clear();highlights=makeHighlights();
     game.close();game=makeGame();game.input({kind:'control',action:'stop',by:'capture'});captureInputs.setStopped(true,Date.now());
   }
   memorySession.selectChannel(accounts.broadcasterId);
   if(closing)return;
-  twitch=createTwitchSession({mock:false,onMessage,onTwist,onStatus,authProvider,...accounts});await updateViewers();
+  twitch=createTwitchSession({mock:false,onMessage,onTwist,onStatus,authProvider,...accounts});
+  const source=twitch;try{const names=await source.broadcasterNames();if(source===twitch&&names.length){broadcasterNames=names;broadcasterNamesReady=true;}}catch{console.error('[forge] Broadcaster names unavailable; generation remains disabled.');}
+  await updateViewers();
  });rebinding=task;return task;
 }});
 const server=createServer(async(req,res)=>{
@@ -142,13 +178,14 @@ attachOverlaySockets(server,sockets,()=>messages(),client=>captureInputs.attach(
 // Routine chat, pose and optional-event views share this 10 Hz clock. Safety controls,
 // session commands, options and highlight status changes flush immediately.
 let nextBroadcast=Date.now();
-const ticks=setInterval(()=>{const now=Date.now();captureInputs.expire(now);game.advance();captureInputs.setStopped(game.frozen,now);if(now>=nextBroadcast){nextBroadcast=now+100;broadcast();}},20);
+const ticks=setInterval(()=>{const now=Date.now();captureInputs.expire(now);game.advance();if(forgeRoundPending){forgeRoundPending=false;void runForge();}captureInputs.setStopped(game.frozen,now);if(now>=nextBroadcast){nextBroadcast=now+100;broadcast();}},20);
 const viewers=setInterval(()=>void updateViewers(),60000);
 server.listen(3000,'127.0.0.1',()=>{
   console.log(`[server] http://localhost:3000 · ${mock?'SIMULATED':'live auth'} · Open /capture and press START MATCH when ready.`);
   if(mock){twitch=createTwitchSession({mock:true,onMessage,onTwist,onStatus,logChat:!hardening});void updateViewers();}
 });
 async function close(){
+  cancelForge();
   if(closing)return;closing=true;clearInterval(ticks);clearInterval(viewers);await rebinding.catch(()=>{});twitch?.stop();
   try{await memorySession.finalize(game.summary());await viewerMemory.flush();}catch{console.error('[memory] Could not save viewer memory on shutdown.');}
   game.close();for(const timer of replayTimeouts.values())clearTimeout(timer);highlights.close();await persisted;await auth?.close();

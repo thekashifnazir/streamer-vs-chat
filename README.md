@@ -9,6 +9,7 @@ Features:
 - Chat picks attacks every 2.4 seconds; guard and lean win the fight, punches add a bonus.
 - Two-way scouting from round 2: the boss spots your lean habit on the left rail, while a right-rail card reveals chat's repeated move over its last 12 voted picks.
 - Read the card and pre-hold the correct defence before the tell: a clean defence earns **+25% automatic counter damage** and **READ IT**.
+- Boss Forge validates and balances chat-designed bosses; the offline demo includes three prebaked bosses and an editable JSON forge.
 - Viewer memory remembers returning chat rivals: record, all-time hall of fame, active nemesis and MVP streaks, with `!forgetme` opt-out.
 - Keyboard/webcam, seated/no-punch, calm FX, offline demo and hosted channel play stay supported.
 
@@ -162,3 +163,11 @@ Tests use local transports or mocked Twitch modules. All 59 golden vectors (incl
 [Day 4 verification, scouting results and optional-event semantics](docs/day4-review.md). Scouting begins in round 2; fixing a habit heals up to 10 HP. Cheers add capped hype, new subscriptions heal 8 HP, and raids start a 15-second Phase 2 with inferred raider weighting capped at half the draw. [Day 5 verification and highlight/accessibility notes](docs/day5-review.md). [Day 6 feel/mix and proof tooling](docs/day6-review.md) is implemented; listening, filmed footage and physical camera timings remain Mac checks.
 
 [Queue 11a review and balance results](docs/queue11a-review.md). CHAT SYNC was evaluated and removed after two failed balance attempts; early coordinated votes retain ordinary attack damage.
+
+## Boss Forge
+
+In the offline demo, open **Boss Forge**, choose one of three prebaked bosses or edit its JSON, then **Validate & balance**. Only an accepted result can be selected for the next round. The worker runs locally with no API key or network; the card shows validation, before/after rates and the measured duration. Restore Chat Golem to return to the original rules.
+
+The optional live Node path uses server-only `OPENAI_API_KEY` in `.env`. Chat submits `!forge <idea>` once per match; `!forge +1` endorses the most recently admitted idea, and `!forge +1 1`, `2` or `3` selects a displayed shortlist position (latest endorsement wins). The stable top three are shown; the leading idea is generated between rounds, or a moderator/broadcaster can send bare `!forge` before START or between rounds. `!veto` cancels pending generation and acceptance. The model is `gpt-6-luna`, with one repair turn; deterministic validation, moderation and the balance gate must all pass. Ideas never enter speech.
+
+Mock startup never creates an API client. Server tests inject fake moderation/Responses clients. API availability, actual cost and a real-key rehearsal remain Mac checks; unknown costs are displayed as unavailable. The static build never includes the server key.

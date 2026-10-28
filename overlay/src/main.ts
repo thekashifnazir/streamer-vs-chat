@@ -1,3 +1,4 @@
+import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import './style.css';
 import type {ViewerMemoryView} from '../../shared/src/viewer-memory';
 import type { TallySnapshot } from '@svc/shared';
@@ -21,9 +22,10 @@ function connect(){
   connection.addEventListener('message',event=>{
     if(!current())return;
     try {
-      const message=JSON.parse(String(event.data)) as {kind:string;state?:GameState;simulated?:boolean;tally?:TallySnapshot['tally'];modes?:HudModes;summary?:GameSummary;entries?:HighlightEntry[];visible?:boolean;transport?:string;memory?:ViewerMemoryView|null};
+      const message=JSON.parse(String(event.data)) as {kind:string;state?:GameState;simulated?:boolean;tally?:TallySnapshot['tally'];modes?:HudModes;summary?:GameSummary;entries?:HighlightEntry[];visible?:boolean;transport?:string;memory?:ViewerMemoryView|null;forge?:ForgeSnapshot|null};
       if(message.kind==='tick'&&message.state){if(message.transport){transport=message.transport;badge();}if(message.modes)hud.setModes(message.modes);hud.render(message.state,!!message.simulated);}
       else if(message.kind==='highlights')hud.setEndcard(message.visible&&message.summary?message.summary:null,[...(message.entries??[])].sort((a,b)=>b.highlight.priority-a.highlight.priority||a.highlight.at-b.highlight.at).flatMap(entry=>entry.status==='confirmed'&&entry.url?[{id:entry.highlight.id,label:`${entry.highlight.kind.toUpperCase()} · ROUND ${entry.highlight.round}`,url:entry.url,status:'confirmed' as const}]:[]));
+      else if(message.kind==='forge')hud.setForge(message.forge??null);
       else if(message.kind==='memory')hud.setMemory(message.memory??null);
       else if(message.kind==='tally'&&message.tally)hud.renderTally(message as TallySnapshot);
     }catch{/* Ignore malformed network messages; the next server snapshot replaces them. */}

@@ -300,3 +300,10 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .seated.rails-hud:not(.memory-on) footer>.simulated{font-size:36px;padding:6px 4px}
 .seated.rails-hud:not(.memory-on) footer .hud-options button{max-width:160px;padding:4px}
 .seated.rails-hud:not(.memory-on) .fixed-stamp{font-size:60px;margin-top:10px}
+
+.forge-card{position:absolute;left:485px;right:485px;top:145px;max-height:850px;overflow:auto;padding:20px;border:4px solid var(--cyan);background:#100b19fc;pointer-events:auto;z-index:4}
+.rails-hud .forge-card h2{font-size:48px}.forge-card p,.forge-card small{display:block;font-size:36px;line-height:1.1;margin-top:8px;overflow-wrap:anywhere}
+.custom-boss .vote-command{display:flex;min-width:0;align-items:center}.custom-boss .vote-name{min-width:0;overflow:hidden;text-overflow:ellipsis}.custom-boss .vote-command small{flex-shrink:0}
+.custom-boss .boss header h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.custom-boss .move-pill>span{font-size:36px;max-width:600px;overflow:hidden;text-overflow:ellipsis}
+.forge-card table{width:100%;border-collapse:collapse;margin-top:12px;font-size:36px}.forge-card caption{text-align:left;font-size:36px}.forge-card th,.forge-card td{text-align:left;padding:4px;border-bottom:1px solid #ffffff40;font-size:36px}

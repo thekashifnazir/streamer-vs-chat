@@ -1,0 +1,43 @@
+{
+  "name": "Neon Kraken",
+  "tagline": "Four arms. One readable rhythm.",
+  "hp": 135,
+  "moves": [
+    {
+      "command": "!glow",
+      "label": "GLOW",
+      "defence": "guard",
+      "damage": 8,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!tidel",
+      "label": "LEFT TIDE",
+      "defence": "lean_right",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!tider",
+      "label": "RIGHT TIDE",
+      "defence": "lean_left",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!ripple",
+      "label": "RIPPLE",
+      "defence": "guard",
+      "damage": 7,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 2
+    }
+  ]
+}

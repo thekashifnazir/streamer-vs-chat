@@ -1,4 +1,5 @@
-import { createGame,step,mulberry32,type GameState,type EngineEvent,type Side,type Counts } from '../shared/src/engine.js';
+import {type BossDef} from '../shared/src/boss-def.js';
+import { createGame,step,mulberry32,type GameState,type EngineEvent,type Side,type Counts,bossMove } from '../shared/src/engine.js';
 import {createCrowd,crowdVoteCounts}from '../shared/src/crowd.js';
 import {fileURLToPath}from 'node:url';
 import {resolve}from 'node:path';
@@ -12,10 +13,10 @@ export const PLAYERS={
 export type Player=keyof typeof PLAYERS;
 export type CrowdProfile='ordinary'|'coordinated';
 export const READ_MODEL={attempt:.35,hold:.85,earlyFraction:1000/2400,coordinatedFraction:.35} as const;
-export type SimulationOptions={roundNumber?:number;dodges?:Side[];profile?:CrowdProfile;braceRate?:number};
+export type SimulationOptions={roundNumber?:number;dodges?:Side[];profile?:CrowdProfile;braceRate?:number;bossDef?:BossDef};
 /** One75s round, driven exclusively through the production reducer and held inputs. */
 export function simulateRound(player:Player,viewers:number,seed:number,options:SimulationOptions={}):GameState{
-  let initial=createGame({seed,viewers,roundNumber:options.roundNumber??1});
+  let initial=createGame({seed,viewers,roundNumber:options.roundNumber??1,bossDef:options.bossDef});
   if(options.dodges)initial={...initial,scouting:{...initial.scouting,dodges:[...options.dodges]}};
   initial=step(initial,{kind:'advance'},initial.now);
   return playRound(initial,player,seed,options);
@@ -63,17 +64,17 @@ function playRound(initial:GameState,player:Player,seed:number,options:Simulatio
     apply({kind:'advance'},draw);
     const attack=state.activeAttack;
     if(!attack||state.round.over)break;
-    const landing=attack.lands_at,straight=attack.move==='JAB'||attack.move==='COMBO';
+    const spec=bossMove(state,attack.move),landing=attack.lands_at,straight=spec.defence==='guard';
     const read= random()<model.p*(attack.exploit?.7:1);
     const holdRead=!!attack.brace&&prediction()<READ_MODEL.hold;
     let guard=false,lean:'L'|'R'|null=null,perfect=false;
     if(holdRead){guard=straight;lean=straight?null:state.input.lean;}
     else if(read){
       if(straight){guard=true;perfect=random()<model.perfect;}
-      else lean=attack.move==='SUPER'?(random()<model.lean?'L':'R'):attack.move==='HOOK_L'?'R':'L';
-    }else if(!straight){guard=random()<.3;lean=guard?null:attack.move==='HOOK_L'?'L':attack.move==='HOOK_R'?'R':null;}
+      else lean=spec.defence==='lean_any'?(random()<model.lean?'L':'R'):spec.defence==='lean_right'?'R':'L';
+    }else if(!straight){guard=random()<.3;lean=guard?null:spec.defence==='lean_right'?'L':spec.defence==='lean_left'?'R':null;}
     if(!holdRead){pose(draw+1,false,null);pose(landing-(perfect?300:500),guard,lean);}
-    apply({kind:'advance'},landing+(attack.move==='COMBO'?300:0));
+    apply({kind:'advance'},landing+(spec.hits-1)*300);
     if(state.round.over)break;
     const resolution=state.log.resolved.at(-1)!;
     if(state.counter.open&&model.punch>0){
@@ -133,6 +134,12 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
     const scouting=runScouting(4000,2026,{profile});
     console.log(scouting.pass?`PASS: cards=${scouting.total.cards},exploits=${scouting.total.exploits},fixes=${scouting.total.fixes},braces=${scouting.total.braces}`:'FAIL: scouting balance or coverage gate');
     pass=pass&&result.pass&&scouting.pass;
+  }
+  const {gateBoss}=await import('../shared/src/boss-forge.js');
+  const {readFileSync,readdirSync}=await import('node:fs');
+  for(const file of readdirSync(new URL('../fixtures/bosses/',import.meta.url)).filter(file=>file.endsWith('.json'))){
+    const def=JSON.parse(readFileSync(new URL('../fixtures/bosses/'+file,import.meta.url),'utf8'));
+    const gate=gateBoss(def);console.log(`Forge ${file}: ${JSON.stringify(gate.table)} ${gate.pass?'PASS':'FAIL'}`);pass=pass&&gate.pass;
   }
   if(!pass)process.exitCode=1;
 }

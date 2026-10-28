@@ -1,0 +1,52 @@
+{
+  "name": "Chat Golem",
+  "tagline": "Chat is the boss. Your body is the defence.",
+  "hp": 135,
+  "moves": [
+    {
+      "command": "!jab",
+      "label": "JAB",
+      "defence": "guard",
+      "damage": 8,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!hookl",
+      "label": "HOOK LEFT",
+      "defence": "lean_right",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!hookr",
+      "label": "HOOK RIGHT",
+      "defence": "lean_left",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!combo",
+      "label": "COMBO",
+      "defence": "guard",
+      "damage": 7,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 2
+    },
+    {
+      "command": "!super",
+      "label": "SUPER",
+      "defence": "lean_any",
+      "damage": 25,
+      "chip": 10,
+      "telegraph_ms": 800,
+      "hits": 1
+    }
+  ]
+}

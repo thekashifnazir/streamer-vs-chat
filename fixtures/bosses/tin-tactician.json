@@ -1,0 +1,43 @@
+{
+  "name": "Tin Tactician",
+  "tagline": "Rattle the rails. Read the rhythm.",
+  "hp": 135,
+  "moves": [
+    {
+      "command": "!tap",
+      "label": "TIN TAP",
+      "defence": "guard",
+      "damage": 8,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!swingl",
+      "label": "LEFT SWING",
+      "defence": "lean_right",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!swingr",
+      "label": "RIGHT SWING",
+      "defence": "lean_left",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!rattle",
+      "label": "RATTLE",
+      "defence": "guard",
+      "damage": 7,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 2
+    }
+  ]
+}

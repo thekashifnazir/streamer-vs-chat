@@ -132,6 +132,11 @@ export function createTwitchSession(options: {
     clips,
     stop:()=>{if(stopped)return;stopped=true;listener.stop();options.onStatus?.('disconnected');},
     mockCommands,
+    async broadcasterNames():Promise<string[]> {
+      if(options.mock)return ['Mock Broadcaster'];
+      const user=await apiClient.users.getUserById(broadcasterId);
+      return user?[user.name,user.displayName].filter(Boolean):[];
+    },
     async viewers():Promise<number> {
       if(options.mock)return 0;
       const stream=await apiClient.streams.getStreamByUserId(broadcasterId);

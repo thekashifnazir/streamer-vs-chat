@@ -1,0 +1,43 @@
+{
+  "name": "Velvet Sentinel",
+  "tagline": "A soft touch with a stubborn guard.",
+  "hp": 135,
+  "moves": [
+    {
+      "command": "!knock",
+      "label": "KNOCK",
+      "defence": "guard",
+      "damage": 8,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!sweepl",
+      "label": "LEFT SWEEP",
+      "defence": "lean_right",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!sweepr",
+      "label": "RIGHT SWEEP",
+      "defence": "lean_left",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!double",
+      "label": "DOUBLE",
+      "defence": "guard",
+      "damage": 7,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 2
+    }
+  ]
+}

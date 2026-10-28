@@ -1,5 +1,5 @@
 import type { ChatVote,Move } from './index.js';
-import { emptyCounts,mulberry32,type Counts,type GameState } from './engine.js';
+import { emptyCounts,mulberry32,type Counts,type GameState,availableMoves,exploitMove } from './engine.js';
 export type Persona='spammer'|'tactician'|'chaos'|'hype'|'lurker';
 export type Crowd={viewers:number;personas:Persona[];random:()=>number};
 const BASE:Move[]=['JAB','HOOK_L','HOOK_R','COMBO'];
@@ -10,10 +10,11 @@ export function createCrowd(viewers:number,seed:number):Crowd{
   return {viewers:count,personas,random};
 }
 function choose(crowd:Crowd,persona:Persona,state:GameState):Move|null{
-  const random=()=>BASE[Math.floor(crowd.random()*4)]!;
-  if(persona==='spammer')return 'JAB';
-  if(persona==='tactician'&&state.scouting.card&&state.scouting.cooldown===0)return state.scouting.card==='L'?'HOOK_L':'HOOK_R';
-  if(persona==='hype'&&state.hype===100&&state.supers_used<3)return 'SUPER';
+  const available=state.bossDef?availableMoves(state):BASE;
+  const random=()=>available[Math.floor(crowd.random()*available.length)]!;
+  if(persona==='spammer')return available[0]!;
+  if(persona==='tactician'&&state.scouting.card&&state.scouting.cooldown===0)return exploitMove(state)??random();
+  if(!state.bossDef&&persona==='hype'&&state.hype===100&&state.supers_used<3)return 'SUPER';
   if(persona==='chaos'&&crowd.random()>=.7)return null;
   if(persona==='lurker'&&crowd.random()>=.15)return null;
   return random();

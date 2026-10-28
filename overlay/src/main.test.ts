@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from 'vitest';
-const hud=vi.hoisted(()=>({setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),dispose:vi.fn()}));
+const hud=vi.hoisted(()=>({setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),setForge:vi.fn(),dispose:vi.fn()}));
 vi.mock('./hud',()=>({createRailsHud:()=>hud}));
 class Socket extends EventTarget {
  static instances:Socket[]=[];
@@ -32,4 +32,10 @@ it('applies authoritative memory snapshots and clears them independently of game
  const window=await page(),socket=Socket.instances[0]!;const memory={simulated:true,record:{streams:2,bossesKo:1,timesKo:1},hallOfFame:[],nemesis:null,mvpStreak:0};
  socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'memory',memory})}));expect(hud.setMemory).toHaveBeenLastCalledWith(memory);expect(hud.render).not.toHaveBeenCalled();
  socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'memory',memory:null})}));expect(hud.setMemory).toHaveBeenLastCalledWith(null);window.dispatchEvent(new Event('beforeunload'));
+});
+it('passes authoritative Forge phase snapshots to the view without starting a game',async()=>{
+ const window=await page(),socket=Socket.instances[0]!;
+ const forge={betweenRounds:true,status:'collecting',ideas:[],idea:null,boss:null,errors:[],before:null,after:null,factor:null,ai:null};
+ socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'forge',forge})}));expect(hud.setForge).toHaveBeenLastCalledWith(forge);expect(hud.render).not.toHaveBeenCalled();
+ socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'forge',forge:{...forge,betweenRounds:false}})}));expect(hud.setForge).toHaveBeenLastCalledWith({...forge,betweenRounds:false});window.dispatchEvent(new Event('beforeunload'));
 });

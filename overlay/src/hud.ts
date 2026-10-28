@@ -1,5 +1,7 @@
+import type {ForgeSnapshot} from '../../shared/src/forge-view';
+import {createForgeView} from './forge';
 import type { Move, TallySnapshot } from '@svc/shared';
-import { weightedTally, type GameState } from '../../shared/src/engine';
+import { bossMove, availableMoves, exploitMove, weightedTally, type GameState } from '../../shared/src/engine';
 import { BossSprite, moveClip } from './assets';
 import { GameSound } from './sound';
 import { createFxScheduler } from './fx';
@@ -12,6 +14,7 @@ export type HudModes={seated:boolean;noPunch:boolean};
 
 const commands:[Move,string][]=[['JAB','!jab'],['HOOK_L','!hookl'],['HOOK_R','!hookr'],['COMBO','!combo'],['SUPER','!super']];
 export const defenceCue=(move:Move,seated=false)=>{const verb=seated?'TILT':'LEAN';return move==='HOOK_L'?`${verb} →`:move==='HOOK_R'?`← ${verb}`:move==='SUPER'?`${verb} ANY WAY`:'GUARD';};
+export const bossDefenceCue=(defence:import('../../shared/src/boss-def').BossDefence,seated=false)=>{const verb=seated?'TILT':'LEAN';return defence==='guard'?'GUARD':defence==='lean_left'?`← ${verb}`:defence==='lean_right'?`${verb} →`:`${verb} ANY WAY`;};
 const names:Record<Move,string>={JAB:'JAB',HOOK_L:'HOOK LEFT',HOOK_R:'HOOK RIGHT',COMBO:'COMBO',SUPER:'SUPER'};
 export function isTallySnapshot(value:unknown):value is TallySnapshot {
   if(!value||typeof value!=='object')return false;
@@ -43,8 +46,8 @@ export function scoutingPresentation(state:GameState) {
     const observed=state.scouting.dodges.slice(state.scouting.since_fix);
     const count=observed.filter(side=>side===card).length;
     const n=state.scouting.n;
-    const command=card==='L'?'!hookl':'!hookr';
-    const move:Move=card==='L'?'HOOK_L':'HOOK_R';
+    const move=exploitMove(state);
+    const command=move?bossMove(state,move).command:'—';
     return {kind:'habit',side:card,n,count,percent:Math.round(count/Math.max(1,n)*100),command,
       highlightedMove:cooldown===0?move:undefined,cooldown} as const;
   }
@@ -75,16 +78,19 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
   <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
   <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><section class="nemesis-card" data-id="nemesis" hidden><h2>YOUR NEMESIS IS VOTING</h2><p data-id="nemesis-name"></p><p data-id="nemesis-kos"></p></section><div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
-  <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
+  <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section data-id="forge" hidden></section><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
+  const forgeView=createForgeView(el('forge'));let forge:ForgeSnapshot|null=null;let forgeVisible:boolean|undefined;
+  const renderForge=()=>forgeView.render(forge,forgeVisible??forge?.betweenRounds??(!current||current.round.over));
+  const setForge=(value:ForgeSnapshot|null,visible?:boolean)=>{forge=value;forgeVisible=visible;renderForge();};
   const setText=(id:string,value:string)=>{const element=el(id);if(element.textContent!==value)element.textContent=value;};
   stage.classList.toggle('plain',!!options.plain);
   el<HTMLInputElement>('plain').checked=!!options.plain;
   el('simulated').hidden=!options.simulated;
   const rows=commands.map(([move,command])=>{
     const row=document.createElement('div');row.className='vote-row';row.dataset.move=move;
-    row.innerHTML=`<div class="vote-command">${command}<small><span class="vote-count">0</span></small></div><div class="vote-track"><div class="vote-fill"></div></div><div class="vote-percent">0%</div>`;
+    row.innerHTML=`<div class="vote-command"><span class="vote-name">${command}</span><small><span class="vote-count">0</span></small></div><div class="vote-track"><div class="vote-fill"></div></div><div class="vote-percent">0%</div>`;
     el('votes').append(row);
     return {move,row,count:row.querySelector<HTMLElement>('.vote-count')!,fill:row.querySelector<HTMLElement>('.vote-fill')!,percent:row.querySelector<HTMLElement>('.vote-percent')!};
   });
@@ -156,13 +162,13 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     for(const {move,row,count,fill,percent}of rows){const value=message.tally[move];const share=shares[move];const locked=move==='SUPER'&&!superReady;
       count.textContent=String(value);fill.style.width=`${share}%`;percent.textContent=locked?'LOCKED':`${share}%`;
       row.classList.toggle('locked',locked);row.classList.toggle('leader',highest>0&&weights[move]===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
-      row.setAttribute('aria-label',`${names[move]} ${value} voters${locked?', locked':`, ${share} percent influence`}`);
+      row.setAttribute('aria-label',`${current?bossMove(current,move).label:names[move]} ${value} voters${locked?', locked':`, ${share} percent influence`}`);
       row.title=`${value} viewer vote${value===1?'':'s'} · ${share}% of attack draw influence`;
     }
   }
   function render(state:GameState,simulated=!!options.simulated) {
     if(previous&&(state.match.seed!==previous.match.seed||state.round.number<previous.round.number||state.log.rounds.length<previous.log.rounds.length)){heard.clear();previous=undefined;spriteAnchorKey='';lastStampUntil=0;readItUntil=0;lastTelegraph='';}
-    current=state;currentSimulated=simulated;renderMemory();snapshotRealAt=performance.now();
+    current=state;renderForge();currentSimulated=simulated;renderMemory();snapshotRealAt=performance.now();
     const cues=fx.observe(state,snapshotRealAt);
     const visual=fx.update(snapshotRealAt);
     el('calm').hidden=!visual.calm;stage.classList.toggle('calm',visual.calm);
@@ -173,7 +179,11 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
     el('hype').textContent=`${Math.round(state.hype)}%`;el('hype-fill').style.width=`${state.hype}%`;
-    const superReady=state.hype>=100&&state.supers_used<3;
+    const superReady=!!state.bossDef||state.hype>=100&&state.supers_used<3;
+    const moveName=(move:Move)=>bossMove(state,move).label;
+    stage.classList.toggle('custom-boss',!!state.bossDef);
+    const bossTitle=host.querySelector<HTMLElement>('.boss header h2')!;bossTitle.textContent=state.bossDef?.name??'CHAT GOLEM';bossTitle.title=state.bossDef?.name??'Chat Golem';
+    for(const {move,row} of rows){row.hidden=!availableMoves(state).includes(move);row.querySelector('.vote-name')!.textContent=bossMove(state,move).command;row.querySelector<HTMLElement>('.vote-command')!.title=bossMove(state,move).command;}
     const scouting=scoutingPresentation(state);
     el('scouting').hidden=scouting.kind==='hidden';
     el('scouting').classList.toggle('fixed',scouting.kind==='fixed');
@@ -185,14 +195,14 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       setText('habit',`DODGES ${scouting.side==='L'?'LEFT':'RIGHT'}`);
       setText('habit-n',`n=${scouting.n}`);
       setText('exploit-command',scouting.command);
-      setText('exploit-cooldown',scouting.cooldown>0?`${scouting.cooldown} BEAT${scouting.cooldown===1?'':'S'} COOLDOWN`:'EXPLOIT READY');
+      setText('exploit-cooldown',scouting.cooldown>0?`${scouting.cooldown} BEAT${scouting.cooldown===1?'':'S'} COOLDOWN`:scouting.command==='—'?'NO MATCHING MOVE':'EXPLOIT READY');
     } else if(scouting.kind==='fixed') {
       setText('scouting-label','HABIT BROKEN');
       setText('fixed-reward',scouting.healed>0?`+${scouting.healed} HP · KEEP MIXING IT UP`:'HP FULL · KEEP MIXING IT UP');
     }
     renderTally({kind:'tally',tally:state.tally,weights:weightedTally(state),voters:state.voters,simulated},superReady,scouting.kind==='habit'?scouting.highlightedMove:undefined);
     const habit=chatHabitPresentation(state,modes.seated);el('chat-habit').hidden=!habit.visible;host.querySelector('.boss')!.classList.toggle('chat-habit-active',habit.visible);
-    if(habit.visible){setText('chat-habit-move',names[habit.move]);setText('chat-habit-share',`${habit.percent}%`);setText('chat-habit-n',`n=${habit.n}`);setText('chat-habit-instruction',habit.instruction);const detail=`${habit.evidence}. ${habit.opening}. ${habit.openingDetail}. Pre-held clean defence: +25% counter${state.activeAttack?.brace?'. This attack is braced.':''}`;el('chat-habit').title=detail;el('chat-habit').setAttribute('aria-label',`Chat habit: ${names[habit.move]} ${habit.percent} percent, n=${habit.n}. ${detail}`);}
+    if(habit.visible){setText('chat-habit-move',moveName(habit.move));setText('chat-habit-share',`${habit.percent}%`);setText('chat-habit-n',`n=${habit.n}`);setText('chat-habit-instruction',state.bossDef?`PRE-HOLD ${bossDefenceCue(bossMove(state,habit.move).defence,modes.seated)}`:habit.instruction);const evidence=state.bossDef?availableMoves(state).map(move=>`${moveName(move)} ${habit.counts[move]}`).join(', '):habit.evidence;const detail=`${evidence}. ${habit.opening}. ${habit.openingDetail}. Pre-held clean defence: +25% counter${state.activeAttack?.brace?'. This attack is braced.':''}`;el('chat-habit').title=detail;el('chat-habit').setAttribute('aria-label',`Chat habit: ${moveName(habit.move)} ${habit.percent} percent, n=${habit.n}. ${detail}`);}
     const raid=raidPresentation(state);
     el('raid-phase').hidden=!raid.active;
     host.querySelector('.boss')!.classList.toggle('raid-active',raid.active);
@@ -203,13 +213,14 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     const counter=state.counter.open&&!state.round.over;
     el('telegraph').hidden=!(telegraph||counter);el('telegraph').classList.toggle('counter',counter&&!telegraph);
     el('banner').textContent=telegraph?'HANDS UP!':modes.noPunch?'CLEAN DEFENCE!':'COUNTER!';
-    el('move').textContent=telegraph?names[attack!.move]:modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=telegraph?defenceCue(attack!.move,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
-    el('cue-icon').innerHTML=telegraph&&(attack!.move==='JAB'||attack!.move==='COMBO')?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':telegraph?attack!.move==='HOOK_L'?'→':attack!.move==='HOOK_R'?'←':'↔':'';
+    el('move').title=telegraph?moveName(attack!.move):'';
+    el('move').textContent=telegraph?moveName(attack!.move):modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=telegraph?bossDefenceCue(bossMove(state,attack!.move).defence,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
+    el('cue-icon').innerHTML=telegraph&&bossMove(state,attack!.move).defence==='guard'?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':telegraph?bossMove(state,attack!.move).defence==='lean_right'?'→':bossMove(state,attack!.move).defence==='lean_left'?'←':'↔':'';
     const tellKey=telegraph?`${state.match.seed}:${attack!.round}:${attack!.beat}`:'';
     if(tellKey&&tellKey!==lastTelegraph){el('banner').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}lastTelegraph=tellKey;
     el('exploit-note').textContent=telegraph?exploitHabitNote(state):'';
-    el('left-arrow').hidden=!(telegraph&&(attack!.move==='HOOK_R'||attack!.move==='SUPER'));
-    el('right-arrow').hidden=!(telegraph&&(attack!.move==='HOOK_L'||attack!.move==='SUPER'));
+    el('left-arrow').hidden=!(telegraph&&['lean_left','lean_any'].includes(bossMove(state,attack!.move).defence));
+    el('right-arrow').hidden=!(telegraph&&['lean_right','lean_any'].includes(bossMove(state,attack!.move).defence));
     el('phase').textContent=state.paused?'PAUSED':state.round.over?'ROUND OVER':superReady?'SUPER READY':'DEFENCE FIRST';
     el('status').textContent=state.round.over?`${state.round.winner==='streamer'?'STREAMER':'CHAT'} WINS`:state.paused?'RESUME WHEN READY.':`GUARD STRAIGHTS.\n${modes.seated?'TILT':'LEAN'} FROM SWINGS.`;
     el('result').textContent=state.round.over?(state.match.winner?'MATCH COMPLETE':'NEXT ROUND WHEN READY'):'';
@@ -262,5 +273,5 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       const attack=current.activeAttack;const viewNow=(current.clock.paused_at??current.now)+(current.paused?0:now-snapshotRealAt);el('banner').style.opacity=attack&&!attack.vetoed&&lastTelegraph?String(Math.min(1,Math.max(0,(attack.lands_at-viewNow)/120))):'1';
     }else sprite.draw('idle',now);frameId=requestAnimationFrame(animate);};
   frameId=requestAnimationFrame(animate);
-  return {render,renderTally,setModes,setMemory,setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
+  return {render,renderTally,setModes,setMemory,setForge,setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
 }
