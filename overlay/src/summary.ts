@@ -1,3 +1,4 @@
+import type {ViewerMemoryView} from '../../shared/src/viewer-memory';
 import type { GameSummary } from '../../shared/src/highlights';
 export type EndcardClip={id:string;label:string;url:string;status:'confirmed'};
 /** Links are confirmed results only; external media is never fetched or embedded here. */
@@ -9,7 +10,7 @@ export function safeClipHref(value:string,base='http://localhost/'):string|null 
     return null;
   } catch{return null;}
 }
-export function summaryPresentation(summary:GameSummary,clips:EndcardClip[],base='http://localhost/') {
+export function summaryPresentation(summary:GameSummary,clips:EndcardClip[],base='http://localhost/',memory:ViewerMemoryView|null=null) {
   const seen=new Set<string>();
   const links=clips.flatMap(clip=>{
     if(clip.status!=='confirmed'||seen.has(clip.id))return [];
@@ -25,15 +26,17 @@ export function summaryPresentation(summary:GameSummary,clips:EndcardClip[],base
     damage:`${Math.round(summary.stats.damageDealt)} DEALT · ${Math.round(summary.stats.damageTaken)} TAKEN`,
     reaction:summary.stats.reactionMs===null?'NO REACTED DEFENCES':`${Math.round(summary.stats.reactionMs)} ms · REACTED DEFENCES ONLY`,
     mvp:summary.chatMvp?`${summary.chatMvp.displayName??summary.chatMvp.user} · ${summary.chatMvp.damage.toFixed(1)} DAMAGE`:'NO CHAT MVP · AUTOPILOT / NO ATTRIBUTED DAMAGE',
+    mvpStreak:summary.chatMvp&&memory&&memory.mvpStreak>0?`MVP ${memory.mvpStreak} STREAM${memory.mvpStreak===1?'':'S'} RUNNING`:'',
+    forget:memory?'Type !forgetme to be forgotten.':'',
     links,
   };
 }
 export function createSummaryView(host:HTMLElement) {
   let signature='';
   return {
-    render(summary:GameSummary|null,clips:EndcardClip[]=[]) {
+    render(summary:GameSummary|null,clips:EndcardClip[]=[],memory:ViewerMemoryView|null=null) {
       host.hidden=!summary;if(!summary){signature='';return;}
-      const view=summaryPresentation(summary,clips,location.href);
+      const view=summaryPresentation(summary,clips,location.href,memory);
       const next=JSON.stringify(view);if(next===signature)return;signature=next;
       host.replaceChildren();
       const text=(tag:string,value:string,className?:string)=>{const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;host.append(node);return node;};
@@ -42,6 +45,8 @@ export function createSummaryView(host:HTMLElement) {
       for(const [label,value]of [['DEFENCE',view.defence],['CLEAN DEFENCES',view.outcomes],['DAMAGE',view.damage],['REACTION',view.reaction],['CHAT MVP',view.mvp]]) {
         const section=document.createElement('div'),title=document.createElement('h3'),detail=document.createElement('p');title.textContent=label!;detail.textContent=value!;section.append(title,detail);stats.append(section);
       }
+      if(view.mvpStreak)text('p',view.mvpStreak,'mvp-streak');
+      if(view.forget)text('p',view.forget,'forget-copy');
       text('h3','TOP MOMENTS');
       if(!view.links.length)text('p','Stats only · no confirmed clip available.','summary-empty');
       else {

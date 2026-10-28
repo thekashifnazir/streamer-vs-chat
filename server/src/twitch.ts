@@ -71,39 +71,45 @@ export function createTwitchSession(options: {
   }
   let stopped=false;options.onStatus?.('connecting');
   listener.onSubscriptionCreateSuccess((subscription, apiSubscription) => {
+    if(stopped)return;
     if(apiSubscription.type==='channel.chat.message'&&!stopped)options.onStatus?.('connected');
     console.log(`[eventsub] ${apiSubscription.type} active (${options.mock ? 'SIMULATED' : 'LIVE'}), subscription ${apiSubscription.id}`);
     if(options.mock&&['channel.cheer','channel.subscribe','channel.raid'].includes(apiSubscription.type)) {
       const type=apiSubscription.type as MockEventCommand['type'];
       mockSubscriptions.set(type,{id:apiSubscription.id,getCliTestCommand:()=>subscription.getCliTestCommand()});
       void mockCommands().then(commands=>{
+        if(stopped)return;
         const command=commands.find(item=>item.type===type);
         if(command)console.log(`[mock trigger SIMULATED] ${command.command}`);
       }).catch(()=>console.error('[mock] Could not obtain the registered CLI command.'));
     }
   });
   listener.onSubscriptionCreateFailure((subscription) => {
+    if(stopped)return;
     console.error(`[eventsub] ${subscription.id} subscription failed. Check the matching account scopes and broadcaster authorization.`);
   });
   listener.onRevoke((_subscription, status) => {
+    if(stopped)return;
     console.error(`[eventsub] Subscription revoked (${status}); reauthorize at http://localhost:3000/auth`);
   });
   listener.onUserSocketDisconnect((userId, error) => {
+    if(stopped)return;
     if(userId===botId&&!stopped)options.onStatus?.('reconnecting');
     if (error) console.error('[eventsub] Socket disconnected; Twurple will reconnect.');
   });
   listener.onChannelChatMessage(broadcasterId, botId, (event) => {
+    if(stopped)return;
     const role:ChatRole=event.chatterId===broadcasterId?'broadcaster':Object.hasOwn(event.badges??{},'moderator')?'mod':'viewer';
     const message = { ...(typeof event.messageId==='string'?{messageId:event.messageId}:{}),user: event.chatterId, text: event.messageText, simulated: options.mock,role,...(typeof event.chatterDisplayName==='string'&&event.chatterDisplayName?{displayName:event.chatterDisplayName}:{}) };
     if(options.logChat!==false)console.log(`[chat ${options.mock ? 'SIMULATED' : 'LIVE'}] ${event.chatterName}: ${event.messageText}`);
     options.onMessage(message);
   });
   const scopes=authProvider.getCurrentScopesForUser?.(broadcasterId)??[];
-  if(scopes.includes('bits:read'))listener.onChannelCheer(broadcasterId,event=>options.onTwist?.({kind:'cheer',bits:event.bits,simulated:options.mock}));
+  if(scopes.includes('bits:read'))listener.onChannelCheer(broadcasterId,event=>{if(!stopped)options.onTwist?.({kind:'cheer',bits:event.bits,simulated:options.mock});});
   else console.warn('[eventsub] Cheer disabled: reauthorize /auth/broadcaster with bits:read; chat remains available.');
-  if(scopes.includes('channel:read:subscriptions'))listener.onChannelSubscription(broadcasterId,event=>options.onTwist?.({kind:'subscribe',simulated:options.mock}));
+  if(scopes.includes('channel:read:subscriptions'))listener.onChannelSubscription(broadcasterId,event=>{if(!stopped)options.onTwist?.({kind:'subscribe',simulated:options.mock});});
   else console.warn('[eventsub] Subscriptions disabled: reauthorize /auth/broadcaster with channel:read:subscriptions; chat remains available.');
-  listener.onChannelRaidTo(broadcasterId,event=>options.onTwist?.({kind:'raid',viewers:event.viewers,simulated:options.mock}));
+  listener.onChannelRaidTo(broadcasterId,event=>{if(!stopped)options.onTwist?.({kind:'raid',viewers:event.viewers,simulated:options.mock});});
   listener.start();
   const clips:ClipTransport={
     async getStream(){
@@ -124,7 +130,7 @@ export function createTwitchSession(options: {
   };
   return {
     clips,
-    stop:()=>{stopped=true;listener.stop();options.onStatus?.('disconnected');},
+    stop:()=>{if(stopped)return;stopped=true;listener.stop();options.onStatus?.('disconnected');},
     mockCommands,
     async viewers():Promise<number> {
       if(options.mock)return 0;

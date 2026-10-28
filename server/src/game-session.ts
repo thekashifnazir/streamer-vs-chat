@@ -13,7 +13,7 @@ export function parseSessionCommand(value:unknown):SessionCommand|null {
   const event=value as Record<string,unknown>;
   return event.kind==='session'&&(event.action==='start'||event.action==='next-round'||event.action==='summary')?{kind:'session',action:event.action}:null;
 }
-export type SessionChat={user:string;text:string;simulated:boolean;role:ChatRole;displayName?:string};
+export type SessionChat={user:string;text:string;simulated:boolean;role:ChatRole;displayName?:string;source?:'twitch'|'sim'|'booth'};
 /** Owns the live clock and reducer. Waiting for explicit START avoids unattended live results. */
 export class GameSession {
   private current:GameState;
@@ -76,16 +76,21 @@ export class GameSession {
       this.nextRoundAt=null;this.apply({kind:'next-round'},now);
     }
   }
-  chat(message:SessionChat):void {
+  queueNotice(text:string):void {this.results.enqueue(text,this.now());}
+  chat(message:SessionChat):ReturnType<typeof parseChatVote> {
     // A simulated message is never accepted by a live game session.
-    if(message.simulated!==this.options.mock)return;
+    if(message.simulated!==this.options.mock)return null;
     if(message.displayName)this.viewerNames.set(message.user,message.displayName);
     const raider=this.raiders.observe(message.user,this.now());
     const now=this.armed?this.now():this.current.now;
     const control=parseChatControl(message.text,message.user,message.role);
-    if(control){this.input(control);return;}
+    if(control){this.input(control);return null;}
     const vote=parseChatVote(message.text,message.user,now,message.simulated);
-    if(vote)this.apply({...vote,raider},now);
+    if(vote){
+      this.apply({...vote,raider},now);
+      if(this.armed&&!this.current.paused&&!this.current.round.over&&this.current.votes[message.user]===vote.move)return vote;
+    }
+    return null;
   }
   twist(event:IncomingTwist):void {
     if(event.simulated!==this.options.mock)return;

@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from 'vitest';
-const hud=vi.hoisted(()=>({setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),dispose:vi.fn()}));
+const hud=vi.hoisted(()=>({setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),dispose:vi.fn()}));
 vi.mock('./hud',()=>({createRailsHud:()=>hud}));
 class Socket extends EventTarget {
  static instances:Socket[]=[];
@@ -26,4 +26,10 @@ it('ignores retired socket events and cannot close or overwrite its replacement'
  expect(close).not.toHaveBeenCalled();expect(hud.render).not.toHaveBeenCalled();expect(hud.setConnection).not.toHaveBeenCalled();await vi.advanceTimersByTimeAsync(30000);expect(Socket.instances).toHaveLength(2);
  replacement.tick('connected');expect(hud.render).toHaveBeenCalledOnce();window.dispatchEvent(new Event('beforeunload'));vi.clearAllMocks();replacement.tick('reconnecting');replacement.dispatchEvent(new Event('error'));replacement.close();await vi.runAllTimersAsync();
  expect(hud.render).not.toHaveBeenCalled();expect(hud.setConnection).not.toHaveBeenCalled();expect(Socket.instances).toHaveLength(2);
+});
+
+it('applies authoritative memory snapshots and clears them independently of game ticks',async()=>{
+ const window=await page(),socket=Socket.instances[0]!;const memory={simulated:true,record:{streams:2,bossesKo:1,timesKo:1},hallOfFame:[],nemesis:null,mvpStreak:0};
+ socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'memory',memory})}));expect(hud.setMemory).toHaveBeenLastCalledWith(memory);expect(hud.render).not.toHaveBeenCalled();
+ socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'memory',memory:null})}));expect(hud.setMemory).toHaveBeenLastCalledWith(null);window.dispatchEvent(new Event('beforeunload'));
 });

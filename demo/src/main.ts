@@ -12,6 +12,7 @@ import { InputTutorial } from './tutorial';
 import {startColdOpen,coldOpenStage} from './cold-open';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
+import {createDemoViewerMemory} from './viewer-memory';
 
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const stage=el('stage');
@@ -41,6 +42,7 @@ let showSessionSummary=false;
 let coldOpenAt:number|null=null;
 const playtest=new LocalPlaytestStats();
 let playtestRound:string|null=null;
+const viewerMemory=liveMode?null:createDemoViewerMemory({offline:true,factory:globalThis.indexedDB,onChange:()=>paint()});
 function trackLocalRound(){
  if(!game||liveMode||coldOpenAt!==null)return;
  const key=`${game.match.seed}:${game.round.number}`;
@@ -80,10 +82,13 @@ function updateModes() {
 function resize(){host.style.transform=`scale(${stage.clientWidth/1920})`;}
 new ResizeObserver(resize).observe(stage);resize();
 function paint() {
+  if(game&&coldOpenAt===null)viewerMemory?.observe(game);
+  hud.setMemory(viewerMemory?.view()??null);
   hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0}),!liveMode);
   hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   trackFight();trackLocalRound();
-  hud.setEndcard(game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null);
+  const summary=game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null;
+  hud.setEndcard(summary&&viewerMemory?{...summary,chatMvp:viewerMemory.summaryMvp()}:summary);
   if(game) {
     el('next-round').hidden=!game.round.over||Boolean(game.match.winner)||showSessionSummary;
     el('restart').hidden=false;
@@ -99,6 +104,7 @@ function drawCrowd(at:number) {
   crowdBeat=key;
   const votes=crowd.votes(game,at);
   game=step(game,{kind:'vote-batch',votes},at);
+  viewerMemory?.votes(votes,game);
   for(const vote of votes)playtest.vote(vote.user,game.votes[vote.user]===vote.move);
 }
 function startFight() {
@@ -241,7 +247,7 @@ const timer=window.setInterval(()=>{
   }
   drawCrowd(at);paint();
 },100);
-window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();hosted?.dispose();playtest.dispose();});
+window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();hosted?.dispose();playtest.dispose();void viewerMemory?.close();});
 el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
 el('cold-open').addEventListener('click',()=>{

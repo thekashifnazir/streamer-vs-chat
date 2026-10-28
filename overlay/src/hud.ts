@@ -3,6 +3,8 @@ import { weightedTally, type GameState } from '../../shared/src/engine';
 import { BossSprite, moveClip } from './assets';
 import { GameSound } from './sound';
 import { createFxScheduler } from './fx';
+import type {ViewerMemoryView} from '../../shared/src/viewer-memory';
+import {memoryPresentation} from './memory';
 import {chatHabitPresentation,readItResolution} from './chat-habit';
 import type { GameSummary } from '../../shared/src/highlights';
 import { createSummaryView, type EndcardClip } from './summary';
@@ -65,14 +67,14 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <div class="hp"><strong data-id="streamer-hp">100</strong><span>%</span></div><div class="health-bar" data-id="streamer-bar"><i></i><span></span></div>
   <p class="rounds">ROUNDS <strong data-id="streamer-wins">0</strong> – <span data-id="boss-wins">0</span></p>
   <section class="scouting" data-id="scouting" hidden aria-live="polite"><p class="eyebrow" data-id="scouting-label">SCOUTED</p><div data-id="habit-details"><h2 data-id="habit">DODGES LEFT</h2><strong class="habit-share" data-id="habit-share"></strong><p class="scouting-evidence"><span data-id="habit-n"></span><span data-id="exploit-cooldown"></span></p><p>CHAT: VOTE <b data-id="exploit-command"></b></p></div><div data-id="fixed-details" hidden><strong class="fixed-stamp">FIXED!</strong><p data-id="fixed-reward"></p></div></section>
-  <section class="status-card"><p class="eyebrow" data-id="phase">READY TO FIGHT</p><p data-id="status">GUARD STRAIGHTS.<br>LEAN FROM SWINGS.</p><small data-id="result"></small></section>
+  <section class="status-card"><p class="eyebrow" data-id="phase">READY TO FIGHT</p><p data-id="status">GUARD STRAIGHTS.<br>LEAN FROM SWINGS.</p><small data-id="result"></small></section><section class="viewer-record" data-id="viewer-record" hidden><h2>YOUR RECORD <span>VS THIS CHAT</span></h2><div class="record-values"><p><b data-id="record-streams"></b><span>STREAMS</span></p><p><b data-id="record-kos"></b><span title="Bosses KO">BOSS KOs</span></p><p><b data-id="record-deaths"></b><span title="Times KO">TIMES KO</span></p></div></section><section class="memory-hall" data-id="memory-hall" hidden><h2>CHAT HALL OF FAME <span>ALL TIME</span></h2><ol data-id="memory-hall-list"></ol></section>
   <div class="blocked-stamp" data-id="blocked" hidden>BLOCKED!</div><footer><p class="simulated" data-id="simulated" hidden>● SIMULATED CHAT</p><p class="calm-badge" data-id="calm" hidden>CALM FX</p><p class="connection" data-id="connection" role="status">CONNECTING…</p><div class="hud-options"><button data-id="sound" type="button">SOUND OFF · M</button><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer></aside>
   <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b></span></div>
-  <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><small data-id="exploit-note"></small></div>
+  <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
   <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
-  <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
+  <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><section class="nemesis-card" data-id="nemesis" hidden><h2>YOUR NEMESIS IS VOTING</h2><p data-id="nemesis-name"></p><p data-id="nemesis-kos"></p></section><div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
   <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
@@ -116,6 +118,25 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   let currentSimulated=!!options.simulated;
   let modes:HudModes={seated:!!options.seated,noPunch:!!options.noPunch};
   const summaryView=createSummaryView(el('endcard'));
+  let memory:ViewerMemoryView|null=null,endSummary:GameSummary|null=null,endClips:EndcardClip[]=[];
+  let hallSignature='';
+  function renderMemory(){
+    const view=memoryPresentation(memory,current?.activeAttack?.move);stage.classList.toggle('memory-on',!!view);
+    el('viewer-record').hidden=!view;el('memory-hall').hidden=!view;el('nemesis').hidden=!view?.nemesis;host.querySelector('.boss')!.classList.toggle('nemesis-active',!!view?.nemesis);
+    const tag=el('nemesis-ko-move');tag.hidden=!view?.koMove;tag.textContent=view?.koMove??'';tag.title=view?.koMove??'';
+    el('simulated').hidden=!(currentSimulated||view?.simulated);el('simulated').textContent=view?.simulated?'● SIMULATED':'● SIMULATED CHAT';
+    const attack=current?.activeAttack;tag.hidden=!(view?.koMove&&attack&&!attack.vetoed&&!current!.round.over&&(current!.clock.paused_at??current!.now)<attack.lands_at);
+    if(!view){hallSignature='';el('memory-hall-list').replaceChildren();setText('nemesis-name','');setText('nemesis-kos','');return;}
+    setText('record-streams',String(view.record.streams));setText('record-kos',String(view.record.bossesKo));setText('record-deaths',String(view.record.timesKo));
+    el('viewer-record').setAttribute('aria-label',`${view.simulated?'SIMULATED memory. ':''}Your record versus this chat: ${view.record.streams} streams, ${view.record.bossesKo} bosses KO, ${view.record.timesKo} times KO.`);
+    const signature=JSON.stringify(view.hall);if(signature!==hallSignature){hallSignature=signature;const list=el('memory-hall-list');list.replaceChildren();
+      for(const entry of view.hall){const row=document.createElement('li'),name=document.createElement('span'),count=document.createElement('b');name.textContent=entry.name;name.title=entry.name;count.textContent=String(entry.koVotes);row.setAttribute('aria-label',`${entry.name}, ${entry.koVotes} KO votes all time`);row.append(name,count);list.append(row);}
+      if(!view.hall.length){const row=document.createElement('li');row.textContent='NO KO VOTES YET';list.append(row);}
+    }
+    if(view.nemesis){setText('nemesis-name',view.nemesis.name);el('nemesis-name').title=view.nemesis.name;setText('nemesis-kos',`${view.nemesis.koVotes} KO VOTES`);}
+  }
+  function setMemory(view:ViewerMemoryView|null){memory=view;renderMemory();summaryView.render(endSummary,endClips,memory);}
+
   function setModes(next:Partial<HudModes>) {
     const updated={...modes,...next};if(updated.seated===modes.seated&&updated.noPunch===modes.noPunch&&stage.dataset.modesReady)return;
     modes=updated;stage.dataset.modesReady='true';stage.classList.toggle('seated',modes.seated);stage.classList.toggle('no-punch',modes.noPunch);
@@ -130,8 +151,8 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   function once(key:string,play:()=>void){if(heard.has(key))return;heard.add(key);play();}
   function renderTally(message:TallySnapshot,superReady=false,exploit?:Move) {
     if(!isTallySnapshot(message))return;
-    const {weights,percent:shares,highest}=voteShares(message);
-    el('voters').textContent=String(message.voters);el('simulated').hidden=!message.simulated;
+    const {weights,percent:shares,highest}=voteShares(message);currentSimulated=message.simulated;
+    el('voters').textContent=String(message.voters);el('simulated').hidden=!(message.simulated||memory?.simulated);el('simulated').textContent=memory?.simulated?'● SIMULATED':'● SIMULATED CHAT';
     for(const {move,row,count,fill,percent}of rows){const value=message.tally[move];const share=shares[move];const locked=move==='SUPER'&&!superReady;
       count.textContent=String(value);fill.style.width=`${share}%`;percent.textContent=locked?'LOCKED':`${share}%`;
       row.classList.toggle('locked',locked);row.classList.toggle('leader',highest>0&&weights[move]===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
@@ -141,7 +162,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   }
   function render(state:GameState,simulated=!!options.simulated) {
     if(previous&&(state.match.seed!==previous.match.seed||state.round.number<previous.round.number||state.log.rounds.length<previous.log.rounds.length)){heard.clear();previous=undefined;spriteAnchorKey='';lastStampUntil=0;readItUntil=0;lastTelegraph='';}
-    current=state;currentSimulated=simulated;snapshotRealAt=performance.now();
+    current=state;currentSimulated=simulated;renderMemory();snapshotRealAt=performance.now();
     const cues=fx.observe(state,snapshotRealAt);
     const visual=fx.update(snapshotRealAt);
     el('calm').hidden=!visual.calm;stage.classList.toggle('calm',visual.calm);
@@ -241,5 +262,5 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       const attack=current.activeAttack;const viewNow=(current.clock.paused_at??current.now)+(current.paused?0:now-snapshotRealAt);el('banner').style.opacity=attack&&!attack.vetoed&&lastTelegraph?String(Math.min(1,Math.max(0,(attack.lands_at-viewNow)/120))):'1';
     }else sprite.draw('idle',now);frameId=requestAnimationFrame(animate);};
   frameId=requestAnimationFrame(animate);
-  return {render,renderTally,setModes,setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){summaryView.render(summary,clips);},setConnection(text:string){el('connection').textContent=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
+  return {render,renderTally,setModes,setMemory,setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
 }

@@ -38,3 +38,11 @@ test('endcard prefers the Twitch display name over the stable user ID',()=>{
   summary.chatMvp={user:'123456',displayName:'VisibleViewer',damage:12.5};
   expect(summaryPresentation(summary,[]).mvp).toBe('VisibleViewer · 12.5 DAMAGE');
 });
+
+test('memory adds the prospective MVP streak and forget command without changing game stats',()=>{
+ const summary=summarizeGame(createGame({now:0}));summary.chatMvp={user:'id',displayName:'Viewer',damage:3};
+ const memory={simulated:true,record:{streams:2,bossesKo:0,timesKo:0},hallOfFame:[],nemesis:null,mvpStreak:3};
+ const value=summaryPresentation(summary,[],'http://localhost/',memory);
+ expect(value.mvpStreak).toBe('MVP 3 STREAMS RUNNING');expect(value.forget).toBe('Type !forgetme to be forgotten.');expect(value.mvp).toBe('Viewer · 3.0 DAMAGE');
+ expect(summaryPresentation(summary,[]).mvpStreak).toBe('');summary.chatMvp=null;expect(summaryPresentation(summary,[],'http://localhost/',memory).mvpStreak).toBe('');
+});

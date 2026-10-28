@@ -111,3 +111,12 @@ it('reports chat subscription recovery, preserves incoming IDs and does not conf
  fakes.success({}, {type:'channel.chat.message',id:'chat'});expect(statuses).toHaveBeenLastCalledWith('connected');fakes.disconnect('9002',new Error('optional'));expect(statuses).toHaveBeenLastCalledWith('connected');fakes.disconnect('9001',new Error('offline'));expect(statuses).toHaveBeenLastCalledWith('reconnecting');
  fakes.success({}, {type:'channel.chat.message',id:'chat2'});expect(statuses).toHaveBeenLastCalledWith('connected');fakes.handler({messageId:'load-1',chatterId:'viewer',messageText:'!jab'});expect(message.mock.calls[0]?.[0].messageId).toBe('load-1');session.stop();expect(statuses).toHaveBeenLastCalledWith('disconnected');
 });
+it('retires all old chat, optional-event and status callbacks while a same-channel replacement remains active',()=>{
+ const oldMessage=vi.fn(),oldTwist=vi.fn(),oldStatus=vi.fn();const old=createTwitchSession({mock:true,onMessage:oldMessage,onTwist:oldTwist,onStatus:oldStatus});
+ const callbacks={chat:fakes.handler,cheer:fakes.cheerHandler,sub:fakes.subHandler,raid:fakes.raidHandler,success:fakes.success,disconnect:fakes.disconnect};old.stop();expect(oldStatus.mock.calls.map(([status])=>status)).toEqual(['connecting','disconnected']);
+ const message=vi.fn(),twist=vi.fn(),status=vi.fn();const replacement=createTwitchSession({mock:true,onMessage:message,onTwist:twist,onStatus:status});
+ callbacks.chat({chatterId:'old',chatterName:'old-channel-viewer',messageText:'!jab'});callbacks.cheer({bits:25});callbacks.sub({});callbacks.raid({viewers:10});callbacks.success({}, {type:'channel.chat.message',id:'retired'});callbacks.disconnect('9001',new Error('retired connection'));old.stop();
+ expect(oldMessage).not.toHaveBeenCalled();expect(oldTwist).not.toHaveBeenCalled();expect(oldStatus.mock.calls.map(([value])=>value)).toEqual(['connecting','disconnected']);expect(message).not.toHaveBeenCalled();expect(twist).not.toHaveBeenCalled();expect(status).toHaveBeenLastCalledWith('connecting');
+ fakes.handler({chatterId:'new',chatterName:'new-channel-viewer',messageText:'!combo'});fakes.cheerHandler({bits:3});fakes.subHandler({});fakes.raidHandler({viewers:2});fakes.success({}, {type:'channel.chat.message',id:'current'});
+ expect(message).toHaveBeenCalledOnce();expect(message).toHaveBeenCalledWith(expect.objectContaining({user:'new',text:'!combo'}));expect(twist).toHaveBeenCalledTimes(3);expect(status).toHaveBeenLastCalledWith('connected');replacement.stop();
+});

@@ -13,3 +13,6 @@ dist-demo/
 
 highlights.json
 highlights.json.tmp
+
+data/viewers.json
+data/viewers.json.*

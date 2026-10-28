@@ -9,6 +9,7 @@ Features:
 - Chat picks attacks every 2.4 seconds; guard and lean win the fight, punches add a bonus.
 - Two-way scouting from round 2: the boss spots your lean habit on the left rail, while a right-rail card reveals chat's repeated move over its last 12 voted picks.
 - Read the card and pre-hold the correct defence before the tell: a clean defence earns **+25% automatic counter damage** and **READ IT**.
+- Viewer memory remembers returning chat rivals: record, all-time hall of fame, active nemesis and MVP streaks, with `!forgetme` opt-out.
 - Keyboard/webcam, seated/no-punch, calm FX, offline demo and hosted channel play stay supported.
 
 Tested with 1,000 simulated chatters: **p95 104 ms** ingest → HUD WebSocket, **12 ms** maximum beat drift, zero dropped votes. [Measurement details](docs/LOAD.md).
@@ -127,6 +128,12 @@ For a local fallback, enable **Local replay** in capture with the webcam running
 Press **End session / show card** in capture to freeze play and show session stats, Chat MVP and the top three confirmed clips on the overlay. Match completion also shows the card. Chat MVP splits actual damage equally among counted voters for the selected move; autopilot earns no credit. The no-login demo has stats-only cards and never calls Twitch.
 
 Seated mode uses its own calibration, TILT cues and narrower fading rails. No-punch mode removes punch detection and prompts; clean blocks and dodges retain the same automatic counter damage.
+
+## Viewer memory
+
+Local live-channel mode stores per-channel viewer statistics by Twitch user ID in gitignored `data/viewers.json`, with atomic owner-only writes. Display names refresh from chat; message bodies are never saved. Inactive records expire after 90 days. `!forgetme` deletes your record and permanently opts your ID out for that channel; one acknowledgement uses the existing bot rate limit.
+
+The rails show your record against this chat, its top four KO voters and an active nemesis. A favourite KO-move tag and stream-MVP streak are history and presentation only; memory never changes damage or attack selection. End cards include the forget reminder. The no-login demo seeds a separate IndexedDB database with three made-up prior streams and labels the history SIMULATED. Hosted `/play` keeps its existing counts-only privacy contract and does not enable persistent viewer memory. [Rules, verification and Needs Kash](docs/queue13-review.md).
 
 ## Local hardening checks
 
