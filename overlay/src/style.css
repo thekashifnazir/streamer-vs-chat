@@ -4,14 +4,14 @@
 :root{--yellow:#ffdc43;--pink:#ff268a;--cyan:#2ef2ff;--muted:#c2bdcd}
 html,body{margin:0;width:100%;height:100%;background:transparent}
 .rails-host{position:relative;width:100%;height:100%;overflow:hidden}
-.rails-hud{position:absolute;width:1920px;height:1080px;transform-origin:top left;color:#faf8ff;font:700 30px/1.1 Barlow,'Arial Narrow',sans-serif;pointer-events:none}
+.rails-hud{position:absolute;width:1920px;height:1080px;transform-origin:top left;color:#faf8ff;font:700 36px/1.1 Barlow,'Arial Narrow',sans-serif;pointer-events:none}
 .rails-hud *{box-sizing:border-box}
 .rails-hud p,.rails-hud h1,.rails-hud h2{margin:0}
 .rail{position:absolute;top:0;bottom:0;width:470px;padding:36px 40px;overflow:hidden}
 .streamer{left:0;background:linear-gradient(90deg,#0a0814eb 70%,#0a0814d6)}
 .boss{right:0;text-align:right;background:linear-gradient(270deg,#0a0814eb 70%,#0a0814d6)}
-.rails-hud .eyebrow{font-size:28px;font-weight:900;letter-spacing:4px;color:var(--yellow)}
-.boss .eyebrow{color:var(--pink);font-size:26px;letter-spacing:2px;white-space:nowrap}
+.rails-hud .eyebrow{font-size:36px;font-weight:900;letter-spacing:4px;color:var(--yellow)}
+.boss .eyebrow{color:var(--pink);font-size:36px;letter-spacing:2px;white-space:nowrap}
 .rails-hud h1,.rails-hud h2{font:400 70px/1.16 Anton,Impact,sans-serif;letter-spacing:0}
 .boss h2{font-size:54px}
 .hp{display:flex;align-items:baseline;gap:4px;color:var(--yellow);height:159px}
@@ -21,58 +21,58 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .boss .hp strong{font-size:100px}
 .health-bar{position:relative;height:44px;border:4px solid white;background:#25171c}
 .health-bar span,.health-bar i{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--yellow)}
-.health-bar i{background:#ff3d37;transition:width 600ms}
+.health-bar i{background:repeating-linear-gradient(-45deg,#ff3b30 0,#ff3b30 10px,#000 10px,#000 16px);transition:width 300ms linear}
 .health-bar span{transition:width 80ms linear}
 .boss .health-bar{height:32px}
 .boss .health-bar span{background:var(--pink)}
-.rounds,.hype{margin-top:16px!important;font-size:30px;font-weight:900;letter-spacing:1px;color:var(--muted)}
+.rounds,.hype{margin-top:16px!important;font-size:36px;font-weight:900;letter-spacing:1px;color:var(--muted)}
 .rounds strong{color:var(--yellow)}
-.hype{color:white;font-size:29px;margin-top:10px!important}
+.hype{color:white;font-size:36px;margin-top:10px!important}
 .hype span{color:var(--pink)}
 .hype-bar{position:relative;height:24px;margin-top:8px;border:3px solid white;background:#272131}
 .hype-bar:after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent 27px,#ffffff60 27px,#ffffff60 30px)}
 .hype-bar span{display:block;height:100%;background:var(--pink);transition:width 100ms}
 .clock{position:absolute;top:24px;left:842px;width:236px;height:106px;background:#0a0814e6;border:4px solid white;display:flex;justify-content:center;align-items:center;gap:16px}
 .clock>strong{font:400 84px/1 Anton,Impact,sans-serif}
-.clock>span{color:var(--yellow);font-size:29px;font-weight:900;letter-spacing:2px}
+.clock>span{color:var(--yellow);font-size:36px;font-weight:900;letter-spacing:2px}
 .status-card{margin-top:48px;padding:22px 18px;border-left:9px solid var(--yellow);background:#ffdc4312}
-.status-card .eyebrow{font-size:26px;letter-spacing:1px}
+.status-card .eyebrow{font-size:36px;letter-spacing:1px}
 .status-card>p:nth-child(2){margin-top:14px;font:400 45px/1.15 Anton,Impact,sans-serif;white-space:pre-line}
-.status-card small{display:block;margin-top:20px;font-size:27px;color:var(--muted)}
+.status-card small{display:block;margin-top:20px;font-size:36px;color:var(--muted)}
 .scouting{margin-top:40px;padding:20px 18px;border-left:9px solid var(--yellow);background:#ffdc431a}
 .scouting h2{font-size:45px;margin-top:10px}
 .habit-share{display:block;color:var(--yellow);font:400 90px/1.1 Anton,Impact,sans-serif}
-.scouting p{font-size:29px;margin-top:9px}
+.scouting p{font-size:36px;margin-top:9px}
 .scouting b{color:var(--pink)}
 .scouting:not([hidden])+.status-card{margin-top:24px;padding-top:15px;padding-bottom:15px}
-.scouting:not([hidden])+.status-card>p:nth-child(2){font-size:32px}
+.scouting:not([hidden])+.status-card>p:nth-child(2){font-size:36px}
 .rails-hud footer{position:absolute;bottom:28px;left:40px;right:20px}
-.simulated{width:fit-content;padding:10px 16px;border:4px solid #ffe353;outline:2px solid #161014;outline-offset:-7px;background:repeating-linear-gradient(135deg,#ffdb3d 0,#ffdb3d 18px,#f7bb00 18px,#f7bb00 36px);color:#080710;font-size:29px;font-weight:900;letter-spacing:1px}
-.connection{color:var(--muted);font-size:26px;margin-top:14px!important}
-.hud-options{display:flex;align-items:center;gap:22px;margin-top:12px;font-size:26px;pointer-events:auto}
-.hud-options button{font:900 26px Barlow,sans-serif;background:#151220;border:2px solid #c2bdcd;color:white;padding:6px 10px;cursor:pointer}
+.simulated{width:fit-content;padding:10px 16px;border:4px solid #ffe353;outline:2px solid #161014;outline-offset:-7px;background:repeating-linear-gradient(135deg,#ffdb3d 0,#ffdb3d 18px,#f7bb00 18px,#f7bb00 36px);color:#080710;font-size:36px;font-weight:900;letter-spacing:1px}
+.connection{color:var(--muted);font-size:36px;margin-top:14px!important}
+.hud-options{display:flex;align-items:center;gap:22px;margin-top:12px;font-size:36px;pointer-events:auto}
+.hud-options button{font:900 36px Barlow,sans-serif;background:#151220;border:2px solid #c2bdcd;color:white;padding:6px 10px;cursor:pointer}
 .hud-options label{display:flex;align-items:center;gap:7px;cursor:pointer}
 .hud-options input{width:23px;height:23px;accent-color:var(--yellow)}
-.vote-header{margin-top:22px;font-size:27px;font-weight:900;letter-spacing:1px;text-align:left;color:var(--muted);white-space:nowrap}
+.vote-header{margin-top:22px;font-size:36px;font-weight:900;letter-spacing:1px;text-align:left;color:var(--muted);white-space:nowrap}
 .vote-header strong{color:white}.vote-header span{letter-spacing:0}
 .votes{margin-top:8px}
 .vote-row{height:53px;padding:3px 0;display:grid;grid-template-columns:145px 1fr 79px;align-items:center;column-gap:8px;text-align:left}
 .vote-row.leader{background:#ffdc4321;box-shadow:7px 0 0 var(--yellow)}
 .vote-command{font:400 37px/1 Anton,Impact,sans-serif;white-space:nowrap}
-.vote-command small{display:inline-block;margin-left:7px;font:700 26px/1 Barlow,sans-serif;vertical-align:middle}
-.vote-command small{font-size:0}.vote-command small .vote-count{font-size:26px}
+.vote-command small{display:inline-block;margin-left:7px;font:700 36px/1 Barlow,sans-serif;vertical-align:middle}
+.vote-command small{font-size:36px}.vote-command small .vote-count{font-size:36px}
 .leader .vote-command{color:var(--yellow)}
 .vote-track{height:21px;background:#ffffff21}.vote-fill{height:100%;width:0;background:var(--pink);transition:width 120ms ease}
 .leader .vote-fill{background:var(--yellow)}
-.vote-percent{font:400 34px/1 Anton,Impact,sans-serif;text-align:right}
-.vote-row.locked{color:#a39da9}.vote-row.locked .vote-percent{font:900 26px Barlow,sans-serif}
+.vote-percent{font:400 36px/1 Anton,Impact,sans-serif;text-align:right}
+.vote-row.locked{color:#a39da9}.vote-row.locked .vote-percent{font:900 36px Barlow,sans-serif}
 .exploit-vote{outline:2px solid var(--yellow);outline-offset:-2px}
 .boss-sprite{position:absolute;left:0;bottom:0;width:470px;height:440px}
 .telegraph{position:absolute;top:142px;left:470px;width:980px;text-align:center}
 .telegraph>strong{font:400 140px/1.1 Anton,Impact,sans-serif;color:var(--pink);-webkit-text-stroke:8px #08050c;paint-order:stroke fill}
-.move-pill{display:flex;justify-content:center;align-items:stretch;width:fit-content;max-width:970px;margin:auto;background:white;border:5px solid #08050c;color:black;font:400 54px/1.2 Anton,Impact,sans-serif}
-.move-pill>span,.move-pill>b{padding:9px 22px;white-space:nowrap;font-weight:400}.move-pill>b{background:var(--cyan)}
-.telegraph>small{display:block;margin-top:8px;font-size:30px;background:#0a0814e6;color:var(--yellow);width:fit-content;margin-inline:auto}
+.move-pill{display:flex;justify-content:center;align-items:stretch;width:fit-content;max-width:970px;margin:auto;background:#08050c;border:5px solid white;color:white;font:400 54px/1.2 Anton,Impact,sans-serif}
+.move-pill>span,.move-pill>b{padding:9px 22px;white-space:nowrap;font-weight:400}.move-pill>b{background:var(--cyan);color:black;display:flex;align-items:center;gap:12px}
+.telegraph>small{display:block;margin-top:8px;font-size:36px;background:#0a0814e6;color:var(--yellow);width:fit-content;margin-inline:auto}
 .telegraph.counter>strong{color:#73f49b}.telegraph.counter .move-pill>b{background:#73f49b}
 .lean-arrow{position:absolute;top:420px;font:400 170px/1 Anton,Impact,sans-serif;color:var(--cyan);-webkit-text-stroke:7px black;paint-order:stroke fill;text-align:center}
 .lean-arrow.left{left:485px}.lean-arrow.right{right:485px}
@@ -84,55 +84,89 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .status-card small:empty{display:none}
 
 /* Scouting is evidence, not a flashing alert: the exploit glow is steady. */
-.scouting .scouting-evidence{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:26px}
-.scouting-evidence [data-id="exploit-cooldown"]{font-size:26px;color:var(--yellow);text-align:right}
+.scouting .scouting-evidence{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:36px}
+.scouting-evidence [data-id="exploit-cooldown"]{font-size:36px;color:var(--yellow);text-align:right}
 .exploit-vote{background:#ffdc431a;box-shadow:inset 0 0 12px #ffdc4329,0 0 20px #ffdc436b}
 .scouting.fixed{border-color:#73f49b;background:#73f49112}
 .scouting.fixed .eyebrow{color:#73f49b}
 .fixed-stamp{display:inline-block;margin-top:15px;padding:3px 14px;border:4px solid #73f49b;color:#73f49b;font:400 76px/1.15 Anton,Impact,sans-serif}
-.scouting.fixed p{font-size:28px}
+.scouting.fixed p{font-size:36px}
 
 /* A steady phase badge explains vote influence without adding a new centre cue. */
 .raid-phase{margin-top:12px;padding:4px 9px;border:2px solid var(--pink);background:#ff268a14;text-align:left}
-.raid-phase strong,.raid-phase span{display:block;font-size:26px;line-height:1.15}
+.raid-phase strong,.raid-phase span{display:block;font-size:36px;line-height:1.15}
 .raid-phase strong{color:var(--pink);letter-spacing:1px}
 .raid-phase span{margin-top:3px;color:#faf8ff}
 .boss.raid-active .vote-header{margin-top:10px}
 .boss.raid-active .vote-row{height:42px}
 .boss.raid-active .hp{height:100px}
-.boss.raid-active .hype{margin-top:6px!important;font-size:27px}
+.boss.raid-active .hype{margin-top:6px!important;font-size:36px}
 
 /* Seated framing: narrow rails and a translucent inner edge leave shoulders clear. */
 .seated .rail{width:300px;padding:28px 20px}
 .seated .streamer{background:linear-gradient(90deg,#0a0814eb 65%,#0a081499)}
 .seated .boss{background:linear-gradient(270deg,#0a0814eb 65%,#0a081499)}
-.seated .eyebrow{font-size:26px;letter-spacing:1px}
+.seated .eyebrow{font-size:36px;letter-spacing:1px}
 .seated h1{font-size:58px}.seated .boss h2{font-size:38px}
-.seated .boss .eyebrow{font-size:26px;white-space:normal}
+.seated .boss .eyebrow{font-size:36px;white-space:normal}
 .seated .hp{height:130px}.seated .hp strong{font-size:120px}
 .seated .boss .hp{height:95px}.seated .boss .hp strong{font-size:90px}
-.seated .rounds,.seated .hype{font-size:26px;letter-spacing:0}
+.seated .rounds,.seated .hype{font-size:36px;letter-spacing:0}
 .seated .hype span{display:block}.seated .hype-bar{height:20px}
 .seated .status-card,.seated .scouting{padding:14px 10px;margin-top:28px}
-.seated .status-card>p:nth-child(2),.seated .scouting h2{font-size:34px}
+.seated .status-card>p:nth-child(2),.seated .scouting h2{font-size:36px}
 .seated .scouting .scouting-evidence{flex-wrap:wrap;gap:5px}
-.seated .scouting p{font-size:26px}.seated .habit-share{font-size:70px}
+.seated .scouting p{font-size:36px}.seated .habit-share{font-size:70px}
 .seated .scouting:not([hidden])+.status-card{margin-top:16px}
 .seated footer{left:20px;right:12px;bottom:22px}
-.seated .simulated{font-size:26px;letter-spacing:0;padding:9px 7px;white-space:nowrap}
-.seated .hud-options{flex-wrap:wrap;gap:10px}.seated .connection{font-size:26px}
-.seated .vote-header{font-size:26px;white-space:normal}.seated .vote-header span{display:block}
+.seated .simulated{font-size:36px;letter-spacing:0;padding:9px 7px;white-space:nowrap}
+.seated .hud-options{flex-wrap:wrap;gap:10px}.seated .connection{font-size:36px}
+.seated .vote-header{font-size:36px;white-space:normal}.seated .vote-header span{display:block}
 .seated .vote-row{grid-template-columns:105px 1fr 67px;column-gap:5px;height:55px}
-.seated .vote-command{font-size:28px}.seated .vote-command small{display:block;margin-left:0}
-.seated .vote-percent{font-size:28px}.seated .vote-track{height:18px}
+.seated .vote-command{font-size:36px}.seated .vote-command small{display:block;margin-left:0}
+.seated .vote-percent{font-size:36px}.seated .vote-track{height:18px}
 .seated .boss-sprite{width:300px;height:281px}
 .seated .telegraph{left:300px;width:1320px}.seated .lean-arrow.left{left:315px}.seated .lean-arrow.right{right:315px}
 .seated .raid-phase{padding:4px}.seated .boss.raid-active .vote-row{height:51px}
 .endcard{position:absolute;left:350px;top:145px;width:1220px;max-height:850px;overflow:auto;padding:32px 38px;border:4px solid var(--yellow);background:#100b19fa;pointer-events:auto;box-shadow:0 10px 60px #0008}
-.rails-hud .endcard h2{font-size:64px}.endcard .summary-score{margin-top:10px;font-size:32px}
+.rails-hud .endcard h2{font-size:64px}.endcard .summary-score{margin-top:10px;font-size:36px}
 .summary-stats{display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;margin:24px 0}
-.endcard h3{font-size:26px;color:var(--yellow);margin:0 0 5px}.endcard p{font-size:29px;overflow-wrap:anywhere}
+.endcard h3{font-size:36px;color:var(--yellow);margin:0 0 5px}.endcard p{font-size:36px;overflow-wrap:anywhere}
 .summary-stats>div:last-child{grid-column:1/-1}.endcard ol{margin:10px 0 0;padding-left:32px}.endcard li{margin:9px 0}
-.endcard a{color:var(--cyan);font-size:30px;text-underline-offset:5px}.endcard a:focus-visible{outline:4px solid var(--yellow);outline-offset:5px}.summary-empty{color:var(--muted)}
+.endcard a{color:var(--cyan);font-size:36px;text-underline-offset:5px}.endcard a:focus-visible{outline:4px solid var(--yellow);outline-offset:5px}.summary-empty{color:var(--muted)}
 .seated .scouting:not([hidden])+.status-card>p:nth-child(2){display:none}
 .seated .boss.raid-active .boss-sprite{height:200px;width:214px;left:43px}
+
+/* Day 6: large typography, steady high-contrast defence cues and local effects. */
+.vote-command,.seated .vote-command{font-size:38px}.vote-command small,.vote-command small .vote-count{font-size:38px}
+.vote-percent,.seated .vote-percent{font-size:38px}.vote-row.locked .vote-percent{font-size:36px}
+.vote-row{grid-template-columns:172px 1fr 88px;height:58px}.vote-header{letter-spacing:0;font-size:36px}
+.vote-header span{display:block}.boss .eyebrow{white-space:normal;font-size:36px;letter-spacing:0}
+.vote-command small{margin-left:6px}.scouting-evidence [data-id="habit-n"]{font-size:40px}
+.scouting .scouting-evidence{flex-wrap:wrap}.scouting h2{font-size:40px}.scouting{margin-top:20px;padding:12px}
+.scouting:not([hidden])+.status-card{margin-top:15px}.status-card{margin-top:30px}
+.boss-sprite{height:440px}.boss h2{font-size:48px}.boss .hp{height:90px}.boss .hp strong{font-size:85px}
+.boss header .eyebrow{max-height:43px;overflow:hidden}.hype{margin-top:6px!important}.hype span{display:none}
+.vote-header{margin-top:12px}.votes{margin-top:3px}.boss.raid-active .vote-row{height:50px}
+.raid-phase span{font-size:36px}.raid-phase{margin-top:8px}.boss.raid-active .boss-sprite{height:380px}
+.cue-icon{display:inline-flex;align-items:center;justify-content:center;font-size:60px;line-height:1;min-width:46px}.cue-icon svg{width:46px;height:50px}
+.telegraph>strong{display:block;transform-origin:center}.move-pill{background:#08050c;color:#fff;border-color:#fff}.move-pill>b{background:#2ef2ff;color:#000}
+.blocked-stamp{position:absolute;left:25px;right:25px;top:410px;text-align:center;padding:12px 0;background:#08050ce8;border:5px solid #2ef2ff;color:#fff;font:400 68px/1 Anton,Impact,sans-serif;pointer-events:none}
+.calm-badge{display:inline-block;margin-top:10px!important;border:2px solid var(--cyan);padding:5px;color:var(--cyan);font-size:36px}
+.seated .blocked-stamp{left:12px;right:12px;font-size:48px}.seated .vote-row{grid-template-columns:149px 1fr 72px;height:58px;column-gap:4px}.seated .vote-command small{display:inline-block;margin-left:4px}
+.seated .vote-track{height:12px}.seated .vote-header{font-size:36px}.seated .boss header .eyebrow{display:none}
+.seated .rail{padding:20px 14px}.seated .boss h2{font-size:38px}.seated .boss .hp{height:80px}.seated .boss .hp strong{font-size:75px}
+.seated .hype span{display:none}.seated .boss-sprite{height:281px}.seated .boss.raid-active .boss-sprite{height:200px}
+.seated .status-card{padding:10px;margin-top:18px}.seated .scouting{margin-top:16px;padding:10px}.seated .habit-share{font-size:60px}
+.seated .scouting:not([hidden])+.status-card{display:none}.seated .scouting .scouting-evidence{gap:4px}.seated .simulated{white-space:normal}
+.seated footer{left:14px;right:14px}.seated .hud-options{gap:8px}.seated .hud-options button{padding:5px;font-size:36px}
+.boss{padding-top:20px}.boss .hp{height:80px}.boss .hp strong{font-size:75px}.boss .health-bar{height:26px}.boss .hype-bar{height:16px;margin-top:5px}
+.boss .vote-header{white-space:nowrap;margin-top:8px}.boss .vote-header span{display:inline}.boss .vote-row{height:53px}
+.seated .boss .vote-header{white-space:normal}.seated .boss .vote-header span{display:block}.seated .boss .vote-row{height:58px}
+.boss .vote-row,.boss.raid-active .vote-row,.seated .boss .vote-row,.seated .boss.raid-active .vote-row{height:38px;padding:0;line-height:1}
+.vote-row{grid-template-columns:190px 1fr 80px}.seated .vote-row{grid-template-columns:174px 1fr 70px}
+.vote-command small,.vote-command small .vote-count{line-height:1}
+
+/* Transparent headroom preserves the atlas pivot without clipping victory/KO art. */
+.boss-sprite,.boss.raid-active .boss-sprite{width:470px;height:486px}
+.seated .boss-sprite,.seated .boss.raid-active .boss-sprite{width:300px;height:310.213px;left:0}

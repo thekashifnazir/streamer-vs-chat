@@ -30,3 +30,10 @@ it('stops a late permission result after camera cancellation',async()=>{
   const starting=camera.start();camera.stop();resolve({getTracks:()=>[track]});
   expect(await starting).toBe(false);expect(track.stop).toHaveBeenCalled();
 });
+it('uses the explicitly selected GPU delegate without changing model or inference settings',async()=>{
+  const track={stop:vi.fn(),addEventListener:vi.fn()};vi.stubGlobal('navigator',{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[track],getVideoTracks:()=>[track]})}});
+  mocked.fileset.mockResolvedValue({});mocked.create.mockResolvedValue({close:vi.fn()});
+  const video={play:vi.fn(),pause:vi.fn(),requestVideoFrameCallback:vi.fn(),cancelVideoFrameCallback:vi.fn()} as unknown as HTMLVideoElement;
+  const camera=new PoseCamera(video,vi.fn(),vi.fn());expect(await camera.start('GPU')).toBe(true);
+  expect(mocked.create).toHaveBeenLastCalledWith({},expect.objectContaining({baseOptions:{modelAssetPath:'/capture/public/models/pose_landmarker_lite.task',delegate:'GPU'}}));camera.stop();
+});

@@ -20,6 +20,16 @@ npm run build:demo
 
 Produces `dist-demo/` with all runtime assets, one SIMD WASM binary, the vendored lite model, local fonts, boss art, SFX and voices. The no-login demo needs no CDN or external runtime downloads; optional `/play` connects to Twitch. The builder/preview never loads `.env` or the server token store. The complete bundle is about25 MB raw /15 MB gzip; pose-only assets are about8.4 MB gzip. See [demo and deployment notes](docs/DEMO.md).
 
+## Play-test and record a cold open
+
+Share **https://streamervschat.kashifnazir.com/** with friends. The offline demo has an optional **Count this local play-test** checkbox and **Copy local stats** button. Consent starts a fresh local sample; withdrawing clears it. JSON contains votes/min, unique anonymous simulated participants and rounds, labelled simulated. These are play-test counts, not evidence of live chat engagement. Hosted `/play` keeps its separate real-chat counts export.
+
+**Rehearse 5-second cold open** starts one JAB with visibly simulated chat. Hold K or a calibrated webcam guard: the reducer must actually block it before BLOCKED! is shown. The shot starts with HANDS UP!, shows the actual defence, then highlights the tally. The rehearsal pauses after the first outcome; New match returns to normal play. Record the five seconds with OBS. A missed block is labelled a failed take. See [cold-open shot plan](docs/COLD-OPEN.md).
+
+FX are presentation only: hit-stop and rail shake never pause combat, pose input, votes or telegraphs. `?fx=calm` removes shake and replaces slams with fades; reduced-motion preference also enables calm automatically. Sound starts off in the demo; OBS requests sound on, subject to browser autoplay permission. M toggles mute.
+
+Capture now offers **Compare CPU / GPU** using your real camera, with warm-up and bounded sample collection. It stops gameplay inputs during measurement and selects the measured lower-latency delegate. CPU remains the accepted default until an actual comparison is run. [Mac measurement instructions](docs/capture-performance.md).
+
 ## Try it on your channel
 
 Open **[Try it on your channel](https://streamervschat.kashifnazir.com/play)**. This hosted mode runs entirely in your browser, using the same game reducer as the offline demo and local server. Connect with Twitch, confirm clear space, and start with keyboard or a calibrated webcam. Standing, seated and no-punch choices remain available.

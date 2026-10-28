@@ -27,9 +27,12 @@ const urls = {
   vote:new URL('../../assets/sfx-ready/vote-tick.wav',import.meta.url).href,
   music:new URL('../../assets/sfx-ready/music-battle-loop.wav',import.meta.url).href,
 };
-type Sound=keyof typeof urls;
+export type Sound=keyof typeof urls;
+export const MIX={thresholdDb:-6,ratio:12,musicGain:10**(-6/20),duckGain:10**(-12/20),voiceGapSeconds:2} as const;
+/** All cues use decoded buffers. Playback never starts a fetch. */
 export class GameSound {
   enabled=false;
+  requested:boolean;
   private context?:AudioContext;
   private master?:GainNode;
   private musicGain?:GainNode;
@@ -38,38 +41,54 @@ export class GameSound {
   private loading?:Promise<void>;
   private dead=false;
   private lastVoiceAt=-Infinity;
-  async toggle():Promise<boolean> {
-    if(this.dead)return false;
-    if(this.enabled){this.enabled=false;this.master?.gain.setValueAtTime(0,this.context!.currentTime);return false;}
+  private duckUntil=0;
+  constructor(private options:{defaultEnabled?:boolean;context?:()=>AudioContext;fetch?:typeof fetch;onChange?:()=>void}={}){this.requested=!!options.defaultEnabled;}
+  async prepare():Promise<void> {
+    if(this.dead)return;
     if(!this.context) {
-      const context=this.context=new AudioContext();
-      this.master=context.createGain();this.master.gain.value=0;
-      const limiter=context.createDynamicsCompressor();limiter.threshold.value=-6;limiter.ratio.value=12;
-      this.master.connect(limiter);limiter.connect(context.destination);
-      this.musicGain=context.createGain();this.musicGain.gain.value=.5;this.musicGain.connect(this.master);
-      this.loading=Promise.all(Object.entries(urls).map(async([name,url])=>{
-        try {const response=await fetch(url);if(response.ok)this.buffers.set(name as Sound,await context.decodeAudioData(await response.arrayBuffer()));}catch{/* Audio failure never blocks gameplay. */}
-      })).then(()=>{});
+      try {
+        const context=this.context=this.options.context?.()??new AudioContext();
+        this.master=context.createGain();this.master.gain.value=0;
+        const limiter=context.createDynamicsCompressor();limiter.threshold.value=MIX.thresholdDb;limiter.ratio.value=MIX.ratio;
+        this.master.connect(limiter);limiter.connect(context.destination);
+        this.musicGain=context.createGain();this.musicGain.gain.value=MIX.musicGain;this.musicGain.connect(this.master);
+        this.loading=Promise.all(Object.entries(urls).map(async([name,url])=>{
+          try {const response=await (this.options.fetch??fetch)(url);if(response.ok){const buffer=await context.decodeAudioData(await response.arrayBuffer());if(!this.dead)this.buffers.set(name as Sound,buffer);}}catch{/* Audio failure never blocks gameplay. */}
+        })).then(()=>{});
+      }catch{return;}
     }
-    await this.context.resume();await this.loading;
+    await this.loading;
+  }
+  /** Call from a trusted gesture, or try once for an OBS source allowing autoplay. */
+  async unlock():Promise<boolean>{
+    const ready=this.prepare(),context=this.context;
+    if(!this.requested||!context||this.dead){await ready;return false;}
+    const activate=()=>{
+      if(this.dead||!this.requested||context.state!=='running')return false;
+      this.enabled=true;this.master!.gain.setValueAtTime(1,context.currentTime);
+      if(!this.music&&this.buffers.has('music')){this.music=context.createBufferSource();this.music.buffer=this.buffers.get('music')!;this.music.loop=true;this.music.connect(this.musicGain!);this.music.start();}
+      this.options.onChange?.();return true;
+    };
+    // Autoplay-blocked resume may remain pending forever. It must never lock UI.
+    try{void Promise.all([context.resume(),ready]).then(activate).catch(()=>{});}catch{}
+    await ready;return activate();
+  }
+  async toggle():Promise<boolean>{
     if(this.dead)return false;
-    this.enabled=true;this.master!.gain.setValueAtTime(1,this.context.currentTime);
-    if(!this.music&&this.buffers.has('music')) {
-      this.music=this.context.createBufferSource();this.music.buffer=this.buffers.get('music')!;this.music.loop=true;this.music.connect(this.musicGain!);this.music.start();
-    }
-    return true;
+    if(this.requested){this.requested=false;this.enabled=false;this.master?.gain.setValueAtTime(0,this.context!.currentTime);this.options.onChange?.();return false;}
+    this.requested=true;return this.unlock();
   }
   play(name:Sound,voice=false,priority=false):void {
     const context=this.context,buffer=this.buffers.get(name);
     if(!this.enabled||!context||!buffer||this.dead)return;
-    if(voice) {
-      if(!priority&&context.currentTime-this.lastVoiceAt<2)return;
-      this.lastVoiceAt=context.currentTime;
+    if(voice){
+      if(!priority&&context.currentTime-this.lastVoiceAt<MIX.voiceGapSeconds)return;
+      this.lastVoiceAt=context.currentTime;this.duckUntil=Math.max(this.duckUntil,context.currentTime+buffer.duration);
       this.musicGain!.gain.cancelScheduledValues(context.currentTime);
-      this.musicGain!.gain.setValueAtTime(.25,context.currentTime);
-      this.musicGain!.gain.setValueAtTime(.5,context.currentTime+buffer.duration);
+      this.musicGain!.gain.setValueAtTime(MIX.duckGain,context.currentTime);
+      this.musicGain!.gain.setValueAtTime(MIX.musicGain,this.duckUntil);
     }
     const source=context.createBufferSource();source.buffer=buffer;source.connect(this.master!);source.start();
   }
-  dispose(){this.dead=true;this.enabled=false;this.music?.stop();void this.context?.close();}
+  dispose(){this.dead=true;this.requested=false;this.enabled=false;try{this.music?.stop();}catch{}void this.context?.close();this.buffers.clear();}
 }

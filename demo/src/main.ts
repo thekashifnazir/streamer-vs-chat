@@ -9,6 +9,8 @@ import { PoseClassifier } from '../../capture/src/classifier';
 import { createCalibration } from '../../capture/src/calibration';
 import { createSimulationSource } from './source';
 import { InputTutorial } from './tutorial';
+import {startColdOpen,coldOpenStage} from './cold-open';
+import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
@@ -36,6 +38,15 @@ let hosted:ReturnType<typeof import('./play').mountHostedPlay>|null=null;
 let metricsRound:string|null=null;
 let liveViewers=0;
 let showSessionSummary=false;
+let coldOpenAt:number|null=null;
+const playtest=new LocalPlaytestStats();
+let playtestRound:string|null=null;
+function trackLocalRound(){
+ if(!game||liveMode||coldOpenAt!==null)return;
+ const key=`${game.match.seed}:${game.round.number}`;
+ if(playtestRound!==key){if(game.round.over)return;playtest.endRound();playtest.startRound();playtestRound=key;}
+ if(game.round.over)playtest.endRound();
+}
 function trackFight(){
   if(!hosted||!game)return;
   const key=`${game.match.seed}:${game.round.number}`;
@@ -71,7 +82,7 @@ new ResizeObserver(resize).observe(stage);resize();
 function paint() {
   hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0}),!liveMode);
   hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
-  trackFight();
+  trackFight();trackLocalRound();
   hud.setEndcard(game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null);
   if(game) {
     el('next-round').hidden=!game.round.over||Boolean(game.match.winner)||showSessionSummary;
@@ -82,28 +93,30 @@ function paint() {
   }
 }
 function drawCrowd(at:number) {
-  if(liveMode||!game||!crowd||game.round.over||game.paused)return;
+  if(liveMode||coldOpenAt!==null||!game||!crowd||game.round.over||game.paused)return;
   const key=`${game.round.number}:${Math.floor(game.round.elapsed_ms/2400)}`;
   if(key===crowdBeat)return;
   crowdBeat=key;
-  game=step(game,{kind:'vote-batch',votes:crowd.votes(game,at)},at);
+  const votes=crowd.votes(game,at);
+  game=step(game,{kind:'vote-batch',votes},at);
+  for(const vote of votes)playtest.vote(vote.user,game.votes[vote.user]===vote.move);
 }
 function startFight() {
   if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Connect Twitch and wait for LIVE before starting.';return;}
   if(!clearSpace.checked){el('tutorial-status').textContent='Confirm your clear space below before starting.';return;}
-  hosted?.endFight();showSessionSummary=false;
+  hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
   const at=performance.now();
   game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at});
   // Live chat and the offline crowd both feed the shared reducer; no server import.
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+100,liveTokenLoaded:hosted?.hasToken??false});
-  crowdBeat='';drawCrowd(at);
+  trackLocalRound();crowdBeat='';drawCrowd(at);
   el('tutorial').hidden=true;
   keyboard.setEnabled(source.value==='keyboard');
   game=step(game,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);
   paint();
 }
 function input(event:StreamerInput) {
-  if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||(liveMode&&!hosted?.ready)))return;
+  if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||coldOpenAt!==null||(liveMode&&!hosted?.ready)))return;
   const at=performance.now();
   if(event.kind!=='control'&&!clearSpace.checked) {
     if(!game)el('tutorial-status').textContent='Check “My space is clear” below, then press K.';
@@ -207,7 +220,7 @@ el('next-round').addEventListener('click',()=>{
   game=step(game,{kind:'next-round'},at);
   game=step(game,{kind:'viewers',count:liveMode?liveViewers:Number(crowdSize.value)},at);
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+game.round.number,liveTokenLoaded:hosted?.hasToken??false});
-  crowdBeat='';drawCrowd(at);paint();
+  trackLocalRound();crowdBeat='';drawCrowd(at);paint();
 });
 crowdSize.addEventListener('change',()=>{paint();crowdSize.blur();});
 noPunch.addEventListener('change',()=>{updateModes();noPunch.blur();});
@@ -219,10 +232,28 @@ const timer=window.setInterval(()=>{
   game=step(game,{kind:'advance'},at);
   if(source.value==='keyboard')game=step(game,{kind:'pose',...keyboard.physical,source:'keyboard',at},at);
   else if(!cameraRunning||at-lastFrameAt>=500)game=step(game,{kind:'pose',guard:false,lean:null,source:'pose',at},at);
+  if(coldOpenAt!==null){
+    const age=at-coldOpenAt,phase=coldOpenStage(game,age);
+    // A one-attack rehearsal deliberately pauses after the actual outcome.
+    if(game.log.resolved.length&&!game.paused)game=step(game,{kind:'control',action:'stop',by:'capture'},at);
+    stage.classList.toggle('cold-open-tally',phase==='tally'||phase==='done');
+    el('cold-open-status').textContent=phase==='missed'?'No clean block. Retry and hold your guard.':phase==='done'?'5-second take complete: actual guard confirmed. Chat is SIMULATED.':phase==='tally'?'Show the chat tally · SIMULATED CHAT':phase==='blocked'?'BLOCKED! Actual defence confirmed.':'HANDS UP! Hold your actual guard.';
+  }
   drawCrowd(at);paint();
 },100);
-window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();hosted?.dispose();});
+window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();hosted?.dispose();playtest.dispose();});
+el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
+el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
+el('cold-open').addEventListener('click',()=>{
+ if(liveMode)return;
+ if(!clearSpace.checked){el('cold-open-status').textContent='Confirm clear space first.';return;}
+ if(source.value==='pose'&&(!calibration.snapshot.ready||!cameraRunning)){el('cold-open-status').textContent='Start and calibrate the camera first, or choose Keyboard.';return;}
+ playtest.endRound();const at=performance.now();coldOpenAt=at;crowd=null;showSessionSummary=false;
+ game=startColdOpen(at,seed++,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose);
+ el('tutorial').hidden=true;stage.classList.remove('cold-open-tally');paint();
+});
 if(liveMode){
+  el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=()=>{if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}};
   hosted=mountHostedPlay({onVote:vote=>{

@@ -6,6 +6,7 @@ import { createKeyboard } from './keyboard';
 import { PoseCamera } from './camera';
 import { FixtureRecorder, saveJson } from './recorder';
 import { LocalReplay } from './replay';
+import { CaptureBenchmark, type PoseDelegate } from './benchmark';
 import { NO_POSE_MESSAGE, trackingMessage } from './tracking-status';
 
 const element = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
@@ -36,6 +37,10 @@ let socket:WebSocket;
 let disposed=false;
 let stopped=false;
 let cameraRunning=false;
+let benchmarking=false;
+const delegate=element<HTMLSelectElement>('pose-delegate');
+const benchmarkStatus=element('benchmark-status');
+const benchmarkButton=element<HTMLButtonElement>('benchmark-camera');
 const stopCameraButton=element<HTMLButtonElement>('stop-camera');
 const startRecordButton=element<HTMLButtonElement>('record-start');
 const stopRecordButton=element<HTMLButtonElement>('record-stop');
@@ -53,7 +58,7 @@ function sessionWarning(message='') {
   const warning=element('session-warning');
   warning.textContent=message;warning.hidden=!message;
 }
-function allowed() { return clearSpace.checked && !stopped; }
+function allowed() { return clearSpace.checked && !stopped && !benchmarking; }
 function updateKeyboard() { keyboard.setEnabled(source.value==='keyboard' && allowed()); }
 function neutral(at=performance.now()):PoseState {
   return {kind:'pose',guard:false,lean:null,at,source:source.value==='keyboard'?'keyboard':'pose'};
@@ -111,6 +116,7 @@ function inFrame() {
   });
 }
 const camera=new PoseCamera(video,sample=>{
+  if(benchmarking){benchmark.frame(sample);return;}
   cameraRunning=true;landmarks=sample.landmarks;lastFrameAt=performance.now();
   const before=calibration.snapshot;
   const calibrated=calibration.update(landmarks,sample.at);
@@ -131,17 +137,18 @@ const camera=new PoseCamera(video,sample=>{
   element('fps-debug').textContent=metrics?`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms`:NO_POSE_MESSAGE;
   element('diagnostics').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms inference\n${metrics?`g ${metrics.g.toFixed(2)} · tilt ${metrics.tilt.toFixed(2)} · S ${metrics.shoulderWidth.toFixed(3)}`:NO_POSE_MESSAGE}\n${calibrated.guardThreshold===null?'CALIBRATION REQUIRED':`guard ON ${calibrated.guardThreshold.toFixed(2)} · OFF ${(calibrated.guardThreshold-(calibrated.guardReleaseBand??.25)).toFixed(2)}`}\n${calibrated.leanThresholds?`lean ON L ${calibrated.leanThresholds.L.toFixed(2)} / R ${calibrated.leanThresholds.R.toFixed(2)}`:'LEAN CALIBRATION REQUIRED'}\n${calibrated.neutralSwayP95===null?'':`neutral sway p95 ${calibrated.neutralSwayP95.toFixed(2)} · lean floor ${calibrated.leanFloor?.toFixed(2)}`}\n${metrics?`guard anatomy ${metrics.guardAnatomy?'READY':'RAISE WRISTS ABOVE ELBOWS / MID-TORSO'}`:''}\n${(performance.now()-sample.at).toFixed(1)} ms frame → input`;
   if(recorder.recording)recordStatus.textContent=`Recording ${recorder.frameCount} frames · K/A/D/J supply labels in either input mode.`;
-},message=>{replay.stop();stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());});
+},message=>{if(benchmarking){benchmark.fail(message);return;}replay.stop();delegate.disabled=false;stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());});
 
 element('start-camera').addEventListener('click',async()=>{
   const button=element<HTMLButtonElement>('start-camera');button.disabled=true;
+  benchmarkButton.disabled=true;delegate.disabled=true;
   stopCameraButton.disabled=false;
-  cameraStatus.textContent='Opening camera and loading the local lite CPU model…';
-  try {cameraRunning=await camera.start();}catch(error){cameraStatus.textContent=`Camera unavailable: ${error instanceof Error?error.message:'permission denied'}. Keyboard still works.`;}
-  finally{button.disabled=false;stopCameraButton.disabled=!cameraRunning;updateReplay();}
+  cameraStatus.textContent=`Opening camera and loading the local lite ${delegate.value} model…`;
+  try {cameraRunning=await camera.start(delegate.value as PoseDelegate);}catch(error){cameraStatus.textContent=`Camera unavailable: ${error instanceof Error?error.message:'permission denied'}. Keyboard still works.`;}
+  finally{button.disabled=false;benchmarkButton.disabled=false;stopCameraButton.disabled=!cameraRunning;delegate.disabled=cameraRunning;updateReplay();}
 });
 element('stop-camera').addEventListener('click',()=>{
-  replay.stop();camera.stop();stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();classifier.reset();
+  if(benchmarking)benchmark.cancel();replay.stop();camera.stop();delegate.disabled=false;stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();classifier.reset();
   if(source.value==='pose')emit(neutral());cameraStatus.textContent='Camera off. Keyboard remains available.';
 });
 element('start-calibration').addEventListener('click',()=>{
@@ -156,9 +163,10 @@ posture.addEventListener('change',()=>{
   if(source.value==='pose')emit(neutral());
 });
 source.addEventListener('change',()=>{source.blur();sessionWarning();classifier.reset();lastPose=neutral();transmit(neutral());updateKeyboard();});
-clearSpace.addEventListener('change',()=>{sessionWarning();updateReplay();if(!clearSpace.checked)transmit(neutral());updateKeyboard();});
+clearSpace.addEventListener('change',()=>{if(!clearSpace.checked&&benchmarking)benchmark.cancel();sessionWarning();updateReplay();if(!clearSpace.checked)transmit(neutral());updateKeyboard();});
 element('stop-input').addEventListener('click',()=>emit({kind:'control',action:'stop',by:'capture'}));
 element('resume-input').addEventListener('click',()=>{
+  if(benchmarking){connectionStatus.textContent='Wait for the camera comparison before resuming.';return;}
   if(!clearSpace.checked){connectionStatus.textContent='Confirm your clear space before resuming.';return;}
   if(socket?.readyState===WebSocket.OPEN)sessionWarning();
   stopped=false;transmit({kind:'control',action:'resume',by:'capture'});updateKeyboard();
@@ -192,13 +200,14 @@ const heartbeat=window.setInterval(()=>{
   }
 },100);
 window.addEventListener('beforeunload',()=>{
-  disposed=true;window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();replay.dispose();socket?.close();
+  disposed=true;benchmark.cancel();window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();replay.dispose();socket?.close();
 });
 replayEnabled.addEventListener('change',updateReplay);
 noPunch.addEventListener('change',()=>{sendOptions();noPunch.blur();});
 updateKeyboard();connect();
 
 function sessionCommand(action:'start'|'next-round'|'summary') {
+  if(benchmarking){sessionWarning('Wait for the camera comparison before starting.');return;}
   if(action!=='summary'&&!allowed()){sessionWarning('Confirm your clear space and Resume inputs before starting.');return;}
   if(action!=='summary'&&source.value==='pose'&&!calibration.snapshot.ready){sessionWarning('Finish webcam calibration, or select Keyboard.');return;}
   if(socket?.readyState!==WebSocket.OPEN){sessionWarning('Connect to the local server first.');return;}
@@ -209,3 +218,25 @@ element('start-match').addEventListener('click',()=>sessionCommand('start'));
 element('next-round').addEventListener('click',()=>sessionCommand('next-round'));
 
 element('session-summary').addEventListener('click',()=>sessionCommand('summary'));
+
+const benchmark=new CaptureBenchmark({start:async selected=>await camera.start(selected),stop:()=>camera.stop(),onProgress:(selected,samples)=>{benchmarkStatus.textContent=`${selected} · ${samples} / 90 measured frames (30 warmup excluded)`;}});
+benchmarkButton.addEventListener('click',async()=>{
+  if(benchmarking)return;
+  if(!clearSpace.checked){benchmarkStatus.textContent='Confirm your clear space first.';return;}
+  if(recorder.recording){benchmarkStatus.textContent='Stop the fixture recording before benchmarking.';return;}
+  emit({kind:'control',action:'stop',by:'capture'});
+  const restoreCamera=cameraRunning;benchmarking=true;cameraRunning=false;replay.stop();
+  benchmarkButton.disabled=true;delegate.disabled=true;element<HTMLButtonElement>('start-camera').disabled=true;stopCameraButton.disabled=false;
+  element<HTMLButtonElement>('start-calibration').disabled=true;startRecordButton.disabled=true;
+  benchmarkStatus.textContent='Comparing CPU and GPU locally. Allow camera access; inputs remain stopped.';
+  try{
+    const result=await benchmark.run();
+    benchmarkStatus.textContent=result.measurements.map(row=>row.error?`${row.delegate}: ${row.error}`:`${row.delegate}: FPS p50 ${row.fpsP50!.toFixed(1)} / p95 ${row.fpsP95!.toFixed(1)} · inference p50 ${row.inferenceP50Ms!.toFixed(1)} / p95 ${row.inferenceP95Ms!.toFixed(1)} ms (${row.samples} frames)`).join(' | ')+(result.selected?` · Selected ${result.selected} by lower measured inference; Resume inputs when ready.`:' · Needs Kash: no completed comparison; default unchanged.');
+    if(result.selected)delegate.value=result.selected;
+    if(restoreCamera&&!result.cancelled&&!disposed)cameraRunning=await camera.start(delegate.value as PoseDelegate);
+  }catch{benchmarkStatus.textContent='Needs Kash: measurement unavailable. No timing result recorded.';}
+  finally{
+    benchmarking=false;benchmarkButton.disabled=false;delegate.disabled=cameraRunning;element<HTMLButtonElement>('start-camera').disabled=false;stopCameraButton.disabled=!cameraRunning;
+    element<HTMLButtonElement>('start-calibration').disabled=!cameraRunning;startRecordButton.disabled=false;updateReplay();
+  }
+});

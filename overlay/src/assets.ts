@@ -16,6 +16,10 @@ export function animationFrame(atlas:BossAtlas,clip:string,elapsed:number):strin
   }
   return names.at(-1)!;
 }
+export function framePlacement(frame:AtlasFrame,width:number,height:number){
+  const scale=1;
+  return {x:width/2+(frame.spriteSourceSize.x-frame.sourceSize.w*frame.anchor.x)*scale,y:height-18+(frame.spriteSourceSize.y-frame.sourceSize.h*frame.anchor.y)*scale,width:frame.frame.w*scale,height:frame.frame.h};
+}
 export class BossSprite {
   private atlas?:BossAtlas;
   private sheet=new Image();
@@ -30,10 +34,8 @@ export class BossSprite {
     ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
     if(!this.atlas||!this.sheet.complete||!this.sheet.naturalWidth)return;
     const frame=this.atlas.frames[animationFrame(this.atlas,clip,elapsed)]!;
-    const scale=.82;
-    const x=this.canvas.width/2+(frame.spriteSourceSize.x-frame.sourceSize.w*frame.anchor.x)*scale;
-    const y=this.canvas.height-12+(frame.spriteSourceSize.y-frame.sourceSize.h*frame.anchor.y)*scale;
-    ctx.drawImage(this.sheet,frame.frame.x,frame.frame.y,frame.frame.w,frame.frame.h,x,y,frame.frame.w*scale,frame.frame.h*scale);
+    const placement=framePlacement(frame,this.canvas.width,this.canvas.height);
+    ctx.drawImage(this.sheet,frame.frame.x,frame.frame.y,frame.frame.w,frame.frame.h,placement.x,placement.y,placement.width,placement.height);
   }
   dispose(){this.dead=true;this.sheet.src='';}
 }

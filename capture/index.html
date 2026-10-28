@@ -7,6 +7,8 @@
     <section class="camera-panel" aria-label="Mirrored webcam preview">
       <div class="preview"><video id="camera" autoplay muted playsinline></video><span class="preview-label">MIRRORED CAMERA</span><span id="fps-debug" class="fps-debug">CPU · LITE</span></div>
       <div class="button-row"><button id="start-camera" class="primary">Start camera</button><button id="stop-camera" disabled>Stop camera</button></div>
+      <label class="field">Pose delegate<select id="pose-delegate"><option value="CPU">CPU (default)</option><option value="GPU">GPU</option></select></label>
+      <button id="benchmark-camera">Compare CPU and GPU</button><p id="benchmark-status" role="status">Not measured on this Mac. Compare warms up 30 frames and samples 90 per delegate (up to 20 s each). Inputs stop during measurement; resume explicitly afterwards.</p>
       <p id="camera-status" role="status">Camera is off. Keyboard works without camera access.</p>
       <p class="hint">Camera stays in this browser. Only input events go to the local server; recording is an explicit download of landmarks and labels.</p>
     </section>

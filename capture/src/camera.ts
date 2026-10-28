@@ -10,7 +10,7 @@ export class PoseCamera {
   private frameId: number | undefined;
   private generation = 0;
   constructor(private video:HTMLVideoElement,private onFrame:(sample:FrameSample)=>void,private onError:(message:string)=>void,private assets?:PoseAssets) {}
-  async start():Promise<boolean> {
+  async start(delegate:'CPU'|'GPU'='CPU'):Promise<boolean> {
     this.stop();
     const generation=this.generation;
     if(!this.video.requestVideoFrameCallback) throw new Error('Use a current Chrome window with requestVideoFrameCallback support.');
@@ -24,7 +24,7 @@ export class PoseCamera {
       await this.video.play();
       const fileset=this.assets?{wasmLoaderPath:this.assets.wasmLoaderPath,wasmBinaryPath:this.assets.wasmBinaryPath}:await FilesetResolver.forVisionTasks('/node_modules/@mediapipe/tasks-vision/wasm');
       const model=await PoseLandmarker.createFromOptions(fileset,{
-        baseOptions:{modelAssetPath:this.assets?.modelAssetPath??'/capture/public/models/pose_landmarker_lite.task',delegate:'CPU'},
+        baseOptions:{modelAssetPath:this.assets?.modelAssetPath??'/capture/public/models/pose_landmarker_lite.task',delegate},
         runningMode:'VIDEO',numPoses:1,outputSegmentationMasks:false,
       });
       if(generation!==this.generation) {model.close();return false;}

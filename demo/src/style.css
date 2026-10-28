@@ -24,3 +24,5 @@ kbd{display:inline-grid;place-items:center;min-width:23px;height:25px;padding:0 
 .tutorial{box-sizing:border-box}
 
 .hosted-panel {max-width:1100px;margin:1rem auto;padding:1rem;background:#171c27;border:1px solid #44516a;border-radius:10px;color:#fff}.hosted-panel h1{font-size:1.8rem}.hosted-actions{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}.hosted-panel pre{white-space:pre-wrap;max-height:320px;overflow:auto}.demo-stage.chroma-green{background:#00ff00}.chroma-green #keyboard-avatar{display:none}.chroma-green video{visibility:hidden}.hosted-panel button{padding:.6rem 1rem;cursor:pointer}
+
+.playtest-panel{max-width:1100px;margin:1rem auto;padding:1rem;border:1px solid #44516a}.playtest-panel button{padding:.6rem;margin:.3rem}.playtest-panel pre{white-space:pre-wrap}.cold-open-tally .votes{outline:5px solid #2ef2ff;outline-offset:8px}.cold-open-tally .telegraph{visibility:hidden}

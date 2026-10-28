@@ -110,3 +110,25 @@ it('shows the fifteen-second raid phase, freezes while paused, and hides exactly
   state.clock.paused_at=10_000;state.now=90_000;
   expect(raidPresentation(state)).toEqual({active:true,seconds:6});
 });
+
+import {framePlacement} from './assets';
+it('keeps atlas artwork at a fixed approximately420px scale and invariant anchor',()=>{
+ expect(framePlacement(atlas.frames.idle_0!,470,486).height).toBeGreaterThan(400);expect(framePlacement(atlas.frames.idle_0!,470,486).height).toBeLessThan(440);
+ for(const frame of Object.values(atlas.frames)){
+  const draw=framePlacement(frame,470,486);
+  expect(draw.height).toBe(frame.frame.h);
+  expect(draw.width/frame.frame.w).toBe(1);
+  expect(draw.x-frame.spriteSourceSize.x+frame.sourceSize.w*frame.anchor.x).toBe(235);
+  expect(draw.y-frame.spriteSourceSize.y+frame.sourceSize.h*frame.anchor.y).toBeCloseTo(468);
+ }
+});
+it('enforces36px for every HUD font declaration,38px vote counts and40px scouting n',()=>{
+ const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+ const sizes=[...css.matchAll(/font-size:\s*([\d.]+)px/g),...css.matchAll(/font:[^;{}]*?\s([\d.]+)px/g)].map(match=>Number(match[1]));
+ expect(sizes.length).toBeGreaterThan(40);expect(sizes.every(size=>size>=36)).toBe(true);
+ expect(css).toContain('.vote-command small .vote-count{font-size:38px}');expect(css).toContain('[data-id="habit-n"]{font-size:40px}');
+});
+
+it('fits every atlas frame inside486px transparent headroom at the fixed ground pivot',()=>{
+ for(const frame of Object.values(atlas.frames)){const draw=framePlacement(frame,470,486);expect(draw.x).toBeGreaterThanOrEqual(0);expect(draw.x+draw.width).toBeLessThanOrEqual(470);expect(draw.y).toBeGreaterThanOrEqual(0);expect(draw.y+draw.height).toBeLessThanOrEqual(486);}
+});

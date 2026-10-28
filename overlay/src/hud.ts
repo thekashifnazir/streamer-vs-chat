@@ -2,6 +2,7 @@ import type { Move, TallySnapshot } from '@svc/shared';
 import { weightedTally, type GameState } from '../../shared/src/engine';
 import { BossSprite, moveClip } from './assets';
 import { GameSound } from './sound';
+import { createFxScheduler } from './fx';
 import type { GameSummary } from '../../shared/src/highlights';
 import { createSummaryView, type EndcardClip } from './summary';
 export type HudModes={seated:boolean;noPunch:boolean};
@@ -56,7 +57,7 @@ export function exploitHabitNote(state:GameState):string {
 }
 
 /** The same view consumes server ticks and local demo reducer states; it owns no game rules. */
-export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean;seated?:boolean;noPunch?:boolean}={}) {
+export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean;seated?:boolean;noPunch?:boolean;soundDefault?:boolean}={}) {
   host.classList.add('rails-host');
   host.innerHTML=`<main class="rails-hud" aria-label="Streamer vs Chat">
   <aside class="rail streamer"><header><p class="eyebrow">STREAMER</p><h1>KASH</h1></header>
@@ -64,14 +65,14 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <p class="rounds">ROUNDS <strong data-id="streamer-wins">0</strong> – <span data-id="boss-wins">0</span></p>
   <section class="scouting" data-id="scouting" hidden aria-live="polite"><p class="eyebrow" data-id="scouting-label">SCOUTED</p><div data-id="habit-details"><h2 data-id="habit">DODGES LEFT</h2><strong class="habit-share" data-id="habit-share"></strong><p class="scouting-evidence"><span data-id="habit-n"></span><span data-id="exploit-cooldown"></span></p><p>CHAT: VOTE <b data-id="exploit-command"></b></p></div><div data-id="fixed-details" hidden><strong class="fixed-stamp">FIXED!</strong><p data-id="fixed-reward"></p></div></section>
   <section class="status-card"><p class="eyebrow" data-id="phase">READY TO FIGHT</p><p data-id="status">GUARD STRAIGHTS.<br>LEAN FROM SWINGS.</p><small data-id="result"></small></section>
-  <footer><p class="simulated" data-id="simulated" hidden>● SIMULATED CHAT</p><p class="connection" data-id="connection" role="status">CONNECTING…</p><div class="hud-options"><button data-id="sound" type="button">SOUND OFF · M</button><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer></aside>
+  <div class="blocked-stamp" data-id="blocked" hidden>BLOCKED!</div><footer><p class="simulated" data-id="simulated" hidden>● SIMULATED CHAT</p><p class="calm-badge" data-id="calm" hidden>CALM FX</p><p class="connection" data-id="connection" role="status">CONNECTING…</p><div class="hud-options"><button data-id="sound" type="button">SOUND OFF · M</button><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer></aside>
   <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b></span></div>
-  <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b data-id="cue"></b></div><small data-id="exploit-note"></small></div>
+  <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><small data-id="exploit-note"></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
-  <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · MAX 50% TOGETHER</span></section>
+  <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
   <div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
-  <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="440" role="img" aria-label="Chat Golem boss"></canvas></aside><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
+  <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
   const setText=(id:string,value:string)=>{const element=el(id);if(element.textContent!==value)element.textContent=value;};
@@ -80,22 +81,33 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   el('simulated').hidden=!options.simulated;
   const rows=commands.map(([move,command])=>{
     const row=document.createElement('div');row.className='vote-row';row.dataset.move=move;
-    row.innerHTML=`<div class="vote-command">${command}<small>${move.replaceAll('_',' ')} <span class="vote-count">0</span></small></div><div class="vote-track"><div class="vote-fill"></div></div><div class="vote-percent">0%</div>`;
+    row.innerHTML=`<div class="vote-command">${command}<small><span class="vote-count">0</span></small></div><div class="vote-track"><div class="vote-fill"></div></div><div class="vote-percent">0%</div>`;
     el('votes').append(row);
     return {move,row,count:row.querySelector<HTMLElement>('.vote-count')!,fill:row.querySelector<HTMLElement>('.vote-fill')!,percent:row.querySelector<HTMLElement>('.vote-percent')!};
   });
   function fit(){const scale=Math.min(host.clientWidth/1920,host.clientHeight/1080);stage.style.transform=`scale(${scale})`;stage.style.left=`${(host.clientWidth-1920*scale)/2}px`;stage.style.top=`${(host.clientHeight-1080*scale)/2}px`;}
   const observer=new ResizeObserver(fit);observer.observe(host);fit();
   const sprite=new BossSprite(el<HTMLCanvasElement>('boss-sprite'));
-  const sound=new GameSound();
   let soundBusy=false,disposed=false;
-  const toggle=async()=>{
+  const sound=new GameSound({defaultEnabled:options.soundDefault??options.simulated===undefined,onChange:()=>soundLabel()});
+  const soundLabel=()=>{if(disposed)return;el('sound').textContent=sound.enabled?'SOUND ON · M':sound.requested?'SOUND ON · ACTIVATE · M':'SOUND OFF · M';};
+  soundLabel();void sound.prepare();if(sound.requested)void sound.unlock().then(soundLabel);
+  const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const forcedCalm=new URL(location.href).searchParams.get('fx')==='calm';
+  const fx=createFxScheduler({calm:forcedCalm||options.simulated!==undefined&&motion.matches});
+  const motionChange=()=>{fx.setCalm(forcedCalm||options.simulated!==undefined&&motion.matches);};
+  motion.addEventListener('change',motionChange);
+  let lastStampUntil=0,lastTelegraph='',snapshotRealAt=performance.now();
+  let spriteAnchorKey='',spriteAnchor=0;
+  const toggle=async(activate=false)=>{
     if(soundBusy||disposed)return;soundBusy=true;el<HTMLButtonElement>('sound').disabled=true;
     el('sound').textContent=sound.enabled?'MUTING…':'LOADING SOUND…';
-    try{await sound.toggle();if(!disposed)el('sound').textContent=sound.enabled?'SOUND ON · M':'SOUND OFF · M';}catch{if(!disposed)el('sound').textContent='SOUND UNAVAILABLE';}
+    try{await (activate&&sound.requested&&!sound.enabled?sound.unlock():sound.toggle());if(!disposed)soundLabel();}catch{if(!disposed)el('sound').textContent='SOUND UNAVAILABLE';}
     finally{soundBusy=false;if(!disposed)el<HTMLButtonElement>('sound').disabled=false;}
   };
-  el('sound').addEventListener('click',toggle);
+  el('sound').addEventListener('click',()=>{void toggle(true);});
+  const unlockOnGesture=(event:Event)=>{if(event.target instanceof Element&&event.target.closest('[data-id="sound"]'))return;if(sound.requested&&!sound.enabled)void sound.unlock().then(soundLabel);};
+  window.addEventListener('pointerdown',unlockOnGesture);window.addEventListener('keydown',unlockOnGesture);
   el('plain').addEventListener('change',()=>stage.classList.toggle('plain',el<HTMLInputElement>('plain').checked));
   const muteKey=(event:KeyboardEvent)=>{if(event.code==='KeyM'&&!event.repeat&&!['INPUT','TEXTAREA','SELECT'].includes((event.target as HTMLElement)?.tagName)){void toggle();}};
   window.addEventListener('keydown',muteKey);
@@ -127,9 +139,14 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     }
   }
   function render(state:GameState,simulated=!!options.simulated) {
-    if(previous&&(state.round.number<previous.round.number||state.log.rounds.length<previous.log.rounds.length)){heard.clear();previous=undefined;}
-    current=state;currentSimulated=simulated;
-    const hp=(id:string,value:number,max:number)=>{el(id+'-hp').textContent=String(Math.max(0,Math.round(value/max*100)));el(id+'-bar').setAttribute('aria-label',`${id} HP ${Math.max(0,Math.round(value))} / ${max}`);el(id+'-bar').querySelector<HTMLElement>('span')!.style.width=`${Math.max(0,value/max*100)}%`;el(id+'-bar').querySelector<HTMLElement>('i')!.style.width=`${Math.max(0,value/max*100)}%`;};
+    if(previous&&(state.match.seed!==previous.match.seed||state.round.number<previous.round.number||state.log.rounds.length<previous.log.rounds.length)){heard.clear();previous=undefined;spriteAnchorKey='';lastStampUntil=0;lastTelegraph='';}
+    current=state;currentSimulated=simulated;snapshotRealAt=performance.now();
+    const cues=fx.observe(state,snapshotRealAt);
+    const visual=fx.update(snapshotRealAt);
+    el('calm').hidden=!visual.calm;stage.classList.toggle('calm',visual.calm);
+    for(const cue of cues)if(cue.kind==='hit'&&cue.move==='COMBO')once(`combo-sfx:${state.match.seed}:${cue.id}`,()=>sound.play('hit'));
+    if(cues.some(cue=>cue.kind==='block'||cue.kind==='perfect')){lastStampUntil=visual.streamer.animationTime+500;el('blocked').hidden=false;el('blocked').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}
+    const hp=(id:string,value:number,max:number)=>{el(id+'-hp').textContent=String(Math.max(0,Math.round(value/max*100)));el(id+'-bar').setAttribute('aria-label',`${id} HP ${Math.max(0,Math.round(value))} / ${max}`);el(id+'-bar').querySelector<HTMLElement>('span')!.style.width=`${Math.max(0,value/max*100)}%`;const trail=el(id+'-bar').querySelector<HTMLElement>('i')!;if(!previous||state.round.number!==previous.round.number||value>previous[id as 'streamer'|'boss'].hp){trail.style.transition='none';trail.style.width=`${Math.max(0,value/max*100)}%`;}};
     hp('streamer',state.streamer.hp,state.streamer.max_hp);hp('boss',state.boss.hp,state.boss.max_hp);
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
@@ -163,6 +180,9 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('telegraph').hidden=!(telegraph||counter);el('telegraph').classList.toggle('counter',counter&&!telegraph);
     el('banner').textContent=telegraph?'HANDS UP!':modes.noPunch?'CLEAN DEFENCE!':'COUNTER!';
     el('move').textContent=telegraph?names[attack!.move]:modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=telegraph?defenceCue(attack!.move,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
+    el('cue-icon').innerHTML=telegraph&&(attack!.move==='JAB'||attack!.move==='COMBO')?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':telegraph?attack!.move==='HOOK_L'?'→':attack!.move==='HOOK_R'?'←':'↔':'';
+    const tellKey=telegraph?`${state.match.seed}:${attack!.round}:${attack!.beat}`:'';
+    if(tellKey&&tellKey!==lastTelegraph){el('banner').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}lastTelegraph=tellKey;
     el('exploit-note').textContent=telegraph?exploitHabitNote(state):'';
     el('left-arrow').hidden=!(telegraph&&(attack!.move==='HOOK_R'||attack!.move==='SUPER'));
     el('right-arrow').hidden=!(telegraph&&(attack!.move==='HOOK_L'||attack!.move==='SUPER'));
@@ -180,7 +200,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     if(last){once(`hit:${last.round}:${last.beat}`,()=>{
       if(last.outcome==='BLOCK'){sound.play('block');sound.play('blockedVoice',true);}
       else if(last.outcome==='PERFECT'){sound.play('perfect');sound.play('perfectVoice',true);}
-      else if(last.outcome==='DODGE')sound.play('dodge');else sound.play('hit');
+      else if(last.outcome==='DODGE')sound.play('dodge');else if(last.move!=='COMBO')sound.play('hit');
       if(last.counter_dmg>0){sound.play('counter');sound.play('counterAccent');if(!scoutChanged)sound.play('counterVoice',true);}
 
     });}
@@ -205,7 +225,16 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   }
   renderTally({kind:'tally',tally:{JAB:0,HOOK_L:0,HOOK_R:0,COMBO:0,SUPER:0},voters:0,simulated:!!options.simulated});
   let frameId:number;
-  const animate=()=>{if(disposed)return;if(current){const age=Math.max(0,(current.clock.paused_at??current.now)-clipAt);const transient=!['idle','victory','ko'].includes(clip)&&!clip.endsWith('_windup');sprite.draw(transient&&age>520?'idle':clip,transient&&age>520?current.round.elapsed_ms:age);}else sprite.draw('idle',performance.now());frameId=requestAnimationFrame(animate);};
+  const animate=()=>{if(disposed)return;const now=performance.now(),frame=fx.update(now);
+    for(const name of ['streamer','boss'] as const){const rail=host.querySelector<HTMLElement>(`.rail.${name}`)!,view=frame[name];rail.style.transform=`translate(${view.x}px,${view.y}px) rotate(${view.rotation}deg)`;
+      const bar=el(name+'-bar');bar.style.boxShadow=view.flash?`0 0 0 3px ${view.flash.color}`:'none';bar.style.outline=view.flash?`${3*view.flash.opacity}px solid ${view.flash.color}`:'none';
+      if(!view.trail){const trail=bar.querySelector<HTMLElement>('i')!;trail.style.transition='width 300ms linear';trail.style.width=bar.querySelector<HTMLElement>('span')!.style.width;}
+    }
+    el('blocked').hidden=frame.streamer.animationTime>=lastStampUntil;el('blocked').style.opacity=String(Math.max(0,Math.min(1,(lastStampUntil-frame.streamer.animationTime)/150)));
+    if(current){const key=`${clip}:${clipAt}`;if(key!==spriteAnchorKey){spriteAnchorKey=key;spriteAnchor=frame.boss.animationTime-Math.max(0,(current.clock.paused_at??current.now)-clipAt);}
+      const age=Math.max(0,frame.boss.animationTime-spriteAnchor),transient=!['idle','victory','ko'].includes(clip)&&!clip.endsWith('_windup');sprite.draw(transient&&age>520?'idle':clip,transient&&age>520?current.round.elapsed_ms:age);
+      const attack=current.activeAttack;const viewNow=(current.clock.paused_at??current.now)+(current.paused?0:now-snapshotRealAt);el('banner').style.opacity=attack&&!attack.vetoed&&lastTelegraph?String(Math.min(1,Math.max(0,(attack.lands_at-viewNow)/120))):'1';
+    }else sprite.draw('idle',now);frameId=requestAnimationFrame(animate);};
   frameId=requestAnimationFrame(animate);
-  return {render,renderTally,setModes,setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){summaryView.render(summary,clips);},setConnection(text:string){el('connection').textContent=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();window.removeEventListener('keydown',muteKey);host.innerHTML='';}};
+  return {render,renderTally,setModes,setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){summaryView.render(summary,clips);},setConnection(text:string){el('connection').textContent=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
 }
