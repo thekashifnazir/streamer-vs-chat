@@ -1,0 +1,10 @@
+{
+  "simulated": true,
+  "pass": true,
+  "reloadMs": 19.79850000000033,
+  "pendingAttackResolved": true,
+  "countedVotePreserved": true,
+  "newChatReceived": true,
+  "transport": "connected",
+  "unhandledErrors": 0
+}

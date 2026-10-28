@@ -1,0 +1,110 @@
+{
+  "simulated": true,
+  "pass": true,
+  "startedAt": "2026-10-28T02:33:04.612Z",
+  "requestedMinutes": 2,
+  "wallMinutes": 2.077916666666667,
+  "warmupSeconds": 60,
+  "chatters": 0,
+  "startedMatches": 2,
+  "matches": 2,
+  "rounds": 4,
+  "resultsSent": 4,
+  "invalidMatches": [],
+  "heapBaseline": 20430208,
+  "heapFinal": 20767064,
+  "heapGrowthFraction": 0.01648813364993651,
+  "heapMaxGrowthFraction": 0.01648813364993651,
+  "driverUnhandled": 0,
+  "serverUnhandled": 0,
+  "samples": [
+    {
+      "at": 60079,
+      "heapUsed": 20430208
+    },
+    {
+      "at": 75221,
+      "heapUsed": 20654048
+    },
+    {
+      "at": 90345,
+      "heapUsed": 20667552
+    },
+    {
+      "at": 105486,
+      "heapUsed": 20757592
+    },
+    {
+      "at": 120631,
+      "heapUsed": 20748048
+    }
+  ],
+  "status": {
+    "unhandledErrors": 0,
+    "ingested": 0,
+    "parsedVotes": 0,
+    "countedVoteEvents": 0,
+    "lastSeq": 0,
+    "lastMessageId": null,
+    "receivedAt": null,
+    "drift": {
+      "samples": 48,
+      "lastMs": 3,
+      "maxMs": 21
+    },
+    "memory": {
+      "rss": 105152512,
+      "heapTotal": 23969792,
+      "heapUsed": 21271104,
+      "external": 6162708,
+      "arrayBuffers": 2198669
+    },
+    "resultsSent": 4,
+    "resultAttempts": 4,
+    "overflow": false,
+    "game": {
+      "runId": 2,
+      "round": 2,
+      "beat": 12,
+      "started": true,
+      "paused": false,
+      "matchWinner": "boss",
+      "roundWins": {
+        "streamer": 0,
+        "boss": 2
+      },
+      "roundOver": true,
+      "streamerHp": 0,
+      "bossHp": 135,
+      "roundResults": [
+        {
+          "number": 1,
+          "winner": "boss",
+          "at": 1793154876561,
+          "reason": "ko",
+          "streamer_hp": 0,
+          "boss_hp": 135,
+          "min_streamer_hp": 0,
+          "duration_ms": 29600
+        },
+        {
+          "number": 2,
+          "winner": "boss",
+          "at": 1793154909193,
+          "reason": "ko",
+          "streamer_hp": 0,
+          "boss_hp": 135,
+          "min_streamer_hp": 0,
+          "duration_ms": 29600
+        }
+      ]
+    },
+    "archive": {
+      "matches": 1,
+      "retainedStates": 1,
+      "identities": 0
+    },
+    "transport": "connected",
+    "gcAvailable": true
+  }
+}

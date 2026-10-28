@@ -1,0 +1,75 @@
+{
+  "simulated": true,
+  "pass": false,
+  "startedAt": "2026-10-28T02:35:09.938Z",
+  "wallSeconds": 30.374,
+  "chatters": 1000,
+  "sent": 13105,
+  "received": 12894,
+  "countedVoteEvents": 12894,
+  "auditedDrawnVoteEvents": 12309,
+  "acceptedThenRoundEnded": 0,
+  "currentBeatAcceptedEvents": 585,
+  "auditedHudSnapshots": 285,
+  "streamerInput": "held guard, keyboard protocol heartbeat250ms; no punch/lean",
+  "activeVotingSeconds": 29.877,
+  "intervalSemantics": "1–4 seconds of eligible active voting time; round intermissions excluded",
+  "classifiedOutsideRound": 0,
+  "failedRequests": 211,
+  "missing": 211,
+  "unexpected": 0,
+  "p50IngestToHudWsMs": 58,
+  "p95IngestToHudWsMs": 103,
+  "p99IngestToHudWsMs": 106,
+  "maxBeatDriftMs": 18,
+  "auditedBeats": 12,
+  "burstMax": 300,
+  "issues": [],
+  "status": {
+    "unhandledErrors": 0,
+    "ingested": 12894,
+    "parsedVotes": 12894,
+    "countedVoteEvents": 12894,
+    "lastSeq": 12894,
+    "lastMessageId": "load-13105",
+    "receivedAt": 1793154939927,
+    "drift": {
+      "samples": 12,
+      "lastMs": 9,
+      "maxMs": 18
+    },
+    "memory": {
+      "rss": 145244160,
+      "heapTotal": 68796416,
+      "heapUsed": 44119808,
+      "external": 6226009,
+      "arrayBuffers": 2274940
+    },
+    "resultsSent": 0,
+    "resultAttempts": 0,
+    "overflow": false,
+    "game": {
+      "runId": 1,
+      "round": 1,
+      "beat": 12,
+      "started": true,
+      "paused": false,
+      "matchWinner": null,
+      "roundWins": {
+        "streamer": 0,
+        "boss": 0
+      },
+      "roundOver": false,
+      "streamerHp": 79,
+      "bossHp": 95,
+      "roundResults": []
+    },
+    "archive": {
+      "matches": 0,
+      "retainedStates": 1,
+      "identities": 0
+    },
+    "transport": "connected",
+    "gcAvailable": true
+  }
+}

@@ -1,0 +1,31 @@
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {writeFile} from 'node:fs/promises';
+import {WebSocket} from 'ws';
+import {startHardeningStack,pause} from './hardening-stack';
+const args=process.argv.slice(2);
+if(!args.includes('--mock')||!args.includes('--hardening'))throw new Error('Recovery requires --mock --hardening; no live transport supported.');
+const output=args.includes('--out')?args[args.indexOf('--out')+1]!:join(tmpdir(),'streamer-recovery.json');
+const stack=await startHardeningStack();let state:any=null;let reload:WebSocket|undefined;let interrupted=false;let newChatReceived=false;let restartTask:Promise<void>|undefined;let restartError:unknown;
+for(const signal of ['SIGINT','SIGTERM'] as const)process.once(signal,()=>{interrupted=true;});
+const wait=async(test:()=>boolean|Promise<boolean>,description:string,timeout=20000)=>{const until=Date.now()+timeout;while(Date.now()<until){if(interrupted)throw new Error('Recovery interrupted');if(await test())return;await pause(20);}throw new Error(`Recovery timeout: ${description}`);};
+const inject=async(id:string,text:string)=>{const response=await fetch('http://127.0.0.1:8081/inject',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,user:id,text}),signal:AbortSignal.timeout(5000)});const result=await response.json();if(!response.ok||result.delivered!==1)throw new Error('Local chat injection not delivered');};
+stack.ws.on('message',raw=>{const message=JSON.parse(String(raw));if(message.kind==='tick')state=message.state;for(const receipt of message.hardening?.receipts??[])if(receipt.messageId==='recovery-new'&&receipt.counted)newChatReceived=true;});
+try{
+ const startedAt=Date.now();await stack.start();await wait(()=>state?.clock.started_at>=startedAt&&state?.round.number===1,'initial authoritative state');
+ await inject('recovery-first','!jab');await wait(()=>state?.activeAttack?.move==='JAB','voted JAB tell');
+ const pending={round:state.round.number,beat:state.activeAttack.beat,lands_at:state.activeAttack.lands_at};
+ await inject('recovery-preserved','!hookl');await wait(()=>state?.votes?.['recovery-preserved']==='HOOK_L','next-beat counted vote');
+ restartTask=stack.restartCli(4000).catch(error=>{restartError=error;});
+ await wait(async()=> (await stack.status()).transport==='reconnecting','RECONNECTING after CLI shutdown');
+ const reloadStarted=performance.now();reload=new WebSocket('ws://127.0.0.1:3000/ws',{origin:'http://localhost:5173'});let snapshot:any=null;
+ reload.on('message',raw=>{const message=JSON.parse(String(raw));if(message.kind==='tick'&&!snapshot)snapshot=message;});
+ await wait(()=>!!snapshot,'overlay reload snapshot',1000);const reloadMs=performance.now()-reloadStarted;
+ if(snapshot.transport!=='reconnecting'||snapshot.state.paused||snapshot.state.votes['recovery-preserved']!=='HOOK_L')throw new Error('Reload did not preserve authoritative outage state');
+ await wait(()=>state?.log.resolved.some((hit:any)=>hit.round===pending.round&&hit.beat===pending.beat&&hit.move==='JAB'&&hit.outcome==='HIT'),'pending attack resolves during outage');
+ await wait(()=>state?.log.telegraphs.some((tell:any)=>tell.round===pending.round&&tell.beat===pending.beat+1&&tell.move==='HOOK_L'),'accepted vote survives transport outage');
+ await restartTask;if(restartError)throw restartError;await wait(async()=>(await stack.status()).transport==='connected','new chat subscription after CLI restart');
+ await inject('recovery-new','!combo');await wait(()=>newChatReceived,'chat reaches authoritative state after recovery');
+ const final=await stack.status(),report={simulated:true,pass:true,reloadMs,pendingAttackResolved:true,countedVotePreserved:true,newChatReceived:true,transport:final.transport,unhandledErrors:final.unhandledErrors};
+ if(reloadMs>=1000||final.unhandledErrors!==0)throw new Error('Recovery gates failed');await writeFile(output,JSON.stringify(report,null,2));console.log(`[recovery SIMULATED] PASS ${JSON.stringify(report)}`);
+}finally{reload?.terminate();await stack.close();}

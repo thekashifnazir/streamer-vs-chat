@@ -32,11 +32,13 @@ test('shim injects chat using the registered subscription and preserves upstream
     expect(Number(subscriptionResponse.headers.get('ratelimit-reset'))*1000).toBeGreaterThan(Date.now()-1000);
     const { data: [subscription] } = await subscriptionResponse.json();
     const notification = once(client, 'message');
-    const injected = await fetch(`${base}/inject`, { method: 'POST', body: JSON.stringify({ message: '!jab', user: 'viewer-A',role:'mod' }) });
+    const injected = await fetch(`${base}/inject`, { method: 'POST', body: JSON.stringify({ message: '!jab', user: 'viewer-A',role:'mod',id:'load-correlation-1' }) });
     expect(await injected.json()).toEqual({ simulated: true, delivered: 1 });
     const [frame] = await notification;
     const envelope = JSON.parse(frame.toString());
     expect(envelope.metadata.message_type).toBe('notification');
+    expect(envelope.payload.event.message_id).toBe('load-correlation-1');
+    expect(envelope.metadata.message_id).not.toBe('load-correlation-1');
     expect(envelope.payload.subscription.id).toBe(subscription.id);
     expect(envelope.payload.event.message.text).toBe('!jab');
     expect(envelope.payload.event.chatter_user_id).toBe('viewer-A');

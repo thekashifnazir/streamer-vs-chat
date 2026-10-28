@@ -1,0 +1,83 @@
+{
+  "simulated": true,
+  "pass": false,
+  "startedAt": "2026-10-28T02:38:42.668Z",
+  "wallSeconds": 10.369,
+  "chatters": 1000,
+  "sent": 4345,
+  "received": 4134,
+  "countedVoteEvents": 4134,
+  "auditedDrawnVoteEvents": 3755,
+  "acceptedThenRoundEnded": 0,
+  "currentBeatAcceptedEvents": 379,
+  "auditedHudSnapshots": 98,
+  "streamerInput": "held guard, keyboard protocol heartbeat250ms; no punch/lean",
+  "activeVotingSeconds": 9.926,
+  "intervalSemantics": "1–4 seconds of eligible active voting time; round intermissions excluded",
+  "classifiedOutsideRound": 0,
+  "failedRequests": 211,
+  "failureCategories": {
+    "ECONNRESET": 210,
+    "request-error": 1
+  },
+  "queueErrors": 0,
+  "injectionConcurrency": 1000,
+  "maxConcurrentRequests": 317,
+  "maxQueuedRequests": 1,
+  "missing": 211,
+  "unexpected": 0,
+  "p50IngestToHudWsMs": 58,
+  "p95IngestToHudWsMs": 105,
+  "p99IngestToHudWsMs": 107,
+  "maxBeatDriftMs": 15,
+  "auditedBeats": 4,
+  "burstMax": 300,
+  "issues": [],
+  "status": {
+    "unhandledErrors": 0,
+    "ingested": 4134,
+    "parsedVotes": 4134,
+    "countedVoteEvents": 4134,
+    "lastSeq": 4134,
+    "lastMessageId": "load-4345",
+    "receivedAt": 1793155132641,
+    "drift": {
+      "samples": 4,
+      "lastMs": 15,
+      "maxMs": 15
+    },
+    "memory": {
+      "rss": 103836856,
+      "heapTotal": 62865408,
+      "heapUsed": 28814384,
+      "external": 6170266,
+      "arrayBuffers": 2212690
+    },
+    "resultsSent": 0,
+    "resultAttempts": 0,
+    "overflow": false,
+    "game": {
+      "runId": 1,
+      "round": 1,
+      "beat": 4,
+      "started": true,
+      "paused": false,
+      "matchWinner": null,
+      "roundWins": {
+        "streamer": 0,
+        "boss": 0
+      },
+      "roundOver": false,
+      "streamerHp": 97,
+      "bossHp": 119,
+      "roundResults": []
+    },
+    "archive": {
+      "matches": 0,
+      "retainedStates": 1,
+      "identities": 0
+    },
+    "transport": "connected",
+    "gcAvailable": true
+  }
+}

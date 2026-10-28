@@ -89,7 +89,7 @@ export function createMockShim(upstreamPort = 8080) {
               broadcaster_user_id: subscription.condition.broadcaster_user_id,
               broadcaster_user_login: 'simulated_broadcaster', broadcaster_user_name: 'Simulated Broadcaster',
               chatter_user_id: user, chatter_user_login: user, chatter_user_name: user,
-              message_id: randomUUID(), message: { text, fragments: [{ type: 'text', text, cheermote: null, emote: null, mention: null }] },
+              message_id: typeof input.id==='string'&&input.id.length<=160?input.id:randomUUID(), message: { text, fragments: [{ type: 'text', text, cheermote: null, emote: null, mention: null }] },
               color: '#FFC857', badges: role==='mod'?[{set_id:'moderator',id:'1',info:''}]:role==='broadcaster'?[{set_id:'broadcaster',id:'1',info:''}]:[], message_type: 'text', cheer: null, reply: null, channel_points_custom_reward_id: null,
             },
           },

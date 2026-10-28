@@ -11,6 +11,8 @@ Features:
 - Read the card and pre-hold the correct defence before the tell: a clean defence earns **+25% automatic counter damage** and **READ IT**.
 - Keyboard/webcam, seated/no-punch, calm FX, offline demo and hosted channel play stay supported.
 
+Tested with 1,000 simulated chatters: **p95 104 ms** ingest → HUD WebSocket, **12 ms** maximum beat drift, zero dropped votes. [Measurement details](docs/LOAD.md).
+
 Requires Node **22.12+** and npm. Install with `npm ci`. Twitch development also needs the [Twitch CLI](https://dev.twitch.tv/docs/cli/).
 
 ## Play the offline demo
@@ -126,6 +128,20 @@ Press **End session / show card** in capture to freeze play and show session sta
 
 Seated mode uses its own calibration, TILT cues and narrower fading rails. No-punch mode removes punch detection and prompts; clean blocks and dodges retain the same automatic counter damage.
 
+## Local hardening checks
+
+Stop other mock stacks before these commands; they own loopback ports 3000, 8080, 8081 and 44747 and require the Twitch CLI. Neither command loads Twitch credentials.
+
+```sh
+npm run load
+npm run soak -- --minutes 30
+npm run test:recovery
+```
+
+The load check uses 1,000 simulated viewers, latest-per-viewer auditing and up to 300-vote bursts. Its 30-second active round holds keyboard guard through the real input protocol, preventing a KO from excluding votes from the measurement. It gates ingest-to-HUD WebSocket p95 below 250 ms, beat drift below 50 ms, zero dropped votes and exact tally agreement. The soak runs real-time autopilot matches, drains the final match, verifies every result and gates peak server heap growth below 20% after warm-up. CI also runs a two-minute variant. Reports: [load](docs/LOAD.md), [hardening review](docs/queue11b-review.md).
+
+If chat disconnects, accepted votes and pending attacks survive; empty beats use autopilot while RECONNECTING is visible. Reloading the overlay receives current server state immediately. Capture can explicitly save separate standing/seated calibration locally; after reload, start the camera, confirm clear space and Resume without recalibrating. Saved calibration never automatically opens the camera or arms inputs.
+
 ## Tests and balance
 
 ```sh
@@ -134,7 +150,7 @@ npm run sim
 npx tsc --noEmit
 ```
 
-Tests use local transports or mocked Twitch modules. All 59 golden vectors (including the original 50 unchanged) run through the same pure `step(state,event,now)` reducer used by the server, browser demo and balance sim. The sim tests ordinary chat and a coordinated-chat profile, each with 4,000 single R1 rounds per cell across five player models and 0/3/50/500 viewers, plus 4000 scouting-enabled R2 rounds per cell with real R1 evidence. All four matrices fail if casual wins leave 30–70% or no-punch falls below 30%; the scouting matrix also requires cards, exploits and fixes to occur. GitHub Actions runs `npm ci`, tests, sim and offline build.
+Tests use local transports or mocked Twitch modules. All 59 golden vectors (including the original 50 unchanged) run through the same pure `step(state,event,now)` reducer used by the server, browser demo and balance sim. The sim tests ordinary chat and a coordinated-chat profile, each with 4,000 single R1 rounds per cell across five player models and 0/3/50/500 viewers, plus 4000 scouting-enabled R2 rounds per cell with real R1 evidence. All four matrices fail if casual wins leave 30–70% or no-punch falls below 30%; the scouting matrix also requires cards, exploits and fixes to occur. GitHub Actions runs `npm ci`, tests, sim, offline build and a two-minute local-mock soak.
 
 [Day 4 verification, scouting results and optional-event semantics](docs/day4-review.md). Scouting begins in round 2; fixing a habit heals up to 10 HP. Cheers add capped hype, new subscriptions heal 8 HP, and raids start a 15-second Phase 2 with inferred raider weighting capped at half the draw. [Day 5 verification and highlight/accessibility notes](docs/day5-review.md). [Day 6 feel/mix and proof tooling](docs/day6-review.md) is implemented; listening, filmed footage and physical camera timings remain Mac checks.
 

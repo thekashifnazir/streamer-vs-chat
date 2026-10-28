@@ -11,5 +11,21 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npx tsc --noEmit
       - run: npm run sim
       - run: npm run build:demo
+      - name: Install pinned Twitch CLI for local-only soak
+        run: |
+          mkdir -p "$RUNNER_TEMP/twitch-cli"
+          curl --fail --silent --show-error --location https://github.com/twitchdev/twitch-cli/releases/download/v1.1.24/twitch-cli_1.1.24_Linux_x86_64.tar.gz --output "$RUNNER_TEMP/twitch-cli.tar.gz"
+          echo "9cae4e9cd52e66fb4dda6b633b3276a4450a28a83dea7a4651a42a67372eed8f  $RUNNER_TEMP/twitch-cli.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/twitch-cli.tar.gz" -C "$RUNNER_TEMP/twitch-cli" --strip-components=1
+          echo "$RUNNER_TEMP/twitch-cli" >> "$GITHUB_PATH"
+      - name: Two-minute local autopilot soak
+        run: npm run soak -- --minutes 2 --out /tmp/streamer-soak-ci.json
+      - name: Preserve soak counts and heap measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulated-soak
+          path: /tmp/streamer-soak-ci.json

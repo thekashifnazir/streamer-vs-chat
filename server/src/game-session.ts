@@ -2,7 +2,8 @@ import { parseChatVote, type StreamerInput, type TallySnapshot, type PoseState }
 import { createGame, step, weightedTally, type EngineEvent, type GameState } from '../../shared/src/engine';
 import { parseChatControl, type ChatRole } from './chat-controls';
 import { ResultsQueue } from './results-queue';
-import { summarizeSession, type GameSummary } from '../../shared/src/highlights';
+import type {GameSummary} from '../../shared/src/highlights';
+import {SessionArchive} from './session-archive';
 import type { CaptureOptions } from '@svc/shared';
 import { RaidTracker } from './raid-tracker';
 import type { IncomingTwist } from './twitch';
@@ -17,7 +18,7 @@ export type SessionChat={user:string;text:string;simulated:boolean;role:ChatRole
 export class GameSession {
   private current:GameState;
   private armed=false;
-  private previousGames:GameState[]=[];
+  private archive=new SessionArchive();
   private viewerNames=new Map<string,string>();
   private summaryKey:unknown[]=[];
   private cachedSummary:GameSummary|null=null;
@@ -37,13 +38,14 @@ export class GameSession {
   private now(){return this.options.now?.()??Date.now();}
   get state():GameState{return this.current;}
   get started(){return this.armed;}
+  get archival(){return {matches:this.archive.matches,retainedStates:1,identities:this.archive.identities};}
   get frozen(){return this.safetyFrozen||this.current.paused;}
   tally():TallySnapshot {return {kind:'tally',tally:{...this.current.tally},weights:weightedTally(this.current),voters:this.current.voters,simulated:this.options.mock};}
   summary(){
     const state=this.current;
-    const key=[this.previousGames.length,state.log.damage,state.log.resolved,state.log.rounds,state.round.number,state.round.elapsed_ms,state.round.over,state.boss.hp,state.match.winner];
+    const key=[this.archive.matches,state.log.damage,state.log.resolved,state.log.rounds,state.round.number,state.round.elapsed_ms,state.round.over,state.boss.hp,state.match.winner];
     if(!this.cachedSummary||key.some((value,index)=>value!==this.summaryKey[index])){
-      this.cachedSummary=summarizeSession([...this.previousGames,state]);this.summaryKey=key;
+      this.cachedSummary=this.archive.summary(state,this.runId||1);this.summaryKey=key;
     }
     const value=this.cachedSummary,name=value.chatMvp&&this.viewerNames.get(value.chatMvp.user);
     return name?{...value,chatMvp:{...value.chatMvp!,displayName:name}}:value;
@@ -66,7 +68,7 @@ export class GameSession {
     const now=this.now();
     if(command.action==='summary'){this.summaryVisible=true;this.input({kind:'control',action:'stop',by:'capture'});return;}
     if(command.action==='start') {
-      if(this.armed)this.previousGames.push(this.current);
+      if(this.armed)this.archive.add(this.current,this.runId);
       this.runId++;this.summaryVisible=false;
       this.armed=true;this.safetyFrozen=false;this.nextRoundAt=null;
       this.apply({kind:'restart'},now);

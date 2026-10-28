@@ -1,0 +1,562 @@
+{
+  "simulated": true,
+  "pass": true,
+  "startedAt": "2026-10-28T02:02:32.180Z",
+  "requestedMinutes": 30,
+  "wallMinutes": 30.4908,
+  "warmupSeconds": 60,
+  "chatters": 0,
+  "startedMatches": 33,
+  "matches": 33,
+  "rounds": 66,
+  "resultsSent": 66,
+  "invalidMatches": [],
+  "heapBaseline": 20506840,
+  "heapFinal": 21766600,
+  "heapGrowthFraction": 0.06143121026935394,
+  "heapMaxGrowthFraction": 0.0631816506102354,
+  "driverUnhandled": 0,
+  "serverUnhandled": 0,
+  "samples": [
+    {
+      "at": 60251,
+      "heapUsed": 20506840
+    },
+    {
+      "at": 75389,
+      "heapUsed": 20649576
+    },
+    {
+      "at": 90532,
+      "heapUsed": 20706816
+    },
+    {
+      "at": 105660,
+      "heapUsed": 20754296
+    },
+    {
+      "at": 120772,
+      "heapUsed": 20785312
+    },
+    {
+      "at": 135912,
+      "heapUsed": 20821896
+    },
+    {
+      "at": 151023,
+      "heapUsed": 20929848
+    },
+    {
+      "at": 166116,
+      "heapUsed": 20959056
+    },
+    {
+      "at": 181211,
+      "heapUsed": 20976984
+    },
+    {
+      "at": 196317,
+      "heapUsed": 21034048
+    },
+    {
+      "at": 211412,
+      "heapUsed": 21036368
+    },
+    {
+      "at": 226509,
+      "heapUsed": 21037864
+    },
+    {
+      "at": 241605,
+      "heapUsed": 21023416
+    },
+    {
+      "at": 256708,
+      "heapUsed": 21360728
+    },
+    {
+      "at": 271805,
+      "heapUsed": 21355560
+    },
+    {
+      "at": 286909,
+      "heapUsed": 21409080
+    },
+    {
+      "at": 302001,
+      "heapUsed": 21381464
+    },
+    {
+      "at": 317107,
+      "heapUsed": 21466624
+    },
+    {
+      "at": 332198,
+      "heapUsed": 21453832
+    },
+    {
+      "at": 347309,
+      "heapUsed": 21513560
+    },
+    {
+      "at": 362407,
+      "heapUsed": 21472896
+    },
+    {
+      "at": 377511,
+      "heapUsed": 21522984
+    },
+    {
+      "at": 392614,
+      "heapUsed": 21493664
+    },
+    {
+      "at": 407747,
+      "heapUsed": 21540784
+    },
+    {
+      "at": 422880,
+      "heapUsed": 21498688
+    },
+    {
+      "at": 438014,
+      "heapUsed": 21551496
+    },
+    {
+      "at": 453135,
+      "heapUsed": 21537880
+    },
+    {
+      "at": 468228,
+      "heapUsed": 21558520
+    },
+    {
+      "at": 483329,
+      "heapUsed": 21525840
+    },
+    {
+      "at": 498428,
+      "heapUsed": 21581336
+    },
+    {
+      "at": 513541,
+      "heapUsed": 21569760
+    },
+    {
+      "at": 528641,
+      "heapUsed": 21558096
+    },
+    {
+      "at": 543744,
+      "heapUsed": 21542856
+    },
+    {
+      "at": 558844,
+      "heapUsed": 21548224
+    },
+    {
+      "at": 573942,
+      "heapUsed": 21567848
+    },
+    {
+      "at": 589039,
+      "heapUsed": 21568808
+    },
+    {
+      "at": 604144,
+      "heapUsed": 21539944
+    },
+    {
+      "at": 619253,
+      "heapUsed": 21572160
+    },
+    {
+      "at": 634353,
+      "heapUsed": 21573960
+    },
+    {
+      "at": 649450,
+      "heapUsed": 21609696
+    },
+    {
+      "at": 664548,
+      "heapUsed": 21571896
+    },
+    {
+      "at": 679647,
+      "heapUsed": 21616920
+    },
+    {
+      "at": 694749,
+      "heapUsed": 21647928
+    },
+    {
+      "at": 709845,
+      "heapUsed": 21648040
+    },
+    {
+      "at": 724977,
+      "heapUsed": 21584752
+    },
+    {
+      "at": 740118,
+      "heapUsed": 21693952
+    },
+    {
+      "at": 755249,
+      "heapUsed": 21687160
+    },
+    {
+      "at": 770368,
+      "heapUsed": 21699888
+    },
+    {
+      "at": 785501,
+      "heapUsed": 21682624
+    },
+    {
+      "at": 800626,
+      "heapUsed": 21719480
+    },
+    {
+      "at": 815750,
+      "heapUsed": 21714840
+    },
+    {
+      "at": 830866,
+      "heapUsed": 21723360
+    },
+    {
+      "at": 845982,
+      "heapUsed": 21678456
+    },
+    {
+      "at": 861123,
+      "heapUsed": 21690120
+    },
+    {
+      "at": 876241,
+      "heapUsed": 21702976
+    },
+    {
+      "at": 891353,
+      "heapUsed": 21697496
+    },
+    {
+      "at": 906479,
+      "heapUsed": 21692056
+    },
+    {
+      "at": 921599,
+      "heapUsed": 21729416
+    },
+    {
+      "at": 936721,
+      "heapUsed": 21715976
+    },
+    {
+      "at": 951857,
+      "heapUsed": 21705896
+    },
+    {
+      "at": 966979,
+      "heapUsed": 21673816
+    },
+    {
+      "at": 982101,
+      "heapUsed": 21739280
+    },
+    {
+      "at": 997214,
+      "heapUsed": 21720944
+    },
+    {
+      "at": 1012332,
+      "heapUsed": 21743960
+    },
+    {
+      "at": 1027440,
+      "heapUsed": 21705648
+    },
+    {
+      "at": 1042575,
+      "heapUsed": 21729920
+    },
+    {
+      "at": 1057700,
+      "heapUsed": 21699336
+    },
+    {
+      "at": 1072838,
+      "heapUsed": 21748304
+    },
+    {
+      "at": 1087972,
+      "heapUsed": 21712560
+    },
+    {
+      "at": 1103098,
+      "heapUsed": 21730904
+    },
+    {
+      "at": 1118216,
+      "heapUsed": 21728072
+    },
+    {
+      "at": 1133340,
+      "heapUsed": 21734296
+    },
+    {
+      "at": 1148455,
+      "heapUsed": 21708592
+    },
+    {
+      "at": 1163568,
+      "heapUsed": 21759384
+    },
+    {
+      "at": 1178678,
+      "heapUsed": 21727656
+    },
+    {
+      "at": 1193812,
+      "heapUsed": 21727840
+    },
+    {
+      "at": 1208942,
+      "heapUsed": 21714336
+    },
+    {
+      "at": 1224060,
+      "heapUsed": 21720400
+    },
+    {
+      "at": 1239182,
+      "heapUsed": 21736264
+    },
+    {
+      "at": 1254300,
+      "heapUsed": 21734576
+    },
+    {
+      "at": 1269419,
+      "heapUsed": 21713624
+    },
+    {
+      "at": 1284540,
+      "heapUsed": 21737400
+    },
+    {
+      "at": 1299664,
+      "heapUsed": 21736880
+    },
+    {
+      "at": 1314786,
+      "heapUsed": 21771704
+    },
+    {
+      "at": 1329919,
+      "heapUsed": 21730152
+    },
+    {
+      "at": 1345039,
+      "heapUsed": 21760456
+    },
+    {
+      "at": 1360163,
+      "heapUsed": 21752824
+    },
+    {
+      "at": 1375290,
+      "heapUsed": 21759592
+    },
+    {
+      "at": 1390451,
+      "heapUsed": 21702464
+    },
+    {
+      "at": 1405593,
+      "heapUsed": 21757280
+    },
+    {
+      "at": 1420715,
+      "heapUsed": 21757776
+    },
+    {
+      "at": 1435844,
+      "heapUsed": 21773192
+    },
+    {
+      "at": 1450989,
+      "heapUsed": 21724408
+    },
+    {
+      "at": 1466117,
+      "heapUsed": 21760984
+    },
+    {
+      "at": 1481229,
+      "heapUsed": 21758576
+    },
+    {
+      "at": 1496354,
+      "heapUsed": 21782280
+    },
+    {
+      "at": 1511485,
+      "heapUsed": 21732608
+    },
+    {
+      "at": 1526608,
+      "heapUsed": 21750328
+    },
+    {
+      "at": 1541735,
+      "heapUsed": 21761112
+    },
+    {
+      "at": 1556864,
+      "heapUsed": 21762248
+    },
+    {
+      "at": 1571990,
+      "heapUsed": 21766872
+    },
+    {
+      "at": 1587109,
+      "heapUsed": 21761792
+    },
+    {
+      "at": 1602234,
+      "heapUsed": 21768816
+    },
+    {
+      "at": 1617365,
+      "heapUsed": 21752824
+    },
+    {
+      "at": 1632498,
+      "heapUsed": 21750760
+    },
+    {
+      "at": 1647620,
+      "heapUsed": 21779400
+    },
+    {
+      "at": 1662729,
+      "heapUsed": 21783416
+    },
+    {
+      "at": 1677850,
+      "heapUsed": 21799408
+    },
+    {
+      "at": 1692974,
+      "heapUsed": 21783368
+    },
+    {
+      "at": 1708099,
+      "heapUsed": 21765456
+    },
+    {
+      "at": 1723240,
+      "heapUsed": 21746616
+    },
+    {
+      "at": 1738369,
+      "heapUsed": 21784792
+    },
+    {
+      "at": 1753514,
+      "heapUsed": 21776080
+    },
+    {
+      "at": 1768646,
+      "heapUsed": 21773824
+    },
+    {
+      "at": 1783787,
+      "heapUsed": 21785912
+    },
+    {
+      "at": 1798920,
+      "heapUsed": 21787032
+    },
+    {
+      "at": 1814051,
+      "heapUsed": 21802496
+    },
+    {
+      "at": 1829193,
+      "heapUsed": 21794776
+    }
+  ],
+  "status": {
+    "unhandledErrors": 0,
+    "ingested": 0,
+    "parsedVotes": 0,
+    "countedVoteEvents": 0,
+    "lastSeq": 0,
+    "lastMessageId": null,
+    "receivedAt": null,
+    "drift": {
+      "samples": 693,
+      "lastMs": 2,
+      "maxMs": 21
+    },
+    "memory": {
+      "rss": 109330432,
+      "heapTotal": 25542656,
+      "heapUsed": 22312448,
+      "external": 6154518,
+      "arrayBuffers": 2190479
+    },
+    "resultsSent": 66,
+    "resultAttempts": 66,
+    "overflow": false,
+    "game": {
+      "runId": 33,
+      "round": 2,
+      "beat": 10,
+      "started": true,
+      "paused": false,
+      "matchWinner": "boss",
+      "roundWins": {
+        "streamer": 0,
+        "boss": 2
+      },
+      "roundOver": true,
+      "streamerHp": 0,
+      "bossHp": 135,
+      "roundResults": [
+        {
+          "number": 1,
+          "winner": "boss",
+          "at": 1793154753332,
+          "reason": "ko",
+          "streamer_hp": 0,
+          "boss_hp": 135,
+          "min_streamer_hp": 0,
+          "duration_ms": 27200
+        },
+        {
+          "number": 2,
+          "winner": "boss",
+          "at": 1793154781437,
+          "reason": "ko",
+          "streamer_hp": 0,
+          "boss_hp": 135,
+          "min_streamer_hp": 0,
+          "duration_ms": 25100
+        }
+      ]
+    },
+    "archive": {
+      "matches": 32,
+      "retainedStates": 1,
+      "identities": 0
+    },
+    "transport": "connected",
+    "gcAvailable": true
+  }
+}

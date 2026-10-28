@@ -1,9 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest';
-const fakes = vi.hoisted(() => ({ apiConfig: undefined as any, wsConfig: undefined as any, handler: undefined as any, success:undefined as any, cheerHandler:undefined as any, subHandler:undefined as any, raidHandler:undefined as any, cheer:vi.fn(), sub:vi.fn(), raid:vi.fn(), subscription: vi.fn(), send:vi.fn(async()=>({})), asUser:vi.fn(), createClip:vi.fn(async()=> 'pending-clip'), getClip:vi.fn(async()=>({id:'confirmed-clip',url:'https://clips.twitch.tv/confirmed-clip'})), stream:vi.fn(async()=>({viewers:42})) }));
+const fakes = vi.hoisted(() => ({ apiConfig: undefined as any, wsConfig: undefined as any,disconnect:undefined as any, handler: undefined as any, success:undefined as any, cheerHandler:undefined as any, subHandler:undefined as any, raidHandler:undefined as any, cheer:vi.fn(), sub:vi.fn(), raid:vi.fn(), subscription: vi.fn(), send:vi.fn(async()=>({})), asUser:vi.fn(), createClip:vi.fn(async()=> 'pending-clip'), getClip:vi.fn(async()=>({id:'confirmed-clip',url:'https://clips.twitch.tv/confirmed-clip'})), stream:vi.fn(async()=>({viewers:42})) }));
 vi.mock('@twurple/api', () => ({ ApiClient: class { streams={getStreamByUserId:fakes.stream}; constructor(config: unknown) { fakes.apiConfig = config; } asUser(user:string,run:(ctx:any)=>Promise<unknown>){fakes.asUser(user);return run({chat:{sendChatMessage:fakes.send},streams:{getStreamByUserId:fakes.stream},clips:{createClip:fakes.createClip,getClipById:fakes.getClip}});} } }));
 vi.mock('@twurple/eventsub-ws', () => ({ EventSubWsListener: class {
   constructor(config: unknown) { fakes.wsConfig = config; }
-  onSubscriptionCreateSuccess(handler:any) {fakes.success=handler;} onSubscriptionCreateFailure() {} onRevoke() {} onUserSocketDisconnect() {}
+  onSubscriptionCreateSuccess(handler:any) {fakes.success=handler;} onSubscriptionCreateFailure() {} onRevoke() {} onUserSocketDisconnect(handler:any) {fakes.disconnect=handler;}
   onChannelChatMessage(...args: any[]) { fakes.subscription(...args); fakes.handler = args[2]; }
   onChannelCheer(user:string,handler:any){fakes.cheer(user);fakes.cheerHandler=handler;}
   onChannelSubscription(user:string,handler:any){fakes.sub(user);fakes.subHandler=handler;}
@@ -104,4 +104,10 @@ it('uses broadcaster context for clip lifecycle and exposes only actual returned
 it('missing clip permission skips creation without HTTP',async()=>{
   const s=createTwitchSession({mock:false,onMessage:vi.fn(),authProvider:{getCurrentScopesForUser:()=>[]} as any,botId:'bot',broadcasterId:'caster'});
   expect(await s.clips.createClip()).toBeNull();expect(fakes.createClip).not.toHaveBeenCalled();s.stop();
+});
+
+it('reports chat subscription recovery, preserves incoming IDs and does not confuse the broadcaster optional socket',()=>{
+ const statuses=vi.fn(),message=vi.fn();const session=createTwitchSession({mock:true,onMessage:message,onStatus:statuses,logChat:false});expect(statuses).toHaveBeenLastCalledWith('connecting');
+ fakes.success({}, {type:'channel.chat.message',id:'chat'});expect(statuses).toHaveBeenLastCalledWith('connected');fakes.disconnect('9002',new Error('optional'));expect(statuses).toHaveBeenLastCalledWith('connected');fakes.disconnect('9001',new Error('offline'));expect(statuses).toHaveBeenLastCalledWith('reconnecting');
+ fakes.success({}, {type:'channel.chat.message',id:'chat2'});expect(statuses).toHaveBeenLastCalledWith('connected');fakes.handler({messageId:'load-1',chatterId:'viewer',messageText:'!jab'});expect(message.mock.calls[0]?.[0].messageId).toBe('load-1');session.stop();expect(statuses).toHaveBeenLastCalledWith('disconnected');
 });

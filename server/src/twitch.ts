@@ -4,7 +4,7 @@ import { EventSubWsListener } from '@twurple/eventsub-ws';
 import type { ChatRole } from './chat-controls';
 import type { ClipTransport } from './clips';
 
-export type IncomingChat = { user: string; text: string; simulated: boolean; role:ChatRole; displayName?:string };
+export type IncomingChat = { user: string; text: string; simulated: boolean; role:ChatRole; displayName?:string;messageId?:string };
 export type IncomingTwist = { simulated:boolean } & ({kind:'cheer';bits:number}|{kind:'subscribe'}|{kind:'raid';viewers:number});
 export type MockEventCommand = {type:'channel.cheer'|'channel.subscribe'|'channel.raid';subscriptionId:string;sessionId:string;command:string;args:string[]};
 export const MOCK_BOT_ID = '9001';
@@ -34,6 +34,8 @@ export function createTwitchSession(options: {
   mock: boolean;
   onMessage: (message: IncomingChat) => void;
   onTwist?: (event:IncomingTwist) => void;
+  onStatus?:(status:'connecting'|'connected'|'reconnecting'|'disconnected')=>void;
+  logChat?:boolean;
   authProvider?: AuthProvider;
   botId?: string;
   broadcasterId?: string;
@@ -67,7 +69,9 @@ export function createTwitchSession(options: {
       return {type,subscriptionId:match[3]!,sessionId:match[2]!,command:`twitch ${args.join(' ')}`,args};
     }));
   }
+  let stopped=false;options.onStatus?.('connecting');
   listener.onSubscriptionCreateSuccess((subscription, apiSubscription) => {
+    if(apiSubscription.type==='channel.chat.message'&&!stopped)options.onStatus?.('connected');
     console.log(`[eventsub] ${apiSubscription.type} active (${options.mock ? 'SIMULATED' : 'LIVE'}), subscription ${apiSubscription.id}`);
     if(options.mock&&['channel.cheer','channel.subscribe','channel.raid'].includes(apiSubscription.type)) {
       const type=apiSubscription.type as MockEventCommand['type'];
@@ -84,13 +88,14 @@ export function createTwitchSession(options: {
   listener.onRevoke((_subscription, status) => {
     console.error(`[eventsub] Subscription revoked (${status}); reauthorize at http://localhost:3000/auth`);
   });
-  listener.onUserSocketDisconnect((_userId, error) => {
+  listener.onUserSocketDisconnect((userId, error) => {
+    if(userId===botId&&!stopped)options.onStatus?.('reconnecting');
     if (error) console.error('[eventsub] Socket disconnected; Twurple will reconnect.');
   });
   listener.onChannelChatMessage(broadcasterId, botId, (event) => {
     const role:ChatRole=event.chatterId===broadcasterId?'broadcaster':Object.hasOwn(event.badges??{},'moderator')?'mod':'viewer';
-    const message = { user: event.chatterId, text: event.messageText, simulated: options.mock,role,...(typeof event.chatterDisplayName==='string'&&event.chatterDisplayName?{displayName:event.chatterDisplayName}:{}) };
-    console.log(`[chat ${options.mock ? 'SIMULATED' : 'LIVE'}] ${event.chatterName}: ${event.messageText}`);
+    const message = { ...(typeof event.messageId==='string'?{messageId:event.messageId}:{}),user: event.chatterId, text: event.messageText, simulated: options.mock,role,...(typeof event.chatterDisplayName==='string'&&event.chatterDisplayName?{displayName:event.chatterDisplayName}:{}) };
+    if(options.logChat!==false)console.log(`[chat ${options.mock ? 'SIMULATED' : 'LIVE'}] ${event.chatterName}: ${event.messageText}`);
     options.onMessage(message);
   });
   const scopes=authProvider.getCurrentScopesForUser?.(broadcasterId)??[];
@@ -119,7 +124,7 @@ export function createTwitchSession(options: {
   };
   return {
     clips,
-    stop:()=>listener.stop(),
+    stop:()=>{stopped=true;listener.stop();options.onStatus?.('disconnected');},
     mockCommands,
     async viewers():Promise<number> {
       if(options.mock)return 0;

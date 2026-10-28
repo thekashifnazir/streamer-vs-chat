@@ -18,7 +18,10 @@
     "sim": "tsx scripts/sim.ts",
     "build:demo": "tsx scripts/build-demo.ts",
     "demo": "tsx scripts/demo.ts",
-    "test:mock-events": "tsx scripts/test-mock-events.ts"
+    "test:mock-events": "tsx scripts/test-mock-events.ts",
+    "load": "tsx scripts/load.ts --mock --hardening",
+    "soak": "tsx scripts/soak.ts --mock --hardening",
+    "test:recovery": "tsx scripts/test-recovery.ts --mock --hardening"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
