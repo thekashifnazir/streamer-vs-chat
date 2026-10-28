@@ -19,8 +19,15 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
 });
 afterAll(async () => {
-  await server?.close();
-  if (http?.listening) await new Promise<void>((resolve, reject) => http.close(error => error ? reject(error) : resolve()));
+  // Undici keeps fetch sockets alive, including redirect responses without bodies.
+  // Stop accepting requests and terminate those sockets before Vite cleanup.
+  try {
+    if (http?.listening) {
+      const closed = new Promise<void>((resolve, reject) => http.close(error => error ? reject(error) : resolve()));
+      http.closeAllConnections();
+      await closed;
+    }
+  } finally { await server?.close(); }
 });
 
 it.each(['/overlay', '/capture', '/play'])('redirects %s and serves the page', async path => {
