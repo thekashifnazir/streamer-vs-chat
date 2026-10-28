@@ -60,3 +60,32 @@ it('uses fresh paused input, but expires it when capture heartbeats disappear',(
   at(1500);game.chat({user:'m',text:'!resume',simulated:true,role:'mod'});
   expect(game.state.input).toMatchObject({guard:false,lean:null});game.close();
 });
+
+it('routes optional buffs by mode and infers raiders from all first messages, not just votes',()=>{
+ const {game,at}=rig();
+ const chat=(user:string,text:string)=>game.chat({user,text,simulated:true,role:'viewer'});
+ chat('regular-a','hello');chat('regular-b','hello');chat('regular-c','hello');
+ game.command({kind:'session',action:'start'});
+ game.state.streamer.hp=82; // Test-only initial damage, not a client protocol.
+ at(100);game.twist({kind:'cheer',bits:10,simulated:true});game.twist({kind:'subscribe',simulated:true});
+ expect(game.state.hype).toBe(10);expect(game.state.streamer.hp).toBe(90);
+ game.twist({kind:'cheer',bits:25,simulated:false});expect(game.state.hype).toBe(10);
+ at(200);game.twist({kind:'raid',viewers:2,simulated:true});
+ chat('regular-a','!jab');chat('regular-b','!jab');chat('regular-c','!jab');
+ chat('new-hello','hello');chat('new-vote','!hookl');chat('extra','!jab');
+ chat('new-hello','!hookr');
+ expect(game.tally()).toMatchObject({voters:6,tally:{JAB:4,HOOK_L:1,HOOK_R:1},weights:{JAB:4,HOOK_L:2,HOOK_R:2}});
+ chat('new-hello','!combo');
+ expect(game.tally()).toMatchObject({voters:6,tally:{JAB:4,HOOK_L:1,HOOK_R:0,COMBO:1},weights:{JAB:4,HOOK_L:2,HOOK_R:0,COMBO:2}});
+ // A later raid must not classify these same chatters as first-time arrivals again.
+ at(300);game.twist({kind:'raid',viewers:10,simulated:true});chat('new-vote','!hookl');chat('new-hello','!combo');
+ expect(game.tally().weights).toEqual(game.tally().tally);game.close();
+});
+it('keeps optional buffs frozen on pause and rejects simulated events in live sessions',()=>{
+ const {game,at}=rig(false);game.command({kind:'session',action:'start'});
+ game.twist({kind:'raid',viewers:10,simulated:true});expect(game.state.raid.ends_at).toBe(null);
+ game.twist({kind:'cheer',bits:20,simulated:true});expect(game.state.hype).toBe(0);
+ game.input({kind:'control',action:'pause',by:'capture'});at(100);
+ game.twist({kind:'cheer',bits:20,simulated:false});game.twist({kind:'raid',viewers:10,simulated:false});
+ expect(game.state.hype).toBe(0);expect(game.state.raid.ends_at).toBe(null);game.close();
+});

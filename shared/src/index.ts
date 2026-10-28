@@ -8,7 +8,7 @@ export type { GameState, EngineEvent } from './engine';
 export type Tick<GameState=import('./engine').GameState> = { kind: 'tick'; state: GameState };
 export type Telegraph = { kind: 'telegraph'; move: Move; landsAt: number; exploit?: string };
 export type Resolved = { kind: 'resolved'; move: Move; outcome: 'HIT'|'BLOCK'|'PERFECT'|'DODGE'|'CHIP'; dmg: number; counterDmg: number };
-export type TallySnapshot = { kind: 'tally'; tally: Record<Move, number>; voters: number; simulated: boolean };
+export type TallySnapshot = { kind: 'tally'; tally: Record<Move, number>; weights?: Record<Move, number>; voters: number; simulated: boolean };
 const COMMANDS: Record<string, Move> = { '!jab':'JAB', '!hookl':'HOOK_L', '!hookr':'HOOK_R', '!combo':'COMBO', '!super':'SUPER' };
 export function parseChatVote(text: string, user: string, at: number, simulated: boolean): ChatVote | null {
   const command = text.trim().split(/\s+/, 1)[0]?.toLowerCase();

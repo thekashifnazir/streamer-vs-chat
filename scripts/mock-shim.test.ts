@@ -27,6 +27,9 @@ test('shim injects chat using the registered subscription and preserves upstream
       transport: { method: 'websocket', session_id: 'test-session' },
     }) });
     expect(subscriptionResponse.status).toBe(202);
+    expect(Number(subscriptionResponse.headers.get('ratelimit-limit'))).toBeGreaterThan(0);
+    expect(Number(subscriptionResponse.headers.get('ratelimit-remaining'))).toBeGreaterThan(0);
+    expect(Number(subscriptionResponse.headers.get('ratelimit-reset'))*1000).toBeGreaterThan(Date.now()-1000);
     const { data: [subscription] } = await subscriptionResponse.json();
     const notification = once(client, 'message');
     const injected = await fetch(`${base}/inject`, { method: 'POST', body: JSON.stringify({ message: '!jab', user: 'viewer-A',role:'mod' }) });
@@ -53,6 +56,35 @@ test('shim injects chat using the registered subscription and preserves upstream
   }
 });
 
+test('preserves rate headers and routes a CLI broadcast only to the registered subscription owner',async()=>{
+  const upstream=createServer((_req,res)=>{
+    res.writeHead(202,{'content-type':'application/json','ratelimit-limit':'42','ratelimit-remaining':'41','ratelimit-reset':'2099999999'});
+    res.end(JSON.stringify({data:[{id:'cheer-sub'}]}));
+  });
+  const upstreamWs=new WebSocketServer({server:upstream});let session=0;
+  upstreamWs.on('connection',socket=>socket.send(JSON.stringify({metadata:{message_type:'session_welcome'},payload:{session:{id:`client-${++session}`}}})));
+  upstream.listen(0,'127.0.0.1');await once(upstream,'listening');
+  const shim=createMockShim((upstream.address() as AddressInfo).port);shim.server.listen(0,'127.0.0.1');await once(shim.server,'listening');
+  const base=`http://127.0.0.1:${(shim.server.address() as AddressInfo).port}`;
+  const bot=new WebSocket(base.replace('http:','ws:')+'/ws');await once(bot,'message');
+  const caster=new WebSocket(base.replace('http:','ws:')+'/ws');await once(caster,'message');
+  try {
+    const response=await fetch(`${base}/eventsub/subscriptions`,{method:'POST',body:JSON.stringify({type:'channel.cheer',version:'1',transport:{method:'websocket',session_id:'client-2'}})});
+    expect(response.headers.get('ratelimit-limit')).toBe('42');expect(response.headers.get('ratelimit-remaining')).toBe('41');expect(response.headers.get('ratelimit-reset')).toBe('2099999999');
+    const nextBot=once(bot,'message');const nextCaster=once(caster,'message');
+    for(const socket of upstreamWs.clients) {
+      socket.send(JSON.stringify({metadata:{message_type:'notification'},payload:{subscription:{id:'cheer-sub'},event:{bits:35}}}));
+      socket.send('{"sentinel":true}');
+    }
+    expect(JSON.parse(String((await nextBot)[0]))).toEqual({sentinel:true});
+    expect(JSON.parse(String((await nextCaster)[0])).payload.event.bits).toBe(35);
+  } finally {
+    bot.terminate();caster.terminate();await shim.close();
+    for(const socket of upstreamWs.clients)socket.terminate();
+    await new Promise<void>(resolve=>upstreamWs.close(()=>resolve()));await new Promise<void>(resolve=>upstream.close(()=>resolve()));
+  }
+});
+
 test('round results stay local, reject live mode, and never need the upstream CLI API',async()=>{
   const shim=createMockShim(1); // No upstream service exists for this test.
   shim.server.listen(0,'127.0.0.1');await once(shim.server,'listening');
@@ -66,8 +98,8 @@ test('round results stay local, reject live mode, and never need the upstream CL
   } finally {await shim.close();}
 });
 
-test('keeps Twitch reconnects behind the shim and transfers injected subscriptions by exact ID',async()=>{
-  const upstream=createServer();const upstreamWs=new WebSocketServer({server:upstream});let count=0;
+test('keeps Twitch reconnects behind the shim and transfers injected and proxied subscriptions by exact ID',async()=>{
+  const upstream=createServer((_req,res)=>{res.writeHead(202,{'content-type':'application/json'});res.end(JSON.stringify({data:[{id:'cheer-reconnected'}]}));});const upstreamWs=new WebSocketServer({server:upstream});let count=0;
   upstreamWs.on('connection',socket=>socket.send(JSON.stringify({metadata:{message_type:'session_welcome'},payload:{session:{id:`session-${++count}`}}})));
   upstream.listen(0,'127.0.0.1');await once(upstream,'listening');
   const upstreamPort=(upstream.address() as AddressInfo).port;
@@ -77,6 +109,7 @@ test('keeps Twitch reconnects behind the shim and transfers injected subscriptio
   try {
     await once(first,'message');
     const {data:[subscription]}=await (await fetch(`${base}/eventsub/subscriptions`,{method:'POST',body:JSON.stringify({type:'channel.chat.message',version:'1',condition:{broadcaster_user_id:'9002',user_id:'9001'},transport:{method:'websocket',session_id:'session-1'}})})).json();
+    expect((await fetch(`${base}/eventsub/subscriptions`,{method:'POST',body:JSON.stringify({type:'channel.cheer',version:'1',condition:{broadcaster_user_id:'9002'},transport:{method:'websocket',session_id:'session-1'}})})).status).toBe(202);
     const reconnect=once(first,'message');
     for(const socket of upstreamWs.clients)socket.send(JSON.stringify({metadata:{message_type:'session_reconnect'},payload:{session:{id:'session-1',reconnect_url:`ws://127.0.0.1:${upstreamPort}/ws?token=local`}}}));
     const next=new URL(JSON.parse(String((await reconnect)[0])).payload.session.reconnect_url);
@@ -88,6 +121,9 @@ test('keeps Twitch reconnects behind the shim and transfers injected subscriptio
     const event=JSON.parse(String((await notification)[0]));
     expect(event.payload.subscription.id).toBe(subscription.id);
     expect(event.payload.subscription.transport.session_id).toBe('session-2');
+    const proxied=once(second,'message');
+    for(const socket of upstreamWs.clients)socket.send(JSON.stringify({metadata:{message_type:'notification'},payload:{subscription:{id:'cheer-reconnected'},event:{bits:7}}}));
+    expect(JSON.parse(String((await proxied)[0])).payload.event.bits).toBe(7);
   }finally{
     first.terminate();second?.terminate();await shim.close();
     for(const socket of upstreamWs.clients)socket.terminate();

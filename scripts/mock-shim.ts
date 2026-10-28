@@ -21,8 +21,11 @@ async function bodyOf(request: IncomingMessage): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-function json(response: ServerResponse, status: number, data: unknown) {
-  response.writeHead(status, { 'content-type': 'application/json' });
+function json(response: ServerResponse, status: number, data: unknown, headers:Record<string,string>={}) {
+  response.writeHead(status, { 'content-type': 'application/json',
+    'ratelimit-limit':'800','ratelimit-remaining':'799','ratelimit-reset':String(Math.floor(Date.now()/1000)+1),
+    ...headers,
+  });
   response.end(JSON.stringify(data));
 }
 
@@ -30,6 +33,7 @@ function json(response: ServerResponse, status: number, data: unknown) {
 export function createMockShim(upstreamPort = 8080) {
   const sessions = new Map<string, WebSocket>();
   const subscriptions = new Map<string, Subscription>();
+  const upstreamOwners=new Map<string,string>();
   const results:{text:string;simulated:true;at:number}[]=[];
   const sockets = new WebSocketServer({ noServer: true });
   const upstreamSockets = new Set<WebSocket>();
@@ -135,11 +139,27 @@ export function createMockShim(upstreamPort = 8080) {
       const extra = [...subscriptions.values()].filter((sub) => !url.searchParams.has('type') || url.searchParams.get('type') === sub.type);
       data.data.push(...extra);
       data.total += extra.length;
-      json(response, upstream.status, data);
+      json(response, upstream.status, data,{
+        'ratelimit-limit':upstream.headers.get('ratelimit-limit')??'800',
+        'ratelimit-remaining':upstream.headers.get('ratelimit-remaining')??'799',
+        'ratelimit-reset':upstream.headers.get('ratelimit-reset')??String(Math.floor(Date.now()/1000)+1),
+      });
       return;
     }
-    response.writeHead(upstream.status, { 'content-type': upstream.headers.get('content-type') ?? 'application/json' });
-    response.end(Buffer.from(await upstream.arrayBuffer()));
+    const bytes=Buffer.from(await upstream.arrayBuffer());
+    if(pathname==='/eventsub/subscriptions'&&upstream.ok) {
+      if(request.method==='POST') {
+        const input=JSON.parse(body) as {transport?:{session_id?:string}};
+        const registered=JSON.parse(bytes.toString()) as {data?:{id:string}[]};
+        if(input.transport?.session_id)for(const subscription of registered.data??[])upstreamOwners.set(subscription.id,input.transport.session_id);
+      } else if(request.method==='DELETE')upstreamOwners.delete(url.searchParams.get('id')??'');
+    }
+    response.writeHead(upstream.status, { 'content-type': upstream.headers.get('content-type') ?? 'application/json',
+      'ratelimit-limit':upstream.headers.get('ratelimit-limit')??'800',
+      'ratelimit-remaining':upstream.headers.get('ratelimit-remaining')??'799',
+      'ratelimit-reset':upstream.headers.get('ratelimit-reset')??String(Math.floor(Date.now()/1000)+1),
+    });
+    response.end(bytes);
   }
 
   server.on('upgrade', (request, socket, head) => {
@@ -158,6 +178,14 @@ export function createMockShim(upstreamPort = 8080) {
             sessionId = envelope.payload.session.id as string;
             sessions.set(sessionId, downstream);
             if(resumeFrom)for(const sub of subscriptions.values())if(sub.transport.session_id===resumeFrom)sub.transport.session_id=sessionId;
+            if(resumeFrom)for(const [id,owner]of upstreamOwners)if(owner===resumeFrom)upstreamOwners.set(id,sessionId);
+          }
+          if(envelope.metadata?.message_type==='notification') {
+            // CLI1.1.24 can broadcast a targeted trigger to every user socket.
+            // Route by the actual subscription's registered owner, preventing
+            // duplicate callbacks in Twurple's shared subscription registry.
+            const owner=upstreamOwners.get(envelope.payload?.subscription?.id);
+            if(owner&&owner!==sessionId)return;
           }
           if(envelope.metadata?.message_type==='session_reconnect'&&sessionId) {
             reconnecting=true;
@@ -179,6 +207,7 @@ export function createMockShim(upstreamPort = 8080) {
         if (sessionId) {
           if(sessions.get(sessionId)===downstream)sessions.delete(sessionId);
           if(!reconnecting)for(const [id,sub]of subscriptions)if(sub.transport.session_id===sessionId)subscriptions.delete(id);
+          if(!reconnecting)for(const [id,owner]of upstreamOwners)if(owner===sessionId)upstreamOwners.delete(id);
         }
       };
       upstream.on('error', () => downstream.close(1011, 'CLI mock unavailable'));

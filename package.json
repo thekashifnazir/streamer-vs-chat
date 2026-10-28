@@ -17,7 +17,8 @@
     "test": "vitest run",
     "sim": "tsx scripts/sim.ts",
     "build:demo": "tsx scripts/build-demo.ts",
-    "demo": "tsx scripts/demo.ts"
+    "demo": "tsx scripts/demo.ts",
+    "test:mock-events": "tsx scripts/test-mock-events.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

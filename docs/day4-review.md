@@ -27,3 +27,23 @@ The offline build and TypeScript checks pass. Scouting HUD tests exercise the vi
 | seated | 71.4% | 71.7% | 66.4% | 65.9% | 70.2% | 71.0% | 65.7% | 65.7% |
 | nopunch | 41.1% | 42.1% | 35.9% | 36.0% | 41.4% | 40.7% | 36.1% | 36.1% |
 | keyboard | 96.0% | 95.8% | 94.5% | 93.1% | 95.8% | 94.7% | 93.8% | 93.2% |
+
+## Optional event rules
+
+Cheer adds one hype per bit, capped at 25 per event and 100 total. `channel.subscribe` heals eight HP, capped at 100. Only an active, unpaused round accepts combat buffs; stopped/paused or finished rounds do not accumulate them.
+
+A raid starts a 15-second Phase 2. The game clock freezes its remaining duration on pause; the server's session admission window is separately measured in wall time. A chatter is inferred to be a raider only if their first message of any kind this server session arrives in `[raid received, raid received + 120 s)`, and at most the raid's viewer count are admitted. Ordinary non-vote messages count for this heuristic. A new raid replaces the previous cohort, while the session's already-seen chatter set persists across rounds and match restarts. No raider flag is taken from chat or capture clients.
+
+Phase 2 applies 2× weight to those voters, uniformly scaled when necessary so their combined weight is at most the regular voters' combined weight (50% of the draw). With no regular votes, raider influence is zero and the draw uses autopilot. Counts/voter totals remain one person per vote; HUD bars show the effective draw shares. Hype still uses the unweighted distinct-voter count. Expiry returns everyone to ordinary weight, and continuous weighted draws preserve fractional shares without quantization bias.
+
+New broadcaster authorization requests `bits:read` and `channel:read:subscriptions`; existing baseline tokens keep chat available and receive a reauthorization hint instead of breaking startup. Live cheer/sub listeners are registered only for scopes actually present. Raid subscribes to the destination broadcaster. These subscriptions and field requirements were checked against [Twitch's EventSub subscription reference](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/).
+
+## Optional integration and final review
+
+The isolated CLI test ran actual Twitch CLI 1.1.24 → shim8081 → real Twurple → GameSession using the generated --session/-u subscription IDs. Cheer35 adds exactly25 hype, subscribe heals82→90, raid activates exactly15 seconds, and injected !jab still gives JAB1. Exactly three optional callbacks are required. Temporary CLI configuration and SQLite event cache stay outside the user's normal configuration; HOME is unchanged. SIGTERM during registration exits143 and releases8080/8081/44747.
+
+The integration uncovered missing mock rate-limit headers (Twurple stalled subscription creation) and CLI broadcasts reaching both account sockets (duplicated cheers). The shim now preserves/supplies mock rate headers and routes proxied notifications by their registered subscription owner. Regression tests cover duplicate routing; ownership migrates on reconnect and is removed on deletion/disconnect. The runner also gained idempotent signal cleanup after independent review identified an orphan-process risk.
+
+Independent final reviews cleared optional engine weighting/timing, server mode/admission logic, scope migration, broadcaster context, HUD projections, and transport/runner cleanup. AGENTS.md was updated after those reviews. The final balance rerun reproduces both tables above, including all1,326 cards/1,316 exploits/335 fixes, and the offline build still passes. Optional events were exercised only against local mocks; live receipt on Kash's channel is not claimed.
+
+Final checks: **235 tests pass on Node 22**, TypeScript passes on Node 22, `npm run test:mock-events` passes, both complete balance matrices pass, the offline build passes, and the diff has no whitespace errors. The primary agent reran the opt-in npm command successfully after the isolated CLI runner and shim fixes.

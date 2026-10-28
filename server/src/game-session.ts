@@ -1,7 +1,9 @@
 import { parseChatVote, type StreamerInput, type TallySnapshot, type PoseState } from '@svc/shared';
-import { createGame, step, type EngineEvent, type GameState } from '../../shared/src/engine';
+import { createGame, step, weightedTally, type EngineEvent, type GameState } from '../../shared/src/engine';
 import { parseChatControl, type ChatRole } from './chat-controls';
 import { ResultsQueue } from './results-queue';
+import { RaidTracker } from './raid-tracker';
+import type { IncomingTwist } from './twitch';
 export type SessionCommand={kind:'session';action:'start'|'next-round'};
 export function parseSessionCommand(value:unknown):SessionCommand|null {
   if(!value||typeof value!=='object')return null;
@@ -18,6 +20,7 @@ export class GameSession {
   private latestPose:(PoseState&{capture_at?:number})|null=null;
   private latestPoseAt=-Infinity;
   private results:ResultsQueue;
+  private raiders=new RaidTracker();
   constructor(private options:{mock:boolean;seed?:number;now?:()=>number;sendResult:(text:string,simulated:boolean)=>Promise<unknown>;onError?:(error:unknown)=>void}) {
     this.current=createGame({seed:options.seed??Date.now()>>>0,now:this.now()});
     this.results=new ResultsQueue(text=>options.sendResult(text,options.mock),options.onError);
@@ -26,7 +29,7 @@ export class GameSession {
   get state():GameState{return this.current;}
   get started(){return this.armed;}
   get frozen(){return this.safetyFrozen||this.current.paused;}
-  tally():TallySnapshot {return {kind:'tally',tally:{...this.current.tally},voters:this.current.voters,simulated:this.options.mock};}
+  tally():TallySnapshot {return {kind:'tally',tally:{...this.current.tally},weights:weightedTally(this.current),voters:this.current.voters,simulated:this.options.mock};}
   private apply(event:EngineEvent,now:number) {
     const wasOver=this.current.round.over;
     this.current=step(this.current,event,now);
@@ -50,11 +53,19 @@ export class GameSession {
   chat(message:SessionChat):void {
     // A simulated message is never accepted by a live game session.
     if(message.simulated!==this.options.mock)return;
+    const raider=this.raiders.observe(message.user,this.now());
     const now=this.armed?this.now():this.current.now;
     const control=parseChatControl(message.text,message.user,message.role);
     if(control){this.input(control);return;}
     const vote=parseChatVote(message.text,message.user,now,message.simulated);
-    if(vote)this.apply(vote,now);
+    if(vote)this.apply({...vote,raider},now);
+  }
+  twist(event:IncomingTwist):void {
+    if(event.simulated!==this.options.mock)return;
+    const now=this.now();
+    // Membership belongs to the Twitch session, not a round or match restart.
+    if(event.kind==='raid')this.raiders.start(event.viewers,now);
+    if(this.armed&&!this.frozen&&!this.current.round.over)this.apply(event,now);
   }
   input(event:StreamerInput,receivedAt=this.now()):void {
     const now=this.armed?receivedAt:this.current.now;

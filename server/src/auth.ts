@@ -5,9 +5,14 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { RefreshingAuthProvider, exchangeCode, type AccessToken } from '@twurple/auth';
 
 export const REDIRECT_URI = 'http://localhost:3000/callback';
-export const ACCOUNT_SCOPES = {
+export const REQUIRED_ACCOUNT_SCOPES = {
   bot: ['user:read:chat', 'user:write:chat', 'user:bot'],
   broadcaster: ['channel:bot', 'clips:edit'],
+} as const;
+export const OPTIONAL_BROADCASTER_SCOPES = ['bits:read', 'channel:read:subscriptions'] as const;
+export const ACCOUNT_SCOPES = {
+  bot: REQUIRED_ACCOUNT_SCOPES.bot,
+  broadcaster: [...REQUIRED_ACCOUNT_SCOPES.broadcaster, ...OPTIONAL_BROADCASTER_SCOPES],
 } as const;
 type Role = keyof typeof ACCOUNT_SCOPES;
 type Account = { userId: string; token: AccessToken };
@@ -27,6 +32,7 @@ export async function createAuth(options: {
   let tokens: TokenFile = { clientId: clientId ?? '' };
   let writes = Promise.resolve();
   const pending = new Map<string, { role: Role; expires: number }>();
+  const missingOptional = () => OPTIONAL_BROADCASTER_SCOPES.filter(scope=>!tokens.broadcaster?.token.scope.includes(scope));
 
   function persist() {
     const contents = JSON.stringify(tokens, null, 2) + '\n';
@@ -40,6 +46,7 @@ export async function createAuth(options: {
   }
   async function ready() {
     if (provider && tokens.bot && tokens.broadcaster) {
+      if(missingOptional().length)console.warn('[auth] Broadcaster chat login remains valid. Reauthorize /auth/broadcaster to enable missing optional cheer/subscription scopes.');
       await options.onReady(provider, {
         botId: tokens.bot.userId,
         broadcasterId: tokens.broadcaster.userId,
@@ -64,7 +71,7 @@ export async function createAuth(options: {
         const account = saved[role];
         if (!account) continue;
         if (!account.userId || !account.token?.refreshToken ||
-            !ACCOUNT_SCOPES[role].every(scope => account.token.scope?.includes(scope))) {
+            !REQUIRED_ACCOUNT_SCOPES[role].every(scope => account.token.scope?.includes(scope))) {
           throw new Error(`Stored ${role} token is missing identity, refresh token or required scopes; log in again`);
         }
         provider.addUser(account.userId, account.token, [role]);
@@ -92,7 +99,7 @@ export async function createAuth(options: {
       return true;
     }
     if (url.pathname === '/auth') {
-      reply(res, 200, '<h1>Streamer vs Chat — Twitch login</h1><p>Use two different Twitch accounts. Confirm the account shown by Twitch on each login.</p><ol><li><a href="/auth/bot">Authorize bot</a></li><li><a href="/auth/broadcaster">Authorize broadcaster</a></li></ol>');
+      reply(res, 200, '<h1>Streamer vs Chat — Twitch login</h1><p>Use two different Twitch accounts. Confirm the account shown by Twitch on each login.</p><ol><li><a href="/auth/bot">Authorize bot</a></li><li><a href="/auth/broadcaster">Authorize broadcaster</a></li></ol>'+(tokens.broadcaster&&missingOptional().length?'<p>Chat is ready. Reauthorize the broadcaster to add optional cheer and subscription events; existing chat authorization stays valid.</p>':''));
       return true;
     }
     if (url.pathname.startsWith('/auth/')) {
@@ -127,7 +134,7 @@ export async function createAuth(options: {
     }
     try {
       const token = await exchangeCode(clientId, clientSecret, code, REDIRECT_URI);
-      if (!ACCOUNT_SCOPES[attempt.role].every(scope => token.scope.includes(scope))) {
+      if (!REQUIRED_ACCOUNT_SCOPES[attempt.role].every(scope => token.scope.includes(scope))) {
         throw new Error('Required scopes were not granted');
       }
       // Resolve identity before changing either registered account.
@@ -140,7 +147,7 @@ export async function createAuth(options: {
       provider.addUser(info.userId, token, [attempt.role]);
       await persist();
       await ready();
-      reply(res, 200, `<p>${attempt.role} authorized.</p><a href="/auth">Continue account setup</a>`);
+      reply(res, 200, `<p>${attempt.role} authorized.</p>${attempt.role==='broadcaster'&&missingOptional().length?'<p>Chat is ready. Some optional cheer/subscription permissions were not granted; reauthorize the broadcaster when available.</p>':''}<a href="/auth">Continue account setup</a>`);
     } catch {
       // OAuth errors can contain request details; never print codes or tokens.
       console.error('[auth] Login failed. Verify the account, app credentials and callback URI, then try again.');

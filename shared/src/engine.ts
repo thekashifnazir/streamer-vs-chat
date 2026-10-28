@@ -14,7 +14,7 @@ export type Resolution={round:number;beat:number;move:Move;at:number;outcome:Out
 export type RoundResult={number:number;winner:Winner;at:number;reason:'ko'|'timeout';streamer_hp:number;boss_hp:number};
 export type GameState={
   now:number;streamer:{hp:number;max_hp:number};boss:{hp:number;max_hp:number};
-  hype:number;supers_used:number;viewers:number;history:Move[];tally:Counts;voters:number;votes:Record<string,Move>;
+  hype:number;supers_used:number;viewers:number;history:Move[];tally:Counts;voters:number;votes:Record<string,Move>;raiders:Record<string,boolean>;raid:{ends_at:number|null};
   paused:boolean;stopped:boolean;
   round:{number:number;over:boolean;winner:Winner|null;ended_at:number|null;end_reason:'ko'|'timeout'|null;elapsed_ms:number;remaining_ms:number};
   match:{seed:number;round_wins:Record<Winner,number>;winner:Winner|null};
@@ -26,10 +26,25 @@ export type GameState={
   log:{telegraphs:Attack[];resolved:Resolution[];rounds:RoundResult[];inputs:DefenceInput[];fixes:ScoutingFix[]};
   rng:number;moves?:Move[];
 };
-export type EngineEvent=ChatVote|(PoseState&{capture_at?:number})|PunchEvent|(Control&{authorized?:boolean})|
+export type EngineVote=ChatVote&{raider?:boolean};
+export type EngineEvent=EngineVote|(PoseState&{capture_at?:number})|PunchEvent|(Control&{authorized?:boolean})|
   {kind:'advance'}|{kind:'next-round'}|{kind:'restart';seed?:number}|{kind:'viewers';count:number}|
-  {kind:'vote-batch';votes:ChatVote[]}|{kind:'crowd-votes';counts:Counts};
+  {kind:'vote-batch';votes:EngineVote[]}|{kind:'crowd-votes';counts:Counts}|{kind:'cheer';bits:number}|{kind:'subscribe'}|{kind:'raid';viewers:number};
 export function emptyCounts():Counts{return {JAB:0,HOOK_L:0,HOOK_R:0,COMBO:0,SUPER:0};}
+/** Raw tally counts people; this derived draw/UI view alone applies the live raid cap. */
+export function weightedTally(state:GameState):Counts{
+  const end=state.raid.ends_at,effectiveNow=state.clock.paused_at??state.now;
+  if(end===null||effectiveNow>=end)return {...state.tally};
+  const normal={...state.tally},raiders=emptyCounts();
+  for(const [user,move]of Object.entries(state.votes)){
+    if(Object.hasOwn(state.raiders,user)&&state.raiders[user]){normal[move]--;raiders[move]++;}
+  }
+  const normalWeight=MOVES.reduce((sum,move)=>sum+normal[move],0);
+  const raiderPeople=MOVES.reduce((sum,move)=>sum+raiders[move],0);
+  // Scale all raiders uniformly so together they cannot exceed half the draw.
+  const each=raiderPeople?Math.min(2,normalWeight/raiderPeople):0;
+  return Object.fromEntries(MOVES.map(move=>[move,normal[move]+raiders[move]*each])) as Counts;
+}
 /** Exact unsigned mulberry32; the reducer keeps its state explicitly, not in a closure. */
 function randomStep(seed:number):{seed:number;value:number}{
   const next=(seed+0x6D2B79F5)>>>0;
@@ -44,7 +59,7 @@ export function drawMove(counts:Partial<Counts>,history:Move[],rng:()=>number):M
   let move:Move;
   if(total===0)move=base[Math.floor(rng()*4)]!;
   else{
-    let x=Math.floor(rng()*total);move='SUPER';
+    let x=rng()*total;move='SUPER';
     for(const candidate of MOVES){const count=counts[candidate]??0;if(x<count){move=candidate;break;}x-=count;}
   }
   if(history.length>=2&&history.at(-1)===move&&history.at(-2)===move){
@@ -59,7 +74,7 @@ export function wilsonLower(k:number,n:number):number{
 export function createGame(options:{seed?:number;roundSeed?:number;viewers?:number;now?:number;roundNumber?:number;moves?:Move[]}={}):GameState{
   const now=options.now??0,number=options.roundNumber??1,seed=options.seed??0;
   return {now,streamer:{hp:100,max_hp:100},boss:{hp:135,max_hp:135},hype:0,supers_used:0,
-    viewers:Math.max(0,Math.floor(options.viewers??0)),history:[],tally:emptyCounts(),voters:0,votes:{},paused:false,stopped:false,
+    viewers:Math.max(0,Math.floor(options.viewers??0)),history:[],tally:emptyCounts(),voters:0,votes:{},raiders:{},raid:{ends_at:null},paused:false,stopped:false,
     round:{number,over:false,winner:null,ended_at:null,end_reason:null,elapsed_ms:0,remaining_ms:75000},
     match:{seed,round_wins:{streamer:0,boss:0},winner:null},
     scouting:{dodges:[],n:0,card:null,fixes:0,since_fix:0,cooldown:0,last_fix:null},counter:{open:false,closes_at:0},
@@ -72,7 +87,7 @@ export function createGame(options:{seed?:number;roundSeed?:number;viewers?:numb
 function copy(state:GameState):GameState{
   // Fixed-size structural copy. Histories and vote maps are copied only on writes.
   return {...state,streamer:{...state.streamer},boss:{...state.boss},round:{...state.round},match:{...state.match,round_wins:{...state.match.round_wins}},
-    scouting:{...state.scouting},counter:{...state.counter},input:{...state.input},clock:{...state.clock},log:{...state.log},
+    scouting:{...state.scouting},raid:{...state.raid},counter:{...state.counter},input:{...state.input},clock:{...state.clock},log:{...state.log},
     activeAttack:state.activeAttack?{...state.activeAttack}:null};
 }
 function scout(s:GameState,newDodge=false,at=s.now){
@@ -102,7 +117,7 @@ function finish(s:GameState,winner:Winner,at:number,reason:'ko'|'timeout'){
   s.match.round_wins[winner]++;
   if(s.match.round_wins[winner]>=2)s.match.winner=winner;
   s.activeAttack=null;s.counter.open=false;
-  s.tally=emptyCounts();s.votes={};s.voters=0;
+  s.tally=emptyCounts();s.votes={};s.raiders={};s.voters=0;
   s.log.rounds=[...s.log.rounds,{number:s.round.number,winner,at,reason,streamer_hp:s.streamer.hp,boss_hp:s.boss.hp}];
 }
 function ko(s:GameState,at:number){
@@ -158,7 +173,7 @@ function draw(s:GameState,at:number){
   let move:Move|undefined;
   if(s.moves!==undefined)move=s.moves[beat];
   else{
-    move=drawMove(s.tally,s.history,()=>{const r=randomStep(s.rng);s.rng=r.seed;return r.value;});
+    move=drawMove(weightedTally(s),s.history,()=>{const r=randomStep(s.rng);s.rng=r.seed;return r.value;});
   }
   if(move){
     s.history=[...s.history,move];
@@ -176,17 +191,22 @@ function draw(s:GameState,at:number){
     };
     s.activeAttack=attack;s.log.telegraphs=[...s.log.telegraphs,{...attack}];
   }
-  s.tally=emptyCounts();s.votes={};s.voters=0;
+  s.tally=emptyCounts();s.votes={};s.raiders={};s.voters=0;
 }
 function advance(s:GameState,now:number){
   scout(s);
-  if(s.paused||s.round.over){s.now=now;return;}
+  if(s.paused||s.round.over){
+    if(!s.paused&&s.raid.ends_at!==null&&now>=s.raid.ends_at){s.raid.ends_at=null;s.raiders={};}
+    s.now=now;return;
+  }
   while(!s.round.over){
     const landing=s.activeAttack?s.activeAttack.lands_at+(s.activeAttack.combo_hit?300:0):Infinity;
     const closing=s.counter.open?s.counter.closes_at:Infinity;
-    const due=Math.min(closing,landing,s.clock.next_beat,s.clock.ends_at);
+    const expiry=s.raid.ends_at??Infinity;
+    const due=Math.min(expiry,closing,landing,s.clock.next_beat,s.clock.ends_at);
     if(due>now)break;
     // The order at a shared millisecond is an explicit rule, not queue insertion order.
+    if(expiry===due){s.raid.ends_at=null;s.raiders={};}
     if(closing===due)s.counter.open=false;
     if(landing===due)hit(s,due);
     if(s.round.over)break;
@@ -196,9 +216,10 @@ function advance(s:GameState,now:number){
   s.now=now;
   if(!s.round.over){s.round.elapsed_ms=now-s.clock.started_at;s.round.remaining_ms=Math.max(0,s.clock.ends_at-now);}
 }
-function acceptVote(s:GameState,event:ChatVote){
+function acceptVote(s:GameState,event:EngineVote){
   if(event.move==='SUPER'&&(s.hype!==100||s.supers_used>=3))return;
   const old=Object.hasOwn(s.votes,event.user)?s.votes[event.user]:undefined;
+  Object.defineProperty(s.raiders,event.user,{value:event.raider===true,writable:true,enumerable:true,configurable:true});
   if(old===event.move)return;
   if(old)s.tally[old]--;else s.voters++;
   Object.defineProperty(s.votes,event.user,{value:event.move,writable:true,enumerable:true,configurable:true});s.tally[event.move]++;
@@ -212,6 +233,7 @@ export function step(state:GameState,event:EngineEvent,now:number):GameState{
     const next=createGame({seed:state.match.seed,viewers:state.viewers,now,roundNumber:state.round.number+1});
     next.match={...state.match,round_wins:{...state.match.round_wins}};
     next.scouting={...state.scouting,dodges:[...state.scouting.dodges],cooldown:0};next.log={...state.log};
+    next.raid={ends_at:state.raid.ends_at!==null&&state.raid.ends_at>now?state.raid.ends_at:null};
     scout(next);return next;
   }
   const s=copy(state);advance(s,now);
@@ -221,6 +243,7 @@ export function step(state:GameState,event:EngineEvent,now:number):GameState{
       if(s.paused){
         const delta=now-s.clock.paused_at!;
         s.clock.started_at+=delta;s.clock.ends_at+=delta;s.clock.next_beat+=delta;
+        if(s.raid.ends_at!==null)s.raid.ends_at+=delta;
         if(s.counter.open)s.counter.closes_at+=delta;
         if(s.activeAttack){
           s.activeAttack.at+=delta;s.activeAttack.lands_at+=delta;
@@ -244,7 +267,13 @@ export function step(state:GameState,event:EngineEvent,now:number):GameState{
   }
   if(event.kind==='viewers'){s.viewers=Math.max(0,Math.floor(event.count));return s;}
   if(s.paused||s.round.over)return s;
-  if(event.kind==='pose'){
+  if(event.kind==='cheer'){
+    if(Number.isInteger(event.bits)&&event.bits>0)s.hype=Math.min(100,s.hype+Math.min(event.bits,25));
+  }else if(event.kind==='subscribe'){
+    s.streamer.hp=Math.min(100,s.streamer.hp+8);
+  }else if(event.kind==='raid'){
+    if(Number.isSafeInteger(event.viewers)&&event.viewers>=0){s.raid.ends_at=now+15000;s.raiders={};}
+  }else if(event.kind==='pose'){
     const guardChanged=event.guard!==s.input.guard,leanChanged=event.lean!==s.input.lean;
     const capture_at=event.capture_at??event.at;
     if(guardChanged||leanChanged){
@@ -265,12 +294,12 @@ export function step(state:GameState,event:EngineEvent,now:number):GameState{
   }else if(event.kind==='punch'){
     if(now-s.input.last_punch_at>=450){s.input.last_punch_at=now;s.boss.hp=Math.max(0,s.boss.hp-(s.counter.open?1.5:1));ko(s,now);}
   }else if(event.kind==='vote'||event.kind==='vote-batch'){
-    s.votes={...s.votes};s.tally={...s.tally};
+    s.votes={...s.votes};s.raiders={...s.raiders};s.tally={...s.tally};
     for(const vote of event.kind==='vote'?[event]:event.votes)acceptVote(s,vote);
   }else if(event.kind==='crowd-votes'){
     s.tally={...event.counts};
     if(s.hype!==100||s.supers_used>=3)s.tally.SUPER=0;
-    s.voters=MOVES.reduce((total,m)=>total+s.tally[m],0);s.votes={};
+    s.voters=MOVES.reduce((total,m)=>total+s.tally[m],0);s.votes={};s.raiders={};
   }
   return s;
 }

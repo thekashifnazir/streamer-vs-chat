@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createAuth, ACCOUNT_SCOPES, REDIRECT_URI } from './auth.js';
+import { createAuth, ACCOUNT_SCOPES, REQUIRED_ACCOUNT_SCOPES, REDIRECT_URI } from './auth.js';
+import { readFile } from 'node:fs/promises';
 
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn().mockRejectedValue(Object.assign(new Error('missing'), { code: 'ENOENT' })),
   writeFile: vi.fn(), rename: vi.fn(), chmod: vi.fn(),
 }));
 vi.mock('@twurple/auth', () => ({
-  RefreshingAuthProvider: class { onRefresh() {} onRefreshFailure() {} },
+  RefreshingAuthProvider: class { onRefresh() {} onRefreshFailure() {} addUser() {} },
   exchangeCode: vi.fn(),
 }));
 
@@ -31,7 +32,7 @@ describe('two-account Authorization Code login', () => {
     expect(result.status).toBe(503);
     expect(result.body).toContain('TWITCH_CLIENT_ID');
   });
-  it('redirects each account with exactly its Day 1 scopes, state and callback', async () => {
+  it('requests base bot scopes and optional broadcaster scopes with state and callback', async () => {
     vi.stubEnv('TWITCH_CLIENT_ID', 'test-client'); vi.stubEnv('TWITCH_CLIENT_SECRET', 'test-secret');
     const auth = await createAuth({ onReady: vi.fn() });
     for (const role of ['bot', 'broadcaster'] as const) {
@@ -47,6 +48,19 @@ describe('two-account Authorization Code login', () => {
       expect(result.headers['Set-Cookie']).toContain('HttpOnly; SameSite=Lax');
       expect(result.headers.Location).not.toContain('test-secret');
     }
+  });
+  it('loads valid legacy broadcaster tokens and offers reauthorization without discarding chat',async()=>{
+    vi.stubEnv('TWITCH_CLIENT_ID','test-client');vi.stubEnv('TWITCH_CLIENT_SECRET','test-secret');
+    const token=(scope:readonly string[])=>({accessToken:'test-only-placeholder',refreshToken:'test-only-refresh',scope:[...scope],expiresIn:3600,obtainmentTimestamp:0});
+    vi.mocked(readFile).mockResolvedValueOnce(JSON.stringify({clientId:'test-client',bot:{userId:'bot',token:token(REQUIRED_ACCOUNT_SCOPES.bot)},broadcaster:{userId:'caster',token:token(REQUIRED_ACCOUNT_SCOPES.broadcaster)}}));
+    const warning=vi.spyOn(console,'warn').mockImplementation(()=>{});const ready=vi.fn();
+    const auth=await createAuth({onReady:ready});
+    expect(ready).toHaveBeenCalledWith(expect.anything(),{botId:'bot',broadcasterId:'caster'});
+    const {result,res}=response();
+    await auth.handle({url:'/auth',method:'GET',headers:{}} as IncomingMessage,res);
+    expect(result.status).toBe(200);expect(result.body).toContain('Chat is ready');expect(result.body).toContain('Reauthorize');
+    expect(warning).toHaveBeenCalledWith(expect.stringContaining('chat login remains valid'));
+    warning.mockRestore();await auth.close();
   });
   it('rejects callbacks without browser-bound state before exchanging codes', async () => {
     vi.stubEnv('TWITCH_CLIENT_ID', 'test-client'); vi.stubEnv('TWITCH_CLIENT_SECRET', 'test-secret');

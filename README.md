@@ -44,11 +44,19 @@ curl -X POST localhost:8081/inject -H 'Content-Type: application/json' -d '{"rol
 curl localhost:8081/results
 ```
 
-The shim provides EventSub-shaped chat notifications and proxies other mock subscriptions. Twurple's API and socket both use **8081** via explicit `mockServerPort:8081`, `url:ws://127.0.0.1:8081/ws` and `TWURPLE_MOCK_API_PORT=8081`. For future non-chat mock events, use the exact session/subscription IDs from `getCliTestCommand()`:
+The shim provides EventSub-shaped chat notifications and proxies other mock subscriptions. Twurple's API and socket both use **8081** via explicit `mockServerPort:8081`, `url:ws://127.0.0.1:8081/ws` and `TWURPLE_MOCK_API_PORT=8081`. Cheer, subscription and raid mock subscriptions print their exact commands from `getCliTestCommand()`. Always keep the registered session/subscription IDs:
 
 ```sh
 twitch event trigger <event> -T websocket --session <id> -u <subscription-id>
 ```
+
+Run the isolated optional-event integration check with the Twitch CLI installed and the mock stack stopped:
+
+```sh
+npm run test:mock-events
+```
+
+It starts its own CLI and shim, uses the exact registered session/subscription IDs, verifies cheer/sub/raid effects in the real game session, and confirms chat injection still works. Its configuration and event cache are temporary; it does not load server credentials. Normal completion and Ctrl+C/termination clean up its services.
 
 Never send scripted chat to a live channel. Mock mode skips auth/token loading; live sessions reject simulated votes/results.
 
@@ -57,7 +65,9 @@ Never send scripted chat to a live channel. Mock mode skips auth/token loading; 
 Copy `.env.example` to `.env`, fill the app credentials locally, and register **http://localhost:3000/callback** exactly. Run `npm run dev`, then visit [account setup](http://localhost:3000/auth). Authorize two different accounts:
 
 - Bot: `user:read:chat user:write:chat user:bot`.
-- Broadcaster: `channel:bot clips:edit`.
+- Broadcaster: `channel:bot clips:edit bits:read channel:read:subscriptions`.
+
+Existing broadcaster tokens without the two added scopes keep chat working; reconnect the broadcaster account to enable cheers/subscriptions. Raid notifications need no added scope. Optional events are tested locally with the CLI mock; no scripted events are sent to live Twitch.
 
 The server stores/refreshes both identities in gitignored owner-only `tokens.json`. Start the match from capture; round results are sent in the bot's user context, at most once per10 seconds with a three-message drop-oldest queue. No results are generated before explicit START. Viewer count is polled every60 seconds, with0 offline. Round two starts after a short results pause unless stopped; START MATCH resets the match.
 
@@ -73,6 +83,6 @@ npm run sim
 npx tsc --noEmit
 ```
 
-Tests use local transports or mocked Twitch modules. All50 golden vectors run through the same pure `step(state,event,now)` reducer used by the server, browser demo and balance sim. The sim runs4000 single rounds per cell across five player models and0/3/50/500 viewers; it fails if casual wins leave30–70% or no-punch falls below30%. GitHub Actions runs `npm ci`, tests, sim and offline build.
+Tests use local transports or mocked Twitch modules. All50 golden vectors run through the same pure `step(state,event,now)` reducer used by the server, browser demo and balance sim. The sim runs 4000 single R1 rounds per cell across five player models and 0/3/50/500 viewers, plus 4000 scouting-enabled R2 rounds per cell with real R1 evidence. Both matrices fail if casual wins leave 30–70% or no-punch falls below 30%; the scouting matrix also requires cards, exploits and fixes to occur. GitHub Actions runs `npm ci`, tests, sim and offline build.
 
-[Day3 verification and balance results](docs/day3-review.md). Clips, cheers/subscriptions/raids, and day6 feel/mix tuning remain later work.
+[Day 4 verification, scouting results and optional-event semantics](docs/day4-review.md). Scouting begins in round 2; fixing a habit heals up to 10 HP. Cheers add capped hype, new subscriptions heal 8 HP, and raids start a 15-second Phase 2 with inferred raider weighting capped at half the draw. Clips and day-6 feel/mix tuning remain later work.

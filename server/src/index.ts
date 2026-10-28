@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { CaptureInputs } from './inputs.js';
 import { createAuth } from './auth.js';
-import { createTwitchSession, type IncomingChat } from './twitch.js';
+import { createTwitchSession, type IncomingChat, type IncomingTwist } from './twitch.js';
 import { GameSession } from './game-session.js';
 
 const mock=process.argv.includes('--mock')||process.env.TWITCH_MOCK==='1';
@@ -28,12 +28,13 @@ const captureInputs=new CaptureInputs({onInput:(event,at)=>{
 const onMessage=(message:IncomingChat)=>{
   game.chat(message);captureInputs.setStopped(game.frozen,Date.now());broadcast();
 };
+const onTwist=(event:IncomingTwist)=>{game.twist(event);broadcast();};
 async function updateViewers(){
   try {if(twitch)game.viewers(await twitch.viewers());}
   catch {console.error('[viewers] Could not refresh viewer count; retaining the last value.');}
 }
 const auth=mock?undefined:await createAuth({onReady:async(authProvider,accounts)=>{
-  twitch?.stop();twitch=createTwitchSession({mock:false,onMessage,authProvider,...accounts});await updateViewers();
+  twitch?.stop();twitch=createTwitchSession({mock:false,onMessage,onTwist,authProvider,...accounts});await updateViewers();
 }});
 const server=createServer(async(req,res)=>{
   try {
@@ -60,7 +61,7 @@ const ticks=setInterval(()=>{captureInputs.expire(Date.now());game.advance();cap
 const viewers=setInterval(()=>void updateViewers(),60000);
 server.listen(3000,'127.0.0.1',()=>{
   console.log(`[server] http://localhost:3000 · ${mock?'SIMULATED':'live auth'} · Open /capture and press START MATCH when ready.`);
-  if(mock){twitch=createTwitchSession({mock:true,onMessage});void updateViewers();}
+  if(mock){twitch=createTwitchSession({mock:true,onMessage,onTwist});void updateViewers();}
 });
 let closing=false;
 async function close(){

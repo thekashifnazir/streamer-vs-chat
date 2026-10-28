@@ -75,3 +75,38 @@ it('names the exploited habit from the attack snapshot, including after the live
   expect(exploitHabitNote(state)).toBe('EXPLOIT · YOU DODGE RIGHT');
   state.activeAttack.exploit=false;expect(exploitHabitNote(state)).toBe('');
 });
+
+import { isTallySnapshot, raidPresentation, voteShares } from './hud';
+import type { TallySnapshot } from '@svc/shared';
+function tally():TallySnapshot {
+  return {kind:'tally',simulated:true,voters:4,tally:{JAB:3,HOOK_L:1,HOOK_R:0,COMBO:0,SUPER:0}};
+}
+it('keeps raw voter counts while projecting the supplied weighted shares and leader',()=>{
+  const message={...tally(),weights:{JAB:3,HOOK_L:2,HOOK_R:0,COMBO:0,SUPER:0}};
+  expect(isTallySnapshot(message)).toBe(true);
+  expect(voteShares(message)).toMatchObject({percent:{JAB:60,HOOK_L:40},highest:3,total:5});
+  expect(message.tally).toEqual(tally().tally);expect(message.voters).toBe(4);
+  expect(voteShares(tally()).percent).toMatchObject({JAB:75,HOOK_L:25});
+});
+it('rejects malformed optional influence weights instead of displaying NaN or negative bars',()=>{
+  for(const weights of [null,{}, {JAB:NaN,HOOK_L:1,HOOK_R:0,COMBO:0,SUPER:0},
+    {JAB:Infinity,HOOK_L:1,HOOK_R:0,COMBO:0,SUPER:0},
+    {JAB:-1,HOOK_L:1,HOOK_R:0,COMBO:0,SUPER:0},
+    {JAB:Number.MAX_VALUE,HOOK_L:Number.MAX_VALUE,HOOK_R:0,COMBO:0,SUPER:0}]) {
+    expect(isTallySnapshot({...tally(),weights})).toBe(false);
+  }
+  expect(isTallySnapshot({...tally(),weights:{JAB:1.5,HOOK_L:.5,HOOK_R:0,COMBO:0,SUPER:0}})).toBe(true);
+});
+it('shows zero influence rather than inventing a share when the raid cap suppresses all-raider votes',()=>{
+  const message={...tally(),weights:{JAB:0,HOOK_L:0,HOOK_R:0,COMBO:0,SUPER:0}};
+  expect(voteShares(message)).toMatchObject({total:0,highest:0,percent:{JAB:0,HOOK_L:0,HOOK_R:0,COMBO:0,SUPER:0}});
+  expect(message.voters).toBe(4);
+});
+it('shows the fifteen-second raid phase, freezes while paused, and hides exactly at expiry',()=>{
+  const state=createGame({now:1000});state.raid.ends_at=16_000;
+  expect(raidPresentation(state)).toEqual({active:true,seconds:15});
+  state.now=15_999;expect(raidPresentation(state)).toEqual({active:true,seconds:1});
+  state.now=16_000;expect(raidPresentation(state)).toEqual({active:false,seconds:0});
+  state.clock.paused_at=10_000;state.now=90_000;
+  expect(raidPresentation(state)).toEqual({active:true,seconds:6});
+});

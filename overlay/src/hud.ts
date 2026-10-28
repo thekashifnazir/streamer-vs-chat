@@ -1,11 +1,32 @@
 import type { Move, TallySnapshot } from '@svc/shared';
-import type { GameState } from '../../shared/src/engine';
+import { weightedTally, type GameState } from '../../shared/src/engine';
 import { BossSprite, moveClip } from './assets';
 import { GameSound } from './sound';
 
 const commands:[Move,string][]=[['JAB','!jab'],['HOOK_L','!hookl'],['HOOK_R','!hookr'],['COMBO','!combo'],['SUPER','!super']];
 export const defenceCue=(move:Move)=>move==='HOOK_L'?'LEAN →':move==='HOOK_R'?'← LEAN':move==='SUPER'?'LEAN ANY WAY':'GUARD';
 const names:Record<Move,string>={JAB:'JAB',HOOK_L:'HOOK LEFT',HOOK_R:'HOOK RIGHT',COMBO:'COMBO',SUPER:'SUPER'};
+export function isTallySnapshot(value:unknown):value is TallySnapshot {
+  if(!value||typeof value!=='object')return false;
+  const message=value as Partial<TallySnapshot>;
+  if(message.kind!=='tally'||typeof message.simulated!=='boolean'||!Number.isSafeInteger(message.voters)||message.voters! < 0||!message.tally)return false;
+  if(!commands.every(([move])=>Number.isSafeInteger(message.tally?.[move])&&message.tally![move]>=0))return false;
+  if(message.weights!==undefined) {
+    if(!message.weights||typeof message.weights!=='object'||!commands.every(([move])=>Number.isFinite(message.weights?.[move])&&message.weights![move]>=0))return false;
+    if(!Number.isFinite(commands.reduce((sum,[move])=>sum+message.weights![move],0)))return false;
+  }
+  return true;
+}
+export function voteShares(message:TallySnapshot) {
+  const weights=message.weights??message.tally;
+  const total=commands.reduce((sum,[move])=>sum+weights[move],0);
+  return {weights,total,highest:Math.max(...commands.map(([move])=>weights[move])),
+    percent:Object.fromEntries(commands.map(([move])=>[move,total?Math.round(weights[move]/total*100):0])) as Record<Move,number>};
+}
+export function raidPresentation(state:GameState) {
+  const remaining=Math.max(0,(state.raid.ends_at??-Infinity)-(state.clock.paused_at??state.now));
+  return {active:remaining>0,seconds:Math.ceil(remaining/1000)};
+}
 export const FIXED_STAMP_MS=1800;
 /** Authoritative scouting state projected into presentation; no thresholds live in the HUD. */
 export function scoutingPresentation(state:GameState) {
@@ -45,7 +66,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b data-id="cue"></b></div><small data-id="exploit-note"></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
-  <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div>
+  <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · MAX 50% TOGETHER</span></section>
   <div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
   <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="440" role="img" aria-label="Chat Golem boss"></canvas></aside></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
@@ -82,13 +103,14 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   let lastVoteSoundAt=-Infinity;
   function once(key:string,play:()=>void){if(heard.has(key))return;heard.add(key);play();}
   function renderTally(message:TallySnapshot,superReady=false,exploit?:Move) {
-    const total=commands.reduce((sum,[move])=>sum+message.tally[move],0);
-    const highest=Math.max(...commands.map(([move])=>message.tally[move]));
+    if(!isTallySnapshot(message))return;
+    const {weights,percent:shares,highest}=voteShares(message);
     el('voters').textContent=String(message.voters);el('simulated').hidden=!message.simulated;
-    for(const {move,row,count,fill,percent}of rows){const value=message.tally[move];const share=total?Math.round(value/total*100):0;const locked=move==='SUPER'&&!superReady;
+    for(const {move,row,count,fill,percent}of rows){const value=message.tally[move];const share=shares[move];const locked=move==='SUPER'&&!superReady;
       count.textContent=String(value);fill.style.width=`${share}%`;percent.textContent=locked?'LOCKED':`${share}%`;
-      row.classList.toggle('locked',locked);row.classList.toggle('leader',highest>0&&value===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
-      row.setAttribute('aria-label',`${names[move]} ${value}${locked?', locked':`, ${share} percent`}`);
+      row.classList.toggle('locked',locked);row.classList.toggle('leader',highest>0&&weights[move]===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
+      row.setAttribute('aria-label',`${names[move]} ${value} voters${locked?', locked':`, ${share} percent influence`}`);
+      row.title=`${value} viewer vote${value===1?'':'s'} · ${share}% of attack draw influence`;
     }
   }
   function render(state:GameState,simulated=!!options.simulated) {
@@ -116,7 +138,11 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       setText('scouting-label','HABIT BROKEN');
       setText('fixed-reward',scouting.healed>0?`+${scouting.healed} HP · KEEP MIXING IT UP`:'HP FULL · KEEP MIXING IT UP');
     }
-    renderTally({kind:'tally',tally:state.tally,voters:state.voters,simulated},superReady,scouting.kind==='habit'?scouting.highlightedMove:undefined);
+    renderTally({kind:'tally',tally:state.tally,weights:weightedTally(state),voters:state.voters,simulated},superReady,scouting.kind==='habit'?scouting.highlightedMove:undefined);
+    const raid=raidPresentation(state);
+    el('raid-phase').hidden=!raid.active;
+    host.querySelector('.boss')!.classList.toggle('raid-active',raid.active);
+    if(raid.active){setText('raid-label',`PHASE 2 · RAID · ${raid.seconds}s`);el('raid-phase').title='Raider votes have 2× influence, capped at half the combined influence. Regular votes are needed; raiders alone have zero influence.';}
     el('beat').textContent=state.paused?'· PAUSED':`· NEXT IN ${((2400-state.round.elapsed_ms%2400)/1000).toFixed(1)}s`;
     const attack=state.activeAttack;
     const telegraph=!!attack&&!attack.vetoed&&(state.clock.paused_at??state.now)<attack.lands_at&&!state.round.over;
