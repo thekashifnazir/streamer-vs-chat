@@ -18,6 +18,8 @@ export function offlineDependencyFiles(manifest:Manifest,entries:string[]=['inde
   }
   for(const entry of entries){const key=manifest[entry]?entry:Object.keys(manifest).find(key=>manifest[key]!.file===entry);if(!key)throw new Error(`Missing manifest entry: ${entry}`);visit(key);}return result;
 }
+/** Match complete inline audio URLs, not MediaPipe's unused dynamic MIME-prefix helper. */
+export function hasInlinedAudio(text:string):boolean{return /data:audio\/[a-z0-9!#$&^_.+-]+(?:;[^,\s"'`<>]*)?,/i.test(text);}
 /** Local runtime assets and a complete offline demo graph; Twitch is a conditional live branch. */
 export async function auditOfflineBuild(root:string):Promise<string[]> {
   const files:string[]=[];
@@ -36,6 +38,7 @@ export async function auditOfflineBuild(root:string):Promise<string[]> {
   if(!html.includes("connect-src 'self'")||!html.includes("script-src 'self'"))throw new Error('Demo must allow same-origin runtime connections/scripts');
   for(const file of files.filter(path=>/\.(js|css|html)$/.test(path))) {
     const text=await readFile(join(root,file),'utf8');
+    if(hasInlinedAudio(text))throw new Error(`Inlined audio must not ship in the demo: ${file}`);
     if(/\.(?:css|html)$/.test(file)&&/url\(\s*["']?https?:\/\//i.test(text))throw new Error(`External CSS runtime dependency in ${file}`);
     if(/(?:src|href)\s*=\s*["']https?:\/\//i.test(text)||/\b(?:import|export)[^;\n]*?from\s*["']https?:\/\//.test(text))throw new Error(`External runtime dependency in ${file}`);
     if(offlineFiles.has(file)&&file.endsWith('.js')&&(/\b(?:fetch|WebSocket|EventSource|import)\s*\(\s*["'`]https?:\/\//.test(text)||/["'`]wss?:\/\//.test(text)||/https:\/\/(?:id|api)\.twitch\.tv/.test(text)))throw new Error(`Twitch/external network dependency in offline graph: ${file}`);

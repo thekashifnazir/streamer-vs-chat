@@ -20,7 +20,7 @@ export async function buildDemo(options: {mock?:boolean} = {}) {
   await build({
     configFile:false, root:join(projectRoot,'demo'), publicDir:false, envDir:false, envPrefix:[], base:'/',
     define:{'import.meta.env.VITE_TWITCH_CLIENT_ID':JSON.stringify(process.env.VITE_TWITCH_CLIENT_ID??'')},
-    build:{outDir:output,emptyOutDir:true,target:'es2022',manifest:true,rollupOptions:{input:{index:join(projectRoot,'demo/index.html'),play:join(projectRoot,'demo/play/index.html')}}},
+    build:{assetsInlineLimit:file=>/\.wav$/i.test(file)?false:undefined,outDir:output,emptyOutDir:true,target:'es2022',manifest:true,rollupOptions:{input:{index:join(projectRoot,'demo/index.html'),play:join(projectRoot,'demo/play/index.html')}}},
   });
   const poseOutput=join(output,'assets/pose');
   await mkdir(poseOutput,{recursive:true});

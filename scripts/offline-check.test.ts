@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { auditOfflineBuild } from './offline-check';
+import { auditOfflineBuild,hasInlinedAudio } from './offline-check';
 it('rejects unused WASM, missing local assets and credentials in the distributable',async()=>{
   const root=await mkdtemp(join(tmpdir(),'svc-offline-'));
   try {
@@ -11,6 +11,8 @@ it('rejects unused WASM, missing local assets and credentials in the distributab
     const html=`<meta http-equiv="Content-Security-Policy" content="script-src 'self'; connect-src 'self'"><script src="/assets/app.js"></script>`;
     await writeFile(join(root,'index.html'),html);
     await expect(auditOfflineBuild(root)).rejects.toThrow('Unbundled runtime asset');
+    await writeFile(join(root,'assets/app.js'),'const vote="data:audio/wav;base64,UklGRg==";');
+    await expect(auditOfflineBuild(root)).rejects.toThrow('Inlined audio');
     await writeFile(join(root,'assets/app.js'),'');expect(await auditOfflineBuild(root)).toContain('assets/app.js');
     await writeFile(join(root,'assets/style.css'),'@font-face{src:url(/assets/font.woff2)}');
     await expect(auditOfflineBuild(root)).rejects.toThrow('font.woff2');
@@ -46,4 +48,11 @@ it('rejects Twitch endpoints hidden in any no-login dynamic dependency',async()=
     await expect(auditOfflineBuild(root)).rejects.toThrow('offline graph: assets/main.js');
     await writeFile(join(root,'assets/main.js'),'');await expect(auditOfflineBuild(root)).resolves.toContain('assets/play.js');
   }finally{await rm(root,{recursive:true,force:true});}
+});
+
+it('distinguishes complete audio data URLs from the vendored dynamic MIME-prefix helper',()=>{
+ expect(hasInlinedAudio('const tick="data:audio/wav;base64,UklGRg=="')).toBe(true);
+ expect(hasInlinedAudio('DATA:audio/ogg,encoded-audio')).toBe(true);
+ expect(hasInlinedAudio('data:audio/x_custom;codecs=pcm;base64,')).toBe(true);
+ expect(hasInlinedAudio('audio.src="data:audio/x-"+name.slice(-3)+";base64,"+encode64(bytes)')).toBe(false);
 });
