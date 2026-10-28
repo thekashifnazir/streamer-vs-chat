@@ -3,7 +3,7 @@
 - **Chat Golem:** original art dedicated to CC0 by Kash (Kashif Nazir). Atlas and provenance: `assets/boss/README.md`.
 - **Anton / Barlow Condensed / Bungee / Russo One / Inter:** SIL Open Font License 1.1. Original notices are retained in `assets/fonts/` and identified per file below.
 - **Prepared SFX/music:** CC0 sources documented in `assets/SOUNDS.md`: Kenney sound packs; Freesound 420668 by SypherZent, 520998 by Mateusz_Chenc, 221567 by AlaskaRobotics; OpenGameArt “8-Bit Battle Loop” by Wolfgang_. Original Kenney notices are in `assets/licences/`.
-- **Original announcer audio:** generated locally with Kokoro-82M. Source-model, process and provenance notes: `assets/voice/README.md`.
+- Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. Source, model and take notes: `assets/voice/README.md`.
 - **MediaPipe Tasks Vision 0.10.32:** Google/MediaPipe Authors, Apache-2.0 as declared by the pinned npm package. License text is retained in `assets/licences/Apache-2.0.txt`. Official lite model source/checksum: `capture/public/models/README.md`.
 
 The demo build includes this file and the relevant notices under `/credits/`. No prep-repository implementation code is included.
@@ -67,20 +67,20 @@ The table is generated from `git ls-files assets`: one row per tracked file, inc
 | `assets/sfx-ready/you-lose.wav` | `sfx/result_kenney_vo_you_lose.ogg` | CC0 1.0 |
 | `assets/sfx-ready/you-win.wav` | `sfx/result_kenney_vo_you_win.ogg` | CC0 1.0 |
 | `assets/voice/README.md` | Project provenance and preparation documentation | Documentation; underlying asset terms listed here and in this file |
-| `assets/voice/ready/blocked.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/chat-wins.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/counter.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/draw.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/final-round.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/fixed-it.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/hands-up.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/ko.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/perfect.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/round-1-fight.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/round-2.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/streamer-wins.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/super-incoming.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
-| `assets/voice/ready/weakness-found.wav` | Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`. | Generated audio; see provenance |
+| `assets/voice/ready/blocked.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/chat-wins.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/counter.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/draw.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/final-round.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/fixed-it.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/hands-up.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/ko.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/perfect.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/round-1-fight.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/round-2.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/streamer-wins.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/super-incoming.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/weakness-found.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 <!-- asset-inventory:end -->
 
 ## Vendored dependencies outside assets/

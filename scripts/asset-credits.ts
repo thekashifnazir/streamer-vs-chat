@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 const START = '<!-- asset-inventory:start -->';
 const END = '<!-- asset-inventory:end -->';
-export const ANNOUNCER_PROVENANCE = 'Original generated announcer recordings, Kokoro-82M; model Apache-2.0 does not assert a separate output licence. See `assets/voice/README.md`.';
+export const ANNOUNCER_PROVENANCE = 'Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan.';
 
 const fontNotices: Record<string, string> = {
   Anton: 'anton-OFL.txt', BarlowCondensed: 'barlowcondensed-OFL.txt',

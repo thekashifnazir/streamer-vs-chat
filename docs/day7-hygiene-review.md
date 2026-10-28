@@ -17,3 +17,17 @@ Independent subagent review checked the inventory and local provenance; root rev
 ## Row 5: accurate review wording
 
 README, agent instructions, prompts and historical reports now say independent subagent review. Removed unavailable-command fallback wording while retaining findings, counts and the Boss Forge qualification that root completed the final pass after the reviewer reached its limit. No external Devpost content was changed. A separate subagent reviewed this wording lane and verified no obsolete command references remain in tracked text.
+
+## Row 6: selected Rex Thunder takes
+
+Updated the prep repository (already current at 84ece4eb543fed649d1dab3f933aabbff0ab420d), then copied its 14 selected Rex WAVs over the same 14 destination names. Root and independent subagent review each SHA-256 compared every destination to the prep source; all match byte-for-byte. Source QC metadata records all 42 Rex takes passing. No generation request, credential or runtime audio-code change was involved.
+
+Voice README now identifies ElevenLabs, eleven_v3, Rex Thunder - Deep N Tough and voice ID mtrellq69YZsNwzUSyXh, with the requested paid Creator-plan credit and frame-count durations. The CREDITS introduction and generated voice rows use that exact credit. SOUNDS now points to the chosen Rex source and current timing rather than the previous takes. MediaPipe's Apache notice remains.
+
+A WAV regression checks the exact 14-name set, PCM16 mono 44.1 kHz format and hands-up duration below the shared 800 ms telegraph. Measured hands-up duration is 599.931972789 ms. Independent subagent review cleared bytes, provenance, credit wording and timing.
+
+## Final gates
+
+Node 22.23.4 full suite: **506/506 tests**, including goldens, exact asset inventory coverage, actual dist-demo audio audit and the new WAV timing check. TypeScript and whitespace checks pass. No deployment performed.
+
+The complete balance run passes all four ordinary/coordinated R1/R2 matrices, scouting/brace coverage and all four boss fixtures. Production results are unchanged: casual 48.5-65.6%, no-punch 35.9-53.1%.
