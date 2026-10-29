@@ -1,3 +1,4 @@
+import {tempoFor,type Difficulty} from '../../shared/src/tempo';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import type {BossDef} from '../../shared/src/boss-def';
 import '../../overlay/src/style.css';
@@ -23,6 +24,7 @@ const video=el<HTMLVideoElement>('camera');
 const source=el<HTMLSelectElement>('input-source');
 const crowdSize=el<HTMLSelectElement>('crowd-size');
 const posture=el<HTMLSelectElement>('posture');
+const difficulty=el<HTMLSelectElement>('start-difficulty');
 const clearSpace=el<HTMLInputElement>('clear-space');
 const noPunch=el<HTMLInputElement>('no-punch');
 const avatar=el('keyboard-avatar');
@@ -91,7 +93,7 @@ function paint() {
   hud.setForge(forgeSnapshot,!game||game.round.over);
   if(game&&coldOpenAt===null)viewerMemory?.observe(game);
   hud.setMemory(viewerMemory?.view()??null);
-  hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0}),!liveMode);
+  hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0,difficulty:difficulty.value as Difficulty}),!liveMode);
   hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   trackFight();trackLocalRound();
   const summary=game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null;
@@ -106,7 +108,7 @@ function paint() {
 }
 function drawCrowd(at:number) {
   if(liveMode||coldOpenAt!==null||!game||!crowd||game.round.over||game.paused)return;
-  const key=`${game.round.number}:${Math.floor(game.round.elapsed_ms/2400)}`;
+  const key=`${game.round.number}:${Math.floor(game.round.elapsed_ms/tempoFor(game.difficulty).beat)}`;
   if(key===crowdBeat)return;
   crowdBeat=key;
   const votes=crowd.votes(game,at);
@@ -119,7 +121,7 @@ function startFight() {
   if(!clearSpace.checked){el('tutorial-status').textContent='Confirm your clear space below before starting.';return;}
   hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
   const at=performance.now();
-  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,...(!liveMode&&pendingBoss?{bossDef:pendingBoss}:{})});
+  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,difficulty:difficulty.value as Difficulty,...(!liveMode&&pendingBoss?{bossDef:pendingBoss}:{})});
   // Live chat and the offline crowd both feed the shared reducer; no server import.
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+100,liveTokenLoaded:hosted?.hasToken??false});
   trackLocalRound();crowdBeat='';drawCrowd(at);

@@ -40,3 +40,8 @@ it('only the capture owner can acknowledge replay availability or change modes',
  expect(parseReplayResult({kind:'replay-result',highlightId:'x',available:'yes'})).toBe(null);
  owner.emit('close');expect(channel.requestReplay({kind:'replay-request',highlightId:'moment'})).toBe(false);
 });
+
+it('validates pending difficulty options while retaining old client compatibility',()=>{
+ for(const difficulty of ['easy','medium','hard','expert'])expect(parseCaptureOptions({kind:'capture-options',seated:false,noPunch:false,difficulty})).toEqual({kind:'capture-options',seated:false,noPunch:false,difficulty});
+ for(const difficulty of ['extreme','constructor',null,1])expect(parseCaptureOptions({kind:'capture-options',seated:false,noPunch:false,difficulty})).toBeNull();
+});

@@ -110,3 +110,14 @@ it('caches unchanged summary evidence while frozen and updates duration, new dam
  game.input({kind:'control',action:'resume',by:'capture'});game.chat({user:'a',text:'!jab',simulated:true,role:'viewer'});at(12300);game.advance();
  expect(game.summary().stats.damageTaken).toBeGreaterThan(8);game.close();
 });
+it('applies the selected difficulty only at START and includes it in the result line',async()=>{
+ const {game,at,send}=rig();
+ game.configure({kind:'capture-options',seated:false,noPunch:false,difficulty:'medium'});
+ expect(game.state.difficulty).toBe('hard');
+ game.command({kind:'session',action:'start'});expect(game.state.difficulty).toBe('medium');
+ game.configure({kind:'capture-options',seated:false,noPunch:false,difficulty:'easy'});
+ expect(game.state.difficulty).toBe('medium');
+ game.state.boss.hp=1;at(100);game.input({kind:'punch',side:'L',at:100,source:'keyboard'});
+ await new Promise(resolve=>setTimeout(resolve,0));expect(send.mock.calls[0]?.[0]).toContain('· Medium');
+ game.command({kind:'session',action:'start'});expect(game.state.difficulty).toBe('easy');game.close();
+});

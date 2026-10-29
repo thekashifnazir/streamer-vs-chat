@@ -1,3 +1,4 @@
+import {difficultyName, type Difficulty} from '../../shared/src/tempo';
 import {type BossDef,isDefaultBoss,validateBoss} from '../../shared/src/boss-def';
 import { parseChatVote, type StreamerInput, type TallySnapshot, type PoseState } from '@svc/shared';
 import { createGame, step, weightedTally, type EngineEvent, type GameState } from '../../shared/src/engine';
@@ -19,6 +20,7 @@ export type SessionChat={user:string;text:string;simulated:boolean;role:ChatRole
 export class GameSession {
   private current:GameState;
   private armed=false;
+  private pendingDifficulty:Difficulty='hard';
   private pendingBoss:BossDef|null|undefined;
   private forgeHeld=false;
   queueBoss(def:BossDef|null):boolean {if(this.armed&&!this.current.round.over)return false;if(def&&validateBoss(def,[],{allowDefault:true}).length)return false;this.pendingBoss=def&&!isDefaultBoss(def)?structuredClone(def):null;return true;}
@@ -58,7 +60,7 @@ export class GameSession {
     const value=this.cachedSummary,name=value.chatMvp&&this.viewerNames.get(value.chatMvp.user);
     return name?{...value,chatMvp:{...value.chatMvp!,displayName:name}}:value;
   }
-  configure(options:CaptureOptions){this.modes={seated:options.seated,noPunch:options.noPunch};}
+  configure(options:CaptureOptions){if(options.difficulty)this.pendingDifficulty=options.difficulty;this.modes={seated:options.seated,noPunch:options.noPunch};}
   private apply(event:EngineEvent,now:number) {
     const previous=this.current;
     const wasOver=this.current.round.over;
@@ -67,7 +69,7 @@ export class GameSession {
     if(this.armed&&!wasOver&&this.current.round.over) {
       const result=this.current.log.rounds.at(-1)!;
       const score=this.current.match.round_wins;
-      const text=`Streamer vs Chat · Round ${result.number}: ${result.winner==='streamer'?'STREAMER':this.current.bossDef?.name??'CHAT GOLEM'} wins (${Math.round(result.streamer_hp)}/100 vs ${Math.round(result.boss_hp)}/${this.current.boss.max_hp} HP) · ${score.streamer}–${score.boss}${this.current.match.winner?' · MATCH OVER':''}`;
+      const text=`Streamer vs Chat · Round ${result.number}: ${result.winner==='streamer'?'STREAMER':this.current.bossDef?.name??'CHAT GOLEM'} wins (${Math.round(result.streamer_hp)}/100 vs ${Math.round(result.boss_hp)}/${this.current.boss.max_hp} HP) · ${score.streamer}–${score.boss}${this.current.match.winner?' · MATCH OVER':''} · ${difficultyName(this.current.difficulty)}`;
       this.results.enqueue(text,now);
       this.nextRoundAt=this.current.match.winner?null:now+3000;
     }
@@ -80,7 +82,7 @@ export class GameSession {
       if(this.armed)this.archive.add(this.current,this.runId);
       this.runId++;this.summaryVisible=false;
       this.armed=true;this.safetyFrozen=false;this.nextRoundAt=null;
-      this.apply({kind:'restart',...this.bossEvent()},now);
+      this.apply({kind:'restart',difficulty:this.pendingDifficulty,...this.bossEvent()},now);
     } else if(this.armed&&!this.frozen&&this.current.round.over&&!this.current.match.winner&&!this.forgeHeld) {
       this.nextRoundAt=null;this.apply({kind:'next-round',...this.bossEvent()},now);
     }

@@ -1,3 +1,4 @@
+import {TEMPO} from './tempo.js';
 export const BOSS_DEFENCES=['guard','lean_left','lean_right','lean_any'] as const;
 export type BossDefence=typeof BOSS_DEFENCES[number];
 export type BossMoveDef={command:string;label:string;defence:BossDefence;damage:number;chip:number;telegraph_ms:number;hits:number};
@@ -11,11 +12,11 @@ export const BOSS_DEF_SCHEMA={type:'object',additionalProperties:false,required:
 }} as const;
 /** Only this exact built-in definition may retain the game-rule reserved !super command. */
 export const DEFAULT_BOSS:BossDef={name:'Chat Golem',tagline:'Chat is the boss. Your body is the defence.',hp:135,moves:[
- {command:'!jab',label:'JAB',defence:'guard',damage:8,chip:0,telegraph_ms:800,hits:1},
- {command:'!hookl',label:'HOOK LEFT',defence:'lean_right',damage:12,chip:3,telegraph_ms:800,hits:1},
- {command:'!hookr',label:'HOOK RIGHT',defence:'lean_left',damage:12,chip:3,telegraph_ms:800,hits:1},
- {command:'!combo',label:'COMBO',defence:'guard',damage:7,chip:0,telegraph_ms:800,hits:2},
- {command:'!super',label:'SUPER',defence:'lean_any',damage:25,chip:10,telegraph_ms:800,hits:1},
+ {command:'!jab',label:'JAB',defence:'guard',damage:8,chip:0,telegraph_ms:TEMPO.hard.telegraph,hits:1},
+ {command:'!hookl',label:'HOOK LEFT',defence:'lean_right',damage:12,chip:3,telegraph_ms:TEMPO.hard.telegraph,hits:1},
+ {command:'!hookr',label:'HOOK RIGHT',defence:'lean_left',damage:12,chip:3,telegraph_ms:TEMPO.hard.telegraph,hits:1},
+ {command:'!combo',label:'COMBO',defence:'guard',damage:7,chip:0,telegraph_ms:TEMPO.hard.telegraph,hits:2},
+ {command:'!super',label:'SUPER',defence:'lean_any',damage:25,chip:10,telegraph_ms:TEMPO.hard.telegraph,hits:1},
 ]};
 for(const move of DEFAULT_BOSS.moves)Object.freeze(move);Object.freeze(DEFAULT_BOSS.moves);Object.freeze(DEFAULT_BOSS);
 const object=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);

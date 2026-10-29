@@ -4,6 +4,7 @@ import {DEFAULT_BOSS,validateBoss,type BossDef} from './boss-def';
 import {gateBoss,tuneBoss,scaleBoss} from './boss-forge';
 import {createGame,step,bossMove} from './engine';
 import {parseChatVote,MOVES} from './index';
+import {DIFFICULTIES,tempoFor,scaleTelegraph} from './tempo';
 const fixture=()=>JSON.parse(readFileSync(new URL('../../fixtures/bosses/tin-tactician.json',import.meta.url),'utf8')) as BossDef;
 describe('Forge data-driven production reducer',()=>{
  it('normalises the canonical definition to the exact existing rules',()=>{expect(createGame({bossDef:DEFAULT_BOSS})).toEqual(createGame());});
@@ -41,11 +42,11 @@ describe('Forge deterministic §5 balance gate',()=>{
 import {forgePlan,evaluateForgePlan} from './boss-forge';
 import type {EngineEvent} from './engine';
 it('compiled R1 arithmetic matches production reducer HP and winner for seeded plans',()=>{
- for(const def of [DEFAULT_BOSS,fixture()])for(const player of [0,1] as const)for(const sample of [0,19,145]){
-  const plan=forgePlan(def,player,2,sample),events:{event:EngineEvent;at:number}[]=[];
-  let state=createGame({bossDef:def,moves:plan.map(item=>item.move)});
+ for(const difficulty of DIFFICULTIES)for(const def of [DEFAULT_BOSS,fixture()])for(const player of [0,1] as const)for(const sample of [0,19,145]){
+  const plan=forgePlan(def,player,2,sample,difficulty),events:{event:EngineEvent;at:number}[]=[];
+  let state=createGame({bossDef:def,difficulty,moves:plan.map(item=>item.move)});
   plan.forEach((item,beat)=>{
-   const spec=bossMove(state,item.move),draw=(beat+1)*2400,landing=draw+spec.telegraph_ms,end=landing+(spec.hits-1)*300;
+   const spec=bossMove(state,item.move),draw=(beat+1)*tempoFor(difficulty).beat,landing=draw+scaleTelegraph(spec.telegraph_ms,difficulty),end=landing+(spec.hits-1)*tempoFor(difficulty).comboGap;
    events.push({event:{kind:'pose',guard:false,lean:null,source:'keyboard',at:draw+1},at:draw+1});
    const guard=item.outcome==='BLOCK'||item.outcome==='PERFECT'||item.outcome==='CHIP';
    const lean=item.outcome==='DODGE'?(spec.defence==='lean_left'?'L':'R'):null;
@@ -54,7 +55,36 @@ it('compiled R1 arithmetic matches production reducer HP and winner for seeded p
    if(item.stray)events.push({event:{kind:'punch',side:'L',source:'keyboard',at:end+1100},at:end+1100});
   });
   for(const {event,at} of events.sort((a,b)=>a.at-b.at))if(at<75000)state=step(state,event,at);
-  state=step(state,{kind:'advance'},75000);const fast=evaluateForgePlan(def,plan);
+  state=step(state,{kind:'advance'},75000);const fast=evaluateForgePlan(def,plan,difficulty);
   expect(fast.hp).toBeCloseTo(state.streamer.hp,8);expect(fast.bossHp).toBeCloseTo(state.boss.hp,8);expect(fast.winner).toBe(state.round.winner);
  }
+},30000);
+it('scales Forge telegraphs and hit gaps through difficulty timing',()=>{
+ const def=fixture();def.moves[0]={...def.moves[0]!,telegraph_ms:1000,hits:2};
+ const state=step(createGame({bossDef:def,difficulty:'medium',moves:['JAB']}),{kind:'advance'},3000);
+ expect(state.activeAttack?.lands_at).toBe(4250);
+ expect(step(state,{kind:'advance'},4625).log.resolved.at(-1)?.at).toBe(4625);
+});
+it('excludes Expert terminal-COMBO punches after the 75s timeout',()=>{
+ const def=fixture();def.moves[0]={...def.moves[0]!,defence:'lean_left',chip:0};
+ const plan=Array.from({length:38},(_,index)=>({move:index===37?'COMBO':'JAB',outcome:index===37?'BLOCK':'CHIP',punches:index===37?2:0,stray:index===37})) as import('./boss-forge').ForgePlanBeat[];
+ let state=createGame({bossDef:def,difficulty:'expert',moves:plan.map(item=>item.move)});
+ state=step(state,{kind:'pose',guard:true,lean:null,source:'keyboard',at:0},0);
+ state=step(state,{kind:'advance'},75000);
+ const fast=evaluateForgePlan(def,plan,'expert');
+ expect(state.log.resolved.at(-1)?.at).toBe(74994);
+ expect(fast).toEqual({hp:100,bossHp:def.hp-8,winner:state.round.winner});
+ expect(fast.bossHp).toBe(state.boss.hp);
+});
+it('orders a previous Expert stray after the next attack lethal hit',()=>{
+ const def=fixture();def.moves[0]={...def.moves[0]!,defence:'lean_left',damage:12,chip:0,telegraph_ms:1200,hits:3};
+ def.moves[1]={...def.moves[1]!,damage:30,chip:0,telegraph_ms:600,hits:1};
+ const plan:import('./boss-forge').ForgePlanBeat[]=[...Array.from({length:3},()=>({move:'HOOK_L' as const,outcome:'HIT' as const,punches:0,stray:false})),{move:'JAB',outcome:'CHIP',punches:0,stray:true},{move:'HOOK_L',outcome:'HIT',punches:0,stray:false}];
+ // Three hits leave10HP. Long chain ends9263; stray10363 follows lethal hit10238.
+ let state=createGame({bossDef:def,difficulty:'expert',moves:plan.map(item=>item.move)});
+ state=step(state,{kind:'pose',guard:true,lean:null,source:'keyboard',at:7801},7801);
+ state=step(state,{kind:'pose',guard:false,lean:null,source:'keyboard',at:9751},9751);
+ state=step(state,{kind:'punch',side:'L',source:'keyboard',at:10363},10363);
+ state=step(state,{kind:'advance'},75000);
+ const fast=evaluateForgePlan(def,plan,'expert');expect(fast.hp).toBe(0);expect(fast.bossHp).toBe(def.hp);expect(fast.hp).toBe(state.streamer.hp);expect(fast.bossHp).toBe(state.boss.hp);expect(fast.winner).toBe(state.round.winner);
 });

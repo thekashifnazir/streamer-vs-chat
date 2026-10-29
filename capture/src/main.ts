@@ -1,5 +1,5 @@
 import './style.css';
-import type { PoseState, StreamerInput } from '@svc/shared';
+import type { Difficulty, PoseState, StreamerInput } from '@svc/shared';
 import { PoseClassifier, measurePose, type Landmark } from './classifier';
 import { createCalibration, type CalibrationMode } from './calibration';
 import {createCalibrationProfiles} from './calibration-profile';
@@ -12,6 +12,7 @@ import { NO_POSE_MESSAGE, trackingMessage } from './tracking-status';
 
 const element = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const source=element<HTMLSelectElement>('input-source');
+const difficulty=element<HTMLSelectElement>('difficulty');
 const posture=element<HTMLSelectElement>('posture');
 const clearSpace=element<HTMLInputElement>('clear-space');
 const noPunch=element<HTMLInputElement>('no-punch');
@@ -23,7 +24,7 @@ const recorder=new FixtureRecorder();
 const replay=new LocalReplay();
 const replayPending=new Map<string,Promise<boolean>>();
 const replayEnabled=element<HTMLInputElement>('enable-replay');
-function options(){return {kind:'capture-options',seated:posture.value==='seated',noPunch:noPunch.checked};}
+function options(){return {kind:'capture-options',seated:posture.value==='seated',noPunch:noPunch.checked,difficulty:difficulty.value as Difficulty};}
 function sendOptions(){classifier.setPunchesEnabled(!noPunch.checked);element('punch-key-guide').hidden=noPunch.checked;element('input-hint').textContent=noPunch.checked?'Guard and lean are the defence. Clean defences counter automatically; punches are off.':'Keyboard and webcam are equal inputs. Guard and lean are the defence; punches add bonus damage.';if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(options()));}
 function replayLinks(){
   const list=element('replay-downloads');list.textContent='';
@@ -224,6 +225,7 @@ window.addEventListener('beforeunload',()=>{
   disposed=true;window.clearTimeout(reconnectTimer);benchmark.cancel();window.clearInterval(heartbeat);transmit(neutral());keyboard.dispose();camera.stop();replay.dispose();socket?.close();
 });
 replayEnabled.addEventListener('change',updateReplay);
+difficulty.addEventListener('change',()=>{sendOptions();difficulty.blur();});
 noPunch.addEventListener('change',()=>{sendOptions();noPunch.blur();});
 posture.value=profiles.mode();restoreCalibration(true);updateKeyboard();connect();
 

@@ -1,3 +1,4 @@
+import {TEMPO} from '../../shared/src/tempo';
 import {createGame,step,type GameState} from '../../shared/src/engine';
 import type {PoseState} from '@svc/shared';
 import {assertSimulationAllowed} from './safety';
@@ -5,7 +6,7 @@ import {hasLiveCredentials} from './credentials';
 /** Five-second, visibly simulated rehearsal. Defence is always the player's input. */
 export function startColdOpen(now:number,seed:number,pose:PoseState):GameState{
  assertSimulationAllowed({liveTokenLoaded:hasLiveCredentials()});
- let state=createGame({seed,viewers:3,now:now-2400,moves:['JAB']});
+ let state=createGame({seed,viewers:3,now:now-TEMPO.hard.beat,moves:['JAB']});
  for(let i=0;i<3;i++)state=step(state,{kind:'vote',user:`rehearsal-${i}`,move:'JAB',at:now-100,simulated:true},now-100);
  state=step(state,{...pose,at:now-50},now-50);
  state=step(state,{kind:'advance'},now);

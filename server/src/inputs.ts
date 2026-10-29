@@ -1,3 +1,4 @@
+import {isDifficulty} from '../../shared/src/tempo';
 import { parseSessionCommand } from './game-session';
 import type { InputStatus, PoseState, StreamerInput, CaptureOptions, ReplayResult } from '@svc/shared';
 
@@ -22,7 +23,7 @@ export function parseStreamerInput(value: unknown): StreamerInput | null {
 
 export function parseCaptureOptions(raw:unknown):CaptureOptions|null {
   const value=raw as Partial<CaptureOptions>|null;
-  return value?.kind==='capture-options'&&typeof value.seated==='boolean'&&typeof value.noPunch==='boolean'?{kind:'capture-options',seated:value.seated,noPunch:value.noPunch}:null;
+  return value?.kind==='capture-options'&&typeof value.seated==='boolean'&&typeof value.noPunch==='boolean'&&(value.difficulty===undefined||isDifficulty(value.difficulty))?{kind:'capture-options',seated:value.seated,noPunch:value.noPunch,...(value.difficulty===undefined?{}:{difficulty:value.difficulty})}:null;
 }
 export function parseReplayResult(raw:unknown):ReplayResult|null {
   const value=raw as Partial<ReplayResult>|null;

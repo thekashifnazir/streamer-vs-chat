@@ -1,3 +1,4 @@
+import {difficultyName,tempoFor} from '../../shared/src/tempo';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import {createForgeView} from './forge';
 import type { Move, TallySnapshot } from '@svc/shared';
@@ -37,6 +38,7 @@ export function raidPresentation(state:GameState) {
   const remaining=Math.max(0,(state.raid.ends_at??-Infinity)-(state.clock.paused_at??state.now));
   return {active:remaining>0,seconds:Math.ceil(remaining/1000)};
 }
+export function nextBeatSeconds(state:GameState):string {const beat=tempoFor(state.difficulty).beat;return ((beat-state.round.elapsed_ms%beat)/1000).toFixed(1);}
 export const FIXED_STAMP_MS=1800;
 /** Authoritative scouting state projected into presentation; no thresholds live in the HUD. */
 export function scoutingPresentation(state:GameState) {
@@ -72,7 +74,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <section class="scouting" data-id="scouting" hidden aria-live="polite"><p class="eyebrow" data-id="scouting-label">SCOUTED</p><div data-id="habit-details"><h2 data-id="habit">DODGES LEFT</h2><strong class="habit-share" data-id="habit-share"></strong><p class="scouting-evidence"><span data-id="habit-n"></span><span data-id="exploit-cooldown"></span></p><p>CHAT: VOTE <b data-id="exploit-command"></b></p></div><div data-id="fixed-details" hidden><strong class="fixed-stamp">FIXED!</strong><p data-id="fixed-reward"></p></div></section>
   <section class="status-card"><p class="eyebrow" data-id="phase">READY TO FIGHT</p><p data-id="status">GUARD STRAIGHTS.<br>LEAN FROM SWINGS.</p><small data-id="result"></small></section><section class="viewer-record" data-id="viewer-record" hidden><h2>YOUR RECORD <span>VS THIS CHAT</span></h2><div class="record-values"><p><b data-id="record-streams"></b><span>STREAMS</span></p><p><b data-id="record-kos"></b><span title="Bosses KO">BOSS KOs</span></p><p><b data-id="record-deaths"></b><span title="Times KO">TIMES KO</span></p></div></section><section class="memory-hall" data-id="memory-hall" hidden><h2>CHAT HALL OF FAME <span>ALL TIME</span></h2><ol data-id="memory-hall-list"></ol></section>
   <div class="blocked-stamp" data-id="blocked" hidden>BLOCKED!</div><footer><p class="simulated" data-id="simulated" hidden>● SIMULATED CHAT</p><p class="calm-badge" data-id="calm" hidden>CALM FX</p><p class="connection" data-id="connection" role="status">CONNECTING…</p><div class="hud-options"><button data-id="sound" type="button">SOUND OFF · M</button><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer></aside>
-  <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b></span></div>
+  <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b><b class="difficulty-tag" data-id="difficulty">HARD</b></span></div>
   <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
@@ -207,7 +209,8 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('raid-phase').hidden=!raid.active;
     host.querySelector('.boss')!.classList.toggle('raid-active',raid.active);
     if(raid.active){setText('raid-label',`PHASE 2 · RAID · ${raid.seconds}s`);el('raid-phase').title='Raider votes have 2× influence, capped at half the combined influence. Regular votes are needed; raiders alone have zero influence.';}
-    el('beat').textContent=state.paused?'· PAUSED':`· NEXT IN ${((2400-state.round.elapsed_ms%2400)/1000).toFixed(1)}s`;
+    setText('difficulty',difficultyName(state.difficulty).toUpperCase());
+    el('beat').textContent=state.paused?'· PAUSED':`· NEXT IN ${nextBeatSeconds(state)}s`;
     const attack=state.activeAttack;
     const telegraph=!!attack&&!attack.vetoed&&(state.clock.paused_at??state.now)<attack.lands_at&&!state.round.over;
     const counter=state.counter.open&&!state.round.over;

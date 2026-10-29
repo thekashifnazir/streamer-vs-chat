@@ -27,7 +27,7 @@ async function page(storage?:ProfileStorage) {
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   const elements=new Map([...html.matchAll(/<[^>]*\bid="([^"]+)"[^>]*>/g)].map(match=>{const node=new Element();node.disabled=/\bdisabled(?:\s|>|=)/.test(match[0]);return [match[1]!,node];}));
   const get=(id:string)=>{const node=elements.get(id);if(!node)throw new Error(`Missing page element ${id}`);return node;};
-  get('input-source').value='keyboard';get('posture').value='standing';get('pose-delegate').value='CPU';
+  get('difficulty').value='medium';get('input-source').value='keyboard';get('posture').value='standing';get('pose-delegate').value='CPU';
   const sockets:Socket[]=[];
   const data=new Map<string,string>();vi.stubGlobal('localStorage',storage??{getItem:(key:string)=>data.get(key)??null,setItem:(key:string,value:string)=>{data.set(key,value);},removeItem:(key:string)=>{data.delete(key);}});
   vi.stubGlobal('document',{getElementById:get});
@@ -76,7 +76,7 @@ it('reports unavailable replay metadata without sending a blob URL or media when
  expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'replay-result',highlightId:'moment',available:false}));
  get('no-punch').checked=true;get('no-punch').change();
  expect(get('punch-key-guide').hidden).toBe(true);
- expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'capture-options',seated:false,noPunch:true}));
+ expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'capture-options',seated:false,noPunch:true,difficulty:'medium'}));
 });
 
 function storedProfile(){
@@ -107,4 +107,11 @@ it('forget removes the saved profile so the next reload requires calibration aga
 it('offline Resume never arms a restored page before its reconnection',async()=>{
  const{get,socket}=await page(storedProfile());get('clear-space').checked=true;get('clear-space').change();socket.readyState=0;get('resume-input').click();expect(get('connection-status').textContent).toContain('Connect to the local server');socket.readyState=1;socket.dispatchEvent(new Event('open'));
  expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'stop',by:'capture'}));socket.send.mockClear();get('start-match').click();expect(get('session-warning').textContent).toContain('Resume inputs');expect(socket.send).not.toHaveBeenCalled();
+});
+
+it('pre-selects Medium difficulty and sends the selected difficulty as a pending start option',async()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');expect(html).toContain('<option value="medium" selected>Medium</option>');
+ const {get,socket}=await page();get('difficulty').value='expert';get('difficulty').change();
+ expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'capture-options',seated:false,noPunch:false,difficulty:'expert'}));
+ expect(socket.send.mock.calls.map(([raw])=>JSON.parse(raw)).some(value=>value.kind==='session')).toBe(false);
 });

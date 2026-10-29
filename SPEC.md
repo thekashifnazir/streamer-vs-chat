@@ -203,3 +203,33 @@ Ideas are ephemeral, moderated before admission, once per viewer per match. Late
 Use moderation `omni-moderation-latest`, Responses `gpt-6-luna`, low reasoning, strict BossDef JSON schema, no stored response and one validation-error repair turn. Moderate every output string and revalidate before acceptance. Never synthesize speech from ideas or generated text. Log operation, model, tokens and elapsed time only. Unknown API prices are not invented. No-key demo uses three local fixtures plus JSON editing and a worker, badged Prebaked (no API key), with no credentials or downloads.
 
 Acceptance: validator rejects Unicode/underscore/reserved commands, 999 HP, `kashrunz` for protected `kashruns`, missing lean and all other numeric/schema failures; default passes every gate; a legal doubled-damage custom boss is rescued; mocked clients exercise repair, moderation rejection and stale/vetoed results; source isolation, round hold and reducer-equivalent trajectories remain tested.
+
+## 13. Difficulty levels
+
+Difficulty is selected before START. The engine defaults to Hard for compatibility; capture, the offline demo and hosted `/play` initially select Medium. Changing the selector affects the next START, never the current match. The authoritative state, HUD and round result identify the active level.
+
+| Level | Tempo factor | Beat | Default telegraph | COMBO hit gap |
+|---|---:|---:|---:|---:|
+| Easy | 1.5 | 3600 ms | 1200 ms | 450 ms |
+| Medium | 1.25 | 3000 ms | 1000 ms | 375 ms |
+| Hard | 1 | 2400 ms | 800 ms | 300 ms |
+| Expert | 0.8125 | 1950 ms | 650 ms | 244 ms |
+
+`shared/src/tempo.ts` owns the tempo table. Each move's effective telegraph is `round(stored telegraph_ms × tempo)`, including Forge moves; the hit gap is `round(300 × tempo)`. Boss validation still checks the stored, unscaled values. The 75-second round, HP, damage, chip, 700 ms counter window, punch throttle, scouting thresholds, SUPER cap and voting rules remain unchanged. Hard preserves all existing golden vectors without edits.
+
+The difficulty simulation's guard/lean success model is **INFERRED**, not a measured physical-response curve: `min(.95, p + .08 × (effective telegraph_ms − 800) / 400)`. Perfect and punch probabilities are unchanged. The written formula produces Easy +.08, Medium +.04 and Expert −.03 before the cap; it takes precedence here over the prompt's conflicting Easy +.16 / Medium +.08 examples. At Hard it exactly equals the existing model.
+
+Measured ordinary R1 wins, 4,000 rounds per cell, seed 2026 (percent; viewers 0 / 3 / 50 / 500):
+
+| Level | Player | 0 | 3 | 50 | 500 |
+|---|---|---:|---:|---:|---:|
+| Easy | Casual | 75.175 | 73.600 | 70.875 | 69.450 |
+| Easy | No-punch | 58.950 | 59.225 | 55.075 | 55.750 |
+| Medium | Casual | 69.450 | 67.350 | 63.950 | 61.875 |
+| Medium | No-punch | 51.800 | 52.075 | 46.750 | 47.075 |
+| Hard | Casual | 55.650 | 55.000 | 49.850 | 48.475 |
+| Hard | No-punch | 41.125 | 42.150 | 35.875 | 36.050 |
+| Expert | Casual | 43.950 | 43.550 | 39.225 | 37.125 |
+| Expert | No-punch | 28.975 | 31.625 | 25.525 | 25.400 |
+
+All difficulty gates pass: win rates decrease in level order (2 percentage points tolerance), Easy casual ≤90%, Expert casual ≥15%, Medium no-punch ≥40%. The original four Hard matrices and fixture gates remain mandatory and unchanged. Expert no-punch has no 30% floor; that existing floor continues to apply to Hard.

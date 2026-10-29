@@ -1,3 +1,5 @@
+import type {Difficulty} from './tempo.js';
+export {TEMPO,DIFFICULTIES,tempoFor,scaleTelegraph,isDifficulty,difficultyName,type Difficulty} from './tempo.js';
 import {type BossDef} from './boss-def.js';
 export const MOVES = ['JAB', 'HOOK_L', 'HOOK_R', 'COMBO', 'SUPER'] as const;
 export type Move = typeof MOVES[number];
@@ -24,5 +26,5 @@ export type InputStatus = {
   captureAt: number | null; receivedAt: number; lastPunch: PunchEvent | null;
 };
 
-export type CaptureOptions={kind:'capture-options';seated:boolean;noPunch:boolean};
+export type CaptureOptions={kind:'capture-options';seated:boolean;noPunch:boolean;difficulty?:Difficulty};
 export type ReplayResult={kind:'replay-result';highlightId:string;available:boolean};
