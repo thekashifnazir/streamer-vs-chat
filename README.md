@@ -1,177 +1,160 @@
-**[Play Streamer vs Chat — no login needed](https://streamervschat.kashifnazir.com)** · [Workers fallback](https://streamer-vs-chat.kash-553.workers.dev)
+<p align="center"><img src="docs/img/cover.png" alt="Streamer vs Chat: Twitch chat controls the boss, the streamer defends on camera" width="900"></p>
 
-# Streamer vs Chat
+<h3 align="center">Twitch chat is the boss's brain. Your body is the defence.</h3>
 
-Twitch chat is the boss's brain; the streamer's body is the defence. Guard blocks straight attacks, lean dodges swings, and punches add bonus damage. [SPEC.md](SPEC.md) defines the rules; [docs/HUD.md](docs/HUD.md) defines the Rails layout.
+<p align="center">Chat votes the boss's next attack; you choose the difficulty. You block with your hands and dodge with a lean, on webcam, live.</p>
 
-Features:
+<p align="center">
+  <a href="https://streamervschat.kashifnazir.com"><b>Play now, no login</b></a> ·
+  <a href="https://streamervschat.kashifnazir.com/play"><b>Try it on your channel</b></a> ·
+  <a href="[VIDEO_URL]"><b>3-min demo</b></a> ·
+  <a href="[DEVPOST_URL]"><b>Devpost</b></a>
+</p>
 
-- Chat picks attacks every 2.4 seconds; guard and lean win the fight, punches add a bonus.
-- Two-way scouting from round 2: the boss spots your lean habit on the left rail, while a right-rail card reveals chat's repeated move over its last 12 voted picks.
-- Read the card and pre-hold the correct defence before the tell: a clean defence earns **+25% automatic counter damage** and **READ IT**.
-- Boss Forge validates and balances chat-designed bosses; the offline demo includes three prebaked bosses and an editable JSON forge.
-- Viewer memory remembers returning chat rivals: record, all-time hall of fame, active nemesis and MVP streaks, with `!forgetme` opt-out.
-- Keyboard/webcam, seated/no-punch, calm FX, offline demo and hosted channel play stay supported.
+<p align="center"><img src="docs/img/hero.gif" alt="SIMULATED local HUD recording: HANDS UP!, a successful block and counter damage" width="720"></p>
 
-Tested with 1,000 simulated chatters: **p95 104 ms** ingest → HUD WebSocket, **12 ms** maximum beat drift, zero dropped votes. [Measurement details](docs/LOAD.md).
+<p align="center">
+  <a href="https://streamervschat.kashifnazir.com"><img src="https://img.shields.io/badge/%E2%96%B6%20Play%20now-no%20login-9146FF?style=for-the-badge" alt="Play now, no login" height="44"></a>
+</p>
+<p align="center">
+  <a href="#how-codex-built-this"><img src="https://img.shields.io/badge/Built%20with-OpenAI%20Codex-000000?style=for-the-badge&logo=openai&logoColor=white" alt="Built with OpenAI Codex"></a>
+  <a href="#how-it-works"><img src="https://img.shields.io/badge/Twitch-EventSub%20%C2%B7%20Helix%20%C2%B7%20Clips-9146FF?style=for-the-badge&logo=twitch&logoColor=white" alt="Twitch EventSub, Helix and Clips"></a>
+  <a href="#how-it-works"><img src="https://img.shields.io/badge/MediaPipe-Pose-0097A7?style=for-the-badge" alt="MediaPipe Pose"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/Node-22%20%C2%B7%20TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Node 22 and TypeScript"></a>
+  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-537%20offline-5C5850?style=for-the-badge" alt="537 offline tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-5C5850?style=for-the-badge" alt="Licence: MIT"></a>
+</p>
 
-Requires Node **22.12+** and npm. Install with `npm ci`. Twitch development also needs the [Twitch CLI](https://dev.twitch.tv/docs/cli/).
+**Codex × TwitchCon Hackathon** · built solo in one Codex thread, October 2026 · Codex session ID `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`
 
-## Play the offline demo
+**Built with** OpenAI Codex · Twitch EventSub, Helix and Clips (Twurple) · MediaPipe Pose Landmarker · Node 22 + TypeScript · OBS · Cloudflare Workers
 
-```sh
-npm run demo
+Most chat games ask chat to spam and the streamer to watch. Here chat runs the boss and the streamer has to physically survive it. The game also learns habits on both sides: it tells chat "DODGES LEFT 83%", and it tells the streamer what chat keeps voting. So chat stops spamming and starts coaching. One viewer is enough to play.
+
+| Headline result | |
+|---|---|
+| Hard casual player win rate, 0 to 500 viewers (4,000 rounds per cell, gate is 30–70%) | **48.5–65.6%** |
+| Hard no-punch player win rate (gate is at least 30%) | **35.9–53.1%** |
+| 1,000 simulated chatters: chat to HUD | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
+| Offline tests (unit, golden vectors, recorded pose clips, transports) | **537**, no Twitch or external network |
+
+### Try it in 60 seconds
+
+1. Open **[streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com)**. No account, no install; it keeps working offline once loaded.
+2. Choose **Standing** or **Seated**, optionally **No punches**, and tick **My space is clear and I can move comfortably.** Follow the tutorial: **K → A → J** (or **K → A → D** with no punches). Difficulty starts at **Medium**; the control below the game offers Easy / Medium / Hard / Expert. Webcam is optional.
+3. Simulated chat (badged **SIMULATED**) plays the boss. When **HANDS UP!** appears you have 1.0 s on Medium: guard a JAB or COMBO, lean right for HOOK L, left for HOOK R. Hard retains the original 0.8 s warning.
+4. In round 2, **scouting cards** appear when there is enough consistent evidence: your lean habit on the left rail for chat, chat's repeated move on the right rail for you.
+
+Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simulated, and the known limits.
+
+## Why it's different
+
+- **Your body is the controller, but only where it's reliable.** Guard and lean decide every hit; punches are bonus damage, because on unseen people punch detection was much less reliable than guard and lean. Keyboard, seated and no-punch modes play the same game.
+- **Two-way scouting.** From round 2, at least 12 successful dodge leans plus share and confidence bounds can reveal your dominant side to chat. Fix the habit and you heal. Chat gets read too: pre-hold the right defence against chat's favourite move for +25% counter damage and **READ IT**.
+- **Balanced by a gate, not a feeling.** Every change runs the same reducer through 4,000-round simulations per cell at 0, 3, 50 and 500 viewers, and CI fails if a Hard casual player's win rate leaves 30–70%. A feature that broke the gate (CHAT SYNC) was cut, not tuned around ([review](docs/queue11a-review.md)).
+- **Chat designs the next boss.** `!forge <idea>` asks OpenAI for a boss, and code validates, moderates and balance-tests it before it can fight ([Boss Forge](#boss-forge)).
+- **Safe on stream.** A clear-space check before every match. Esc / STOP or the broadcaster typing "stop" freezes play, and mods can `!pause` or `!veto`. Viewer memory stores no chat text, and `!forgetme` deletes a viewer's record.
+
+## How it works
+
+```mermaid
+flowchart LR
+    TC[Twitch chat<br/>EventSub WebSocket] --> S[Server<br/>pure step reducer<br/>votes each beat]
+    CAM[Webcam<br/>MediaPipe Pose in Chrome] --> CAP[Capture page<br/>guard · lean · punch]
+    KEY[Keyboard K / A / D / J] --> CAP
+    CAP -- inputs over ws --> S
+    S -- state over ws --> HUD[Rails HUD<br/>OBS Browser Source]
+    S --> BOT[Bot posts round results<br/>max 1 per 10 s]
+    S --> CLIP[Clips API<br/>KO · PERFECT · comeback]
+    S -. between rounds .-> FORGE[Boss Forge<br/>OpenAI + validate + balance]
 ```
 
-Open **http://localhost:4173/**. Choose standing or seated and optional no-punch mode on the start screen. Confirm your clear space, then press **K → A → J** through the three-step tutorial (**K → A → D** in no-punch mode). Keyboard works immediately; optional webcam mode reuses the accepted lite CPU classifier and calibration. Select 0/3/50/500 simulated viewers, use seated or no-punch mode, and play best of three. Sound starts off. Esc or STOP freezes the game; Resume continues it.
+In the local Node/OBS flow, the server owns all game state; the HUD is a view and capture supplies inputs. The no-login demo and hosted `/play` own state in the browser. The same pure `step(state, event, now)` reducer runs in the server, the balance sim, the no-login demo and the hosted `/play` page, so what judges play is what streamers run.
+
+| Mode | Chat | Needs |
+|---|---|---|
+| No-login demo | Simulated, badged | A browser |
+| [Try it on your channel](https://streamervschat.kashifnazir.com/play) | Your real Twitch chat (read only) | A Twitch login |
+| Local live + OBS | Real chat, bot posts results, clips, viewer memory, Boss Forge | Node 22, a Twitch app, two accounts; optional OpenAI key for generated bosses |
+
+## Results
+
+Hard balance was rerun for this ship pass. Load and soak figures are recomputed from the saved 28 October local measurements, not fresh physical measurements. [Difficulty results](SPEC.md#13-difficulty-levels) cover all four levels.
+
+| What | Result |
+|---|---|
+| Hard casual win rate across 0/3/50/500 viewers, ordinary and coordinated chat, rounds 1 and 2 | **48.5–65.6%** |
+| Hard no-punch win rate, same matrices | **35.9–53.1%** |
+| Golden vectors through the shared reducer | **59** |
+| 1,000-chatter load: ingest to HUD p95 / worst beat drift / dropped votes | **104 ms / 12 ms / 0** |
+| 30-minute soak: server heap growth after warm-up | **+6.3182%** (gate under 20%) (measured 28 October; recomputed from the saved heap samples) |
+
+How each number is produced, and the command that reruns it: [Tests and balance](#tests-and-balance), [LOAD.md](docs/LOAD.md), [Ship review](docs/queue13e-review.md).
+
+## Run it locally
+
+Needs Node **22.12+**, npm and Chrome. The Twitch steps also need the [Twitch CLI](https://dev.twitch.tv/docs/cli/).
 
 ```sh
-npm run build:demo
+npm ci
+npm run demo          # no-login demo on http://localhost:4173, no keys, no network
+npm run dev:mock      # stop demo first; full stack with local mocked Twitch
 ```
 
-Produces `dist-demo/` with all runtime assets, one SIMD WASM binary, the vendored lite model, local fonts, boss art, SFX and voices. The no-login demo needs no CDN or external runtime downloads; optional `/play` connects to Twitch. The builder/preview never loads `.env` or the server token store. The complete bundle is about 25 MB raw / 15 MB gzip; pose-only assets are about 8.4 MB gzip. See [demo and deployment notes](docs/DEMO.md).
+For your own live channel: copy `.env.example` to `.env`, register `http://localhost:3000/callback` on a Twitch app, run `npm run dev`, open http://localhost:3000/auth and authorise a bot account (`user:read:chat user:write:chat user:bot`) and your broadcaster account (`channel:bot clips:edit bits:read channel:read:subscriptions`). Open http://localhost:5173/capture in Chrome, tick clear space, then press **Resume inputs** before **START MATCH**. Add http://localhost:5173/overlay as a 1920×1080 OBS Browser Source over your webcam. Full steps, OBS setup and the mock commands: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-## Play-test and record a cold open
-
-Share **https://streamervschat.kashifnazir.com/** with friends. The offline demo has an optional **Count this local play-test** checkbox and **Copy local stats** button. Consent starts a fresh local sample; withdrawing clears it. JSON contains votes/min, unique anonymous simulated participants and rounds, labelled simulated. These are play-test counts, not evidence of live chat engagement. Hosted `/play` keeps its separate real-chat counts export.
-
-**Rehearse 5-second cold open** starts one JAB with visibly simulated chat. Hold K or a calibrated webcam guard: the reducer must actually block it before BLOCKED! is shown. The shot starts with HANDS UP!, shows the actual defence, then highlights the tally. The rehearsal pauses after the first outcome; New match returns to normal play. Record the five seconds with OBS. A missed block is labelled a failed take. See [cold-open shot plan](docs/COLD-OPEN.md).
-
-FX are presentation only: hit-stop and rail shake never pause combat, pose input, votes or telegraphs. `?fx=calm` removes shake and replaces slams with fades; reduced-motion preference also enables calm automatically. Sound starts off in the demo; OBS requests sound on, subject to browser autoplay permission. M toggles mute.
-
-Capture now offers **Compare CPU / GPU** using your real camera, with warm-up and bounded sample collection. It stops gameplay inputs during measurement and selects the measured lower-latency delegate. CPU remains the accepted default until an actual comparison is run. [Mac measurement instructions](docs/capture-performance.md).
-
-## Try it on your channel
-
-Open **[Try it on your channel](https://streamervschat.kashifnazir.com/play)**. This hosted mode runs entirely in your browser, using the same game reducer as the offline demo and local server. Connect with Twitch, confirm clear space, and start with keyboard or a calibrated webcam. Standing, seated and no-punch choices remain available.
-
-It requests **`user:read:chat`** to read messages from your own channel. It does not request chat-writing permission or post results to chat. OAuth uses the implicit flow; the token is removed from the URL immediately and kept only in this document's memory. Reloading or disconnecting signs you out; expired authorization shows Reconnect. LIVE mode never starts a simulated crowd. With no votes, the normal game-rule autopilot still chooses attacks.
-
-For OBS:
-
-1. Open `/play` in a normal Chrome window and connect Twitch.
-2. Add **Window Capture** in OBS and select that window.
-3. Enable **Green background** in the page; add an OBS **Chroma Key** filter set to green.
-4. Crop to the game frame, check both Rails are visible, then go live.
-
-Before the first fight, the page measures up to ten minutes of baseline chat. Each round counts as a fight. End session / Copy results exports counts and rates only: messages/min, unique chatters, accepted voters, fights played and session minutes. Chat text, usernames, IDs, hashes and the random session salt are never exported or persisted. Nothing is sent to an analytics service.
-
-To configure a hosted build, register **both exact redirect URIs** on a Twitch application:
-
-- `https://streamervschat.kashifnazir.com/`
-- `http://localhost:5173/`
-
-Set the **public** client ID in the build environment, then run `npm run build:demo` (or `npm run demo`). For example: `VITE_TWITCH_CLIENT_ID=your_public_client_id npm run build:demo`. The builder reads this variable explicitly and does not load `.env`. No client secret belongs in this build. For development login, run `VITE_TWITCH_CLIENT_ID=your_public_client_id npm run dev`, then open `http://localhost:5173/play`. The 4173 preview and Workers fallback still serve the no-login demo; Twitch login uses the two registered origins above. `npm run dev` also serves `/play` on 5173; the local Node + OBS Browser Source workflow below stays available. See [hosted-mode verification and Needs Kash](docs/stretch-2-review.md) for registration/login/deployment checks.
-
-## Twitch development
+### Tests and balance
 
 ```sh
-npm run dev:mock
-```
-
-Starts CLI mock 8080 → chat injection shim 8081 → server 3000 and Vite 5173. Open [capture](http://localhost:5173/capture) and [overlay](http://localhost:5173/overlay). Add the overlay as a 1920×1080 OBS Browser Source, with the webcam source beneath its transparent centre. Use a normal Chrome window for capture.
-
-After `channel.chat.message active (SIMULATED)`:
-
-```sh
-curl -X POST localhost:8081/inject -H 'Content-Type: application/json' \
-  -d '{"user":"viewer-1","text":"!jab"}'
-```
-
-An empty POST also injects `!jab`. Before a match starts, the input preview shows JAB 1 and SIMULATED CHAT. Confirm clear space and press **START MATCH** in capture when ready. During a fight the server resets votes every 2400 ms, keeping each viewer's latest eligible command. SUPER is accepted only at full hype and below the three-super cap. Attacks use a weighted draw, including autopilot when nobody votes.
-
-Mock moderation and results stay local:
-
-```sh
-curl -X POST localhost:8081/inject -H 'Content-Type: application/json' -d '{"role":"mod","text":"!veto"}'
-curl -X POST localhost:8081/inject -H 'Content-Type: application/json' -d '{"role":"mod","text":"!resume"}'
-curl -X POST localhost:8081/inject -H 'Content-Type: application/json' -d '{"role":"broadcaster","text":"stop"}'
-curl localhost:8081/results
-```
-
-The shim provides EventSub-shaped chat notifications and proxies other mock subscriptions. Twurple's API and socket both use **8081** via explicit `mockServerPort:8081`, `url:ws://127.0.0.1:8081/ws` and `TWURPLE_MOCK_API_PORT=8081`. Cheer, subscription and raid mock subscriptions print their exact commands from `getCliTestCommand()`. Always keep the registered session/subscription IDs:
-
-```sh
-twitch event trigger <event> -T websocket --session <id> -u <subscription-id>
-```
-
-Run the isolated optional-event integration check with the Twitch CLI installed and the mock stack stopped:
-
-```sh
-npm run test:mock-events
-```
-
-It starts its own CLI and shim, uses the exact registered session/subscription IDs, verifies cheer/sub/raid effects in the real game session, and confirms chat injection still works. Its configuration and event cache are temporary; it does not load server credentials. Normal completion and Ctrl+C/termination clean up its services.
-
-Never send scripted chat to a live channel. Mock mode skips auth/token loading; live sessions reject simulated votes/results.
-
-### Live chat
-
-Copy `.env.example` to `.env`, fill the app credentials locally, and register **http://localhost:3000/callback** exactly. Run `npm run dev`, then visit [account setup](http://localhost:3000/auth). Authorize two different accounts:
-
-- Bot: `user:read:chat user:write:chat user:bot`.
-- Broadcaster: `channel:bot clips:edit bits:read channel:read:subscriptions`.
-
-Existing broadcaster tokens without the two added scopes keep chat working; reconnect the broadcaster account to enable cheers/subscriptions. Raid notifications need no added scope. Optional events are tested locally with the CLI mock; no scripted events are sent to live Twitch.
-
-The server stores/refreshes both identities in gitignored owner-only `tokens.json`. Start the match from capture; round results are sent in the bot's user context, at most once per 10 seconds with a three-message drop-oldest queue. No results are generated before explicit START. Viewer count is polled every 60 seconds, with 0 offline. Round two starts after a short results pause unless stopped; START MATCH resets the match.
-
-Only broadcaster plain `stop` and moderator/broadcaster `!pause`, `!veto`, `!resume` are accepted from chat. Veto cancels the pending attack and freezes the clock. Capture Esc/STOP also freeze immediately; disconnected or stale capture inputs do not survive resume. Clear `TWURPLE_MOCK_API_PORT` before live development.
-
-Kash has verified the two-account login with `streamervschatbot`/`kashruns` and the accepted Logitech pose input on the Mac. Guard and lean classification remain unchanged; no-punch mode disables punch detection and prompts. [Capture and fixture instructions](docs/CAPTURE.md) remain applicable.
-
-## Highlights and the session card
-
-Live KO, PERFECT and comeback moments request Twitch clips in the broadcaster's context. Requests are skipped during the stream's first minute. A Create Clip response alone never produces a link: the server polls Get Clips for up to 15 seconds and stores only confirmed IDs in gitignored `highlights.json`. Simultaneous moments share one request, prioritising KO, comeback, then PERFECT. A comeback means winning after dropping below 30 HP.
-
-For a local fallback, enable **Local replay** in capture with the webcam running. It records camera video only in that browser; media is never uploaded. The moment is saved before polling so a timeout can use it. Download links stay in capture and disappear when the page closes. Without recording support, or when offline/creation fails, the card shows stats only. Recording keeps at most six saved replays / 32 MB, with recording segments rotated every 90 seconds.
-
-Press **End session / show card** in capture to freeze play and show session stats, Chat MVP and the top three confirmed clips on the overlay. Match completion also shows the card. Chat MVP splits actual damage equally among counted voters for the selected move; autopilot earns no credit. The no-login demo has stats-only cards and never calls Twitch.
-
-Seated mode uses its own calibration, TILT cues and narrower fading rails. No-punch mode removes punch detection and prompts; clean blocks and dodges retain the same automatic counter damage.
-
-## Viewer memory
-
-Local live-channel mode stores per-channel viewer statistics by Twitch user ID in gitignored `data/viewers.json`, with atomic owner-only writes. Display names refresh from chat; message bodies are never saved. Inactive records expire after 90 days. `!forgetme` deletes your record and permanently opts your ID out for that channel; one acknowledgement uses the existing bot rate limit.
-
-The rails show your record against this chat, its top four KO voters and an active nemesis. A favourite KO-move tag and stream-MVP streak are history and presentation only; memory never changes damage or attack selection. End cards include the forget reminder. The no-login demo seeds a separate IndexedDB database with three made-up prior streams and labels the history SIMULATED. Hosted `/play` keeps its existing counts-only privacy contract and does not enable persistent viewer memory. [Rules, verification and Needs Kash](docs/queue13-review.md).
-
-## Local hardening checks
-
-Stop other mock stacks before these commands; they own loopback ports 3000, 8080, 8081 and 44747 and require the Twitch CLI. Neither command loads Twitch credentials.
-
-```sh
-npm run load
-npm run soak -- --minutes 30
-npm run test:recovery
-```
-
-The load check uses 1,000 simulated viewers, latest-per-viewer auditing and up to 300-vote bursts. Its 30-second active round holds keyboard guard through the real input protocol, preventing a KO from excluding votes from the measurement. It gates ingest-to-HUD WebSocket p95 below 250 ms, beat drift below 50 ms, zero dropped votes and exact tally agreement. The soak runs real-time autopilot matches, drains the final match, verifies every result and gates peak server heap growth below 20% after warm-up. CI also runs a two-minute variant. Reports: [load](docs/LOAD.md), [hardening review](docs/queue11b-review.md).
-
-If chat disconnects, accepted votes and pending attacks survive; empty beats use autopilot while RECONNECTING is visible. Reloading the overlay receives current server state immediately. Capture can explicitly save separate standing/seated calibration locally; after reload, start the camera, confirm clear space and Resume without recalibrating. Saved calibration never automatically opens the camera or arms inputs.
-
-## Tests and balance
-
-```sh
-npm test
-npm run sim
+npm test              # offline; never calls Twitch or OpenAI
+npm run sim           # balance gate, 4,000 rounds per cell
 npx tsc --noEmit
+npm run build:demo    # static no-login build in dist-demo/
 ```
 
-Tests use local transports or mocked Twitch modules. All 59 golden vectors (including the original 50 unchanged) run through the same pure `step(state,event,now)` reducer used by the server, browser demo and balance sim. The sim tests ordinary chat and a coordinated-chat profile, each with 4,000 single R1 rounds per cell across five player models and 0/3/50/500 viewers, plus 4000 scouting-enabled R2 rounds per cell with real R1 evidence. All four matrices fail if casual wins leave 30–70% or no-punch falls below 30%; the scouting matrix also requires cards, exploits and fixes to occur. GitHub Actions runs `npm ci`, tests, sim, offline build and a two-minute local-mock soak.
-
-[Day 4 verification, scouting results and optional-event semantics](docs/day4-review.md). Scouting begins in round 2; fixing a habit heals up to 10 HP. Cheers add capped hype, new subscriptions heal 8 HP, and raids start a 15-second Phase 2 with inferred raider weighting capped at half the draw. [Day 5 verification and highlight/accessibility notes](docs/day5-review.md). [Day 6 feel/mix and proof tooling](docs/day6-review.md) is implemented; listening, filmed footage and physical camera timings remain Mac checks.
-
-[Queue 11a review and balance results](docs/queue11a-review.md). CHAT SYNC was evaluated and removed after two failed balance attempts; early coordinated votes retain ordinary attack damage.
+GitHub Actions runs all four plus a two-minute local soak on every push.
 
 ## Boss Forge
 
-In the offline demo, open **Boss Forge**, choose one of three prebaked bosses or edit its JSON, then **Validate & balance**. Only an accepted result can be selected for the next round. The worker runs locally with no API key or network; the card shows validation, before/after rates and the measured duration. Restore Chat Golem to return to the original rules.
-
-The optional live Node path uses server-only `OPENAI_API_KEY` in `.env`. Chat submits `!forge <idea>` once per match; `!forge +1` endorses the most recently admitted idea, and `!forge +1 1`, `2` or `3` selects a displayed shortlist position (latest endorsement wins). The stable top three are shown; the leading idea is generated between rounds, or a moderator/broadcaster can send bare `!forge` before START or between rounds. `!veto` cancels pending generation and acceptance. The model is `gpt-6-luna`, with one repair turn; deterministic validation, moderation and the balance gate must all pass. Ideas never enter speech.
-
-Mock startup never creates an API client. Server tests inject fake moderation/Responses clients. API availability, actual cost and a real-key rehearsal remain Mac checks; unknown costs are displayed as unavailable. The static build never includes the server key.
+In the no-login demo, open **Boss Forge**, pick Neon Kraken, Tin Tactician or Velvet Sentinel or edit its JSON, then **Validate & balance**. It runs locally with no key. On a live channel, chat sends `!forge <idea>`; the server asks OpenAI (`gpt-6-luna`, one repair turn) with `OPENAI_API_KEY` from `.env`, then validation, moderation and the balance gate decide whether the boss can fight. Ideas never reach the announcer's voice. Details: [docs/boss-forge-review.md](docs/boss-forge-review.md).
 
 ## How Codex built this
 
-Implementation used separate subagent lanes for the engine, server integrations and HUD. Independent subagent review checked the changes before commits; findings and verification are recorded in the [day reviews](docs/day3-review.md), [hosted-mode review](docs/stretch-2-review.md) and [Boss Forge review](docs/boss-forge-review.md). Tests use mocks and fixtures; the shared reducer also runs through the balance sim.
+| | |
+|---|---|
+| Main Codex thread (submit this ID) | `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` |
+| Commits on `main`, all written in that thread | **31** at the pre-ship snapshot `4b20fb2` |
+| Tests over the build | 19 on day 1 → **537** at ship |
+| How the work was split | One root thread with subagent lanes for the engine, Twitch/server and HUD, plus an independent subagent review before each commit |
+
+What the live tests and reviews caught, each fixed in the thread:
+1. **Guard flickered while leaning**: on stream every lean would have dropped the block. Fixed with a lean-invariant guard and hysteresis (`0c75cd7`, `3c7a268`).
+2. **Hands resting at the waist read as guard**: a streamer at rest would have blocked everything. Fixed with an anatomical wrist/elbow/torso gate (`0f7707f`).
+3. **CHAT SYNC failed the balance gate in both tuning attempts**, so it was removed rather than loosening the gate ([review](docs/queue11a-review.md)).
+
+`AGENTS.md` holds the rules Codex followed (server owns state, no real Twitch in tests, pose changes need a recorded-clip test). Findings and checks are in the linked day and queue review documents.
+
+## Known limits
+
+- **Punches are optional bonus damage.** Punch detection is less reliable on unseen bodies than guard and lean; no-punch mode keeps automatic defence counters.
+- **Camera needs Chrome**, not the OBS Browser Source, and decent light; lost tracking releases held pose inputs.
+- **`/play` only reads chat.** Posting results, clips, viewer memory and Boss Forge need the local server.
+- **Clips need a live stream at least 60 seconds old**; otherwise the session card shows stats or a local replay.
+- **Boss Forge's real-model path needs your own OpenAI key**; the tests use injected fake clients.
+
+## More
+
+- **Rules and numbers:** [SPEC.md](SPEC.md). **HUD layout:** [docs/HUD.md](docs/HUD.md).
+- **Developer guide** (OBS, mock Twitch, live chat, highlights, viewer memory, hardening): [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+- **Accessibility:** keyboard, seated and no-punch modes, a 36 px HUD font floor, calm FX (`?fx=calm` or reduced motion), sound off by default ([day 5](docs/day5-review.md), [day 6](docs/day6-review.md)).
+- **Assets and licences:** [CREDITS.md](CREDITS.md).
+
+## What's next
+
+- **More fighting styles with the same detection.** Boss data supplies names, timing and damage within the validator and balance gates; detection stays guard, lean left, lean right and either lean. Boss Forge already proves the data path.
+- **Other games on the same body input:** dodgeball, rhythm or fitness rounds where chat sets the pattern and the streamer moves to it.
+- **A Twitch Extension** so viewers vote by clicking the video instead of typing (future work).
+
+## Licence
+
+MIT for the code: see [LICENSE](LICENSE). Fonts, sounds, art and voice lines keep their own licences, listed per file in [CREDITS.md](CREDITS.md).
