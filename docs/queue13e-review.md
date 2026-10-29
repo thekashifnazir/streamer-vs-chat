@@ -22,3 +22,31 @@ Independent subagent review checked preserved development prose, links, MIT meta
 
 - Run the five-minute JUDGES tour interactively in Chrome, including optional physical webcam calibration. Computer-use access was unavailable for this pass.
 - Replace VIDEO_URL and DEVPOST_URL when published. Deployment remains with Claude.
+
+
+## Part B — Nak Muay
+
+Added the exact requested data-only fixture and registered it fourth, immediately after Velvet Sentinel. It reuses Chat Golem art and existing announcer lines. No engine, pose classifier or balance constants changed. Tests assert the complete requested definition and the selected telegraph labels TEEP / LEFT ELBOW / RIGHT ELBOW / CLINCH KNEES, with GUARD / LEAN right / LEAN left / GUARD (TILT wording seated).
+
+The existing sim automatically discovers every boss fixture. `validateBoss` accepts Nak Muay and `gateBoss` passes at 4,000 samples per cell, seed 2026; no tuning was needed:
+
+| Player | 0 viewers | 3 | 50 | 500 |
+|---|---:|---:|---:|---:|
+| Casual | 55.650% | 59.325% | 59.675% | 60.625% |
+| No-punch | 42.525% | 44.950% | 44.100% | 45.175% |
+
+Independent subagent review compared the fixture programmatically to the exact user-supplied JSON, checked preset ordering and existing defence/cue mappings, and independently ran all four Forge tests. No findings. README lists the fourth preset and its fighting-style extension. Local full suite: 537/537, TypeScript passes. Final fresh-clone gates follow below.
+
+## Final fresh-clone verification
+
+Both implementation commits were cloned without hardlinks into a new temporary directory; `npm ci` used a fresh cache. Node 22.23.4; no `.env`, Twitch tokens or API keys copied. Every command exited 0:
+
+| Command | Result | Wall time |
+|---|---|---:|
+| `npm ci` | clean install | 4.63 s |
+| `npm test` | 537/537 tests, 79 files | 19.49 s |
+| `npx tsc --noEmit` | clean | 3.41 s |
+| `npm run build:demo` | offline audit passed; 25.5 MB raw / 15.4 MB gzip | 1.59 s |
+| `npm run sim` | all four Hard matrices, all difficulty cells, default + four presets pass | 407.12 s |
+
+Fresh sim reproduces the README's 0.1-point rounded Hard extrema (casual 48.5–65.6%, no-punch 35.9–53.1%) and the Nak Muay table above. No tuning or gate changes. Git now has 33 commits including this pass; README explicitly reports the reproducible pre-ship snapshot of 31. The final amendment only records verification evidence. No deployment or live Twitch traffic.

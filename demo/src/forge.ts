@@ -3,8 +3,9 @@ import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import neon from '../../fixtures/bosses/neon-kraken.json';
 import tin from '../../fixtures/bosses/tin-tactician.json';
 import velvet from '../../fixtures/bosses/velvet-sentinel.json';
+import nakMuay from '../../fixtures/bosses/nak-muay.json';
 import type {tuneBoss} from '../../shared/src/boss-forge';
-export const PREBAKED_BOSSES=[neon,tin,velvet] as BossDef[];
+export const PREBAKED_BOSSES=[neon,tin,velvet,nakMuay] as BossDef[];
 export function offlineForgeSnapshot(result:ReturnType<typeof tuneBoss>,idea:string):ForgeSnapshot{
  return {betweenRounds:true,status:result.after.pass?'accepted':'rejected',ideas:[],idea,boss:result.def,errors:result.after.pass?[]:['No damage factor passed every balance gate. Chat Golem remains available.'],before:result.before,after:result.after,factor:result.factor,ai:null};
 }

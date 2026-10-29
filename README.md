@@ -116,7 +116,7 @@ GitHub Actions runs all four plus a two-minute local soak on every push.
 
 ## Boss Forge
 
-In the no-login demo, open **Boss Forge**, pick Neon Kraken, Tin Tactician or Velvet Sentinel or edit its JSON, then **Validate & balance**. It runs locally with no key. On a live channel, chat sends `!forge <idea>`; the server asks OpenAI (`gpt-6-luna`, one repair turn) with `OPENAI_API_KEY` from `.env`, then validation, moderation and the balance gate decide whether the boss can fight. Ideas never reach the announcer's voice. Details: [docs/boss-forge-review.md](docs/boss-forge-review.md).
+In the no-login demo, open **Boss Forge**, pick one of four prebaked bosses—Neon Kraken, Tin Tactician, Velvet Sentinel or **Nak Muay** (Muay Thai)—or edit its JSON, then **Validate & balance**. It runs locally with no key. On a live channel, chat sends `!forge <idea>`; the server asks OpenAI (`gpt-6-luna`, one repair turn) with `OPENAI_API_KEY` from `.env`, then validation, moderation and the balance gate decide whether the boss can fight. Ideas never reach the announcer's voice. Details: [docs/boss-forge-review.md](docs/boss-forge-review.md).
 
 ## How Codex built this
 
@@ -151,7 +151,7 @@ What the live tests and reviews caught, each fixed in the thread:
 
 ## What's next
 
-- **More fighting styles with the same detection.** Boss data supplies names, timing and damage within the validator and balance gates; detection stays guard, lean left, lean right and either lean. Boss Forge already proves the data path.
+- **More fighting styles with the same detection.** Boss data supplies names, timing and damage within the validator and balance gates; detection stays guard, lean left, lean right and either lean. Nak Muay already adds TEEP, LEFT ELBOW, RIGHT ELBOW and CLINCH KNEES using those same reads; more styles can follow without new detection.
 - **Other games on the same body input:** dodgeball, rhythm or fitness rounds where chat sets the pattern and the streamer moves to it.
 - **A Twitch Extension** so viewers vote by clicking the video instead of typing (future work).
 

@@ -1,0 +1,43 @@
+{
+  "name": "Nak Muay",
+  "tagline": "Eight limbs. Same four reads.",
+  "hp": 135,
+  "moves": [
+    {
+      "command": "!teep",
+      "label": "TEEP",
+      "defence": "guard",
+      "damage": 8,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!elbowl",
+      "label": "LEFT ELBOW",
+      "defence": "lean_right",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!elbowr",
+      "label": "RIGHT ELBOW",
+      "defence": "lean_left",
+      "damage": 12,
+      "chip": 3,
+      "telegraph_ms": 800,
+      "hits": 1
+    },
+    {
+      "command": "!clinch",
+      "label": "CLINCH KNEES",
+      "defence": "guard",
+      "damage": 7,
+      "chip": 0,
+      "telegraph_ms": 800,
+      "hits": 2
+    }
+  ]
+}
