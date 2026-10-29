@@ -38,6 +38,10 @@ Most chat games ask chat to spam and the streamer to watch. Here chat runs the b
 | 1,000 simulated chatters: chat to HUD | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
 | Offline tests (unit, golden vectors, recorded pose clips, transports) | **537**, no Twitch or external network |
 
+## How to play
+
+Chat Golem commands (first word, case-insensitive): **!jab (!j)** = guard; **!left (!l)** = hook from the left → **LEAN →**; **!right (!r)** = hook from the right → **← LEAN**; **!combo (!c)** = guard; **!super (!s)** = either lean, only at full hype. Custom Forge bosses use exactly their displayed commands. Keyboard K / A / D / J controls the streamer.
+
 ### Try it in 60 seconds
 
 1. Open **[streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com)**. No account, no install; it keeps working offline once loaded.

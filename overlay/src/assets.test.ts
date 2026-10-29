@@ -40,7 +40,7 @@ it('projects exact post-fix evidence and the opposite-lean exploit command for e
   for(const side of ['L','R'] as const) {
     const view=scoutingPresentation(scouted(side));
     expect(view).toMatchObject({kind:'habit',side,n:14,count:12,percent:86,
-      command:side==='L'?'!hookl':'!hookr',highlightedMove:side==='L'?'HOOK_L':'HOOK_R'});
+      command:side==='L'?'!left/!l':'!right/!r',highlightedMove:side==='L'?'HOOK_L':'HOOK_R'});
   }
 });
 it('never invents a card before round2 or when the authoritative habit is absent',()=>{

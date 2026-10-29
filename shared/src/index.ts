@@ -1,6 +1,6 @@
 import type {Difficulty} from './tempo.js';
 export {TEMPO,DIFFICULTIES,tempoFor,scaleTelegraph,isDifficulty,difficultyName,type Difficulty} from './tempo.js';
-import {type BossDef} from './boss-def.js';
+import {isDefaultBoss,type BossDef} from './boss-def.js';
 export const MOVES = ['JAB', 'HOOK_L', 'HOOK_R', 'COMBO', 'SUPER'] as const;
 export type Move = typeof MOVES[number];
 export type ChatVote = { kind: 'vote'; user: string; move: Move; at: number; simulated: boolean };
@@ -12,10 +12,10 @@ export type Tick<GameState=import('./engine').GameState> = { kind: 'tick'; state
 export type Telegraph = { kind: 'telegraph'; move: Move; landsAt: number; exploit?: string };
 export type Resolved = { kind: 'resolved'; move: Move; outcome: 'HIT'|'BLOCK'|'PERFECT'|'DODGE'|'CHIP'; dmg: number; counterDmg: number };
 export type TallySnapshot = { kind: 'tally'; tally: Record<Move, number>; weights?: Record<Move, number>; voters: number; simulated: boolean };
-const COMMANDS: Record<string, Move> = { '!jab':'JAB', '!hookl':'HOOK_L', '!hookr':'HOOK_R', '!combo':'COMBO', '!super':'SUPER' };
+const COMMANDS: Record<string, Move> = { '!jab':'JAB', '!j':'JAB', '!hookl':'HOOK_L', '!left':'HOOK_L', '!l':'HOOK_L', '!hookr':'HOOK_R', '!right':'HOOK_R', '!r':'HOOK_R', '!combo':'COMBO', '!c':'COMBO', '!super':'SUPER', '!s':'SUPER' };
 export function parseChatVote(text: string, user: string, at: number, simulated: boolean,bossDef?:BossDef): ChatVote | null {
   const command = text.trim().split(/\s+/, 1)[0]?.toLowerCase();
-  const move = bossDef?MOVES[bossDef.moves.findIndex(move=>move.command===command)] : Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined;
+  const move = bossDef&&!isDefaultBoss(bossDef)?MOVES[bossDef.moves.findIndex(move=>move.command===command)] : Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined;
   return move ? { kind: 'vote', user, move, at, simulated } : null;
 }
 

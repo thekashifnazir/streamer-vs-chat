@@ -118,6 +118,6 @@ it('applies the selected difficulty only at START and includes it in the result 
  game.configure({kind:'capture-options',seated:false,noPunch:false,difficulty:'easy'});
  expect(game.state.difficulty).toBe('medium');
  game.state.boss.hp=1;at(100);game.input({kind:'punch',side:'L',at:100,source:'keyboard'});
- await new Promise(resolve=>setTimeout(resolve,0));expect(send.mock.calls[0]?.[0]).toContain('· Medium');
+ await new Promise(resolve=>setTimeout(resolve,0));expect(send.mock.calls[0]?.[0]).toContain('· Medium');expect(send.mock.calls[0]?.[0]).toContain('!left (!l) / !right (!r)');
  game.command({kind:'session',action:'start'});expect(game.state.difficulty).toBe('easy');game.close();
 });

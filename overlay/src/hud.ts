@@ -1,3 +1,4 @@
+import {chatCommand,chatCommandLegend,voteCountLabel} from '../../shared/src/chat-commands';
 import {difficultyName,tempoFor} from '../../shared/src/tempo';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import {createForgeView} from './forge';
@@ -13,7 +14,7 @@ import type { GameSummary } from '../../shared/src/highlights';
 import { createSummaryView, type EndcardClip } from './summary';
 export type HudModes={seated:boolean;noPunch:boolean};
 
-const commands:[Move,string][]=[['JAB','!jab'],['HOOK_L','!hookl'],['HOOK_R','!hookr'],['COMBO','!combo'],['SUPER','!super']];
+const commands:[Move,string][]=[['JAB','!jab'],['HOOK_L','!left'],['HOOK_R','!right'],['COMBO','!combo'],['SUPER','!super']];
 export const defenceCue=(move:Move,seated=false)=>{const verb=seated?'TILT':'LEAN';return move==='HOOK_L'?`${verb} →`:move==='HOOK_R'?`← ${verb}`:move==='SUPER'?`${verb} ANY WAY`:'GUARD';};
 export const bossDefenceCue=(defence:import('../../shared/src/boss-def').BossDefence,seated=false)=>{const verb=seated?'TILT':'LEAN';return defence==='guard'?'GUARD':defence==='lean_left'?`← ${verb}`:defence==='lean_right'?`${verb} →`:`${verb} ANY WAY`;};
 const names:Record<Move,string>={JAB:'JAB',HOOK_L:'HOOK LEFT',HOOK_R:'HOOK RIGHT',COMBO:'COMBO',SUPER:'SUPER'};
@@ -49,7 +50,7 @@ export function scoutingPresentation(state:GameState) {
     const count=observed.filter(side=>side===card).length;
     const n=state.scouting.n;
     const move=exploitMove(state);
-    const command=move?bossMove(state,move).command:'—';
+    const command=move?chatCommand(move,state.bossDef,true):'—';
     return {kind:'habit',side:card,n,count,percent:Math.round(count/Math.max(1,n)*100),command,
       highlightedMove:cooldown===0?move:undefined,cooldown} as const;
   }
@@ -78,7 +79,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
-  <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span>→ !SUPER</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
+  <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span data-id="super-command">→ !super/!s</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
   <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><section class="nemesis-card" data-id="nemesis" hidden><h2>YOUR NEMESIS IS VOTING</h2><p data-id="nemesis-name"></p><p data-id="nemesis-kos"></p></section><div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
   <canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section data-id="forge" hidden></section><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
@@ -162,7 +163,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     const {weights,percent:shares,highest}=voteShares(message);currentSimulated=message.simulated;
     el('voters').textContent=String(message.voters);el('simulated').hidden=!(message.simulated||memory?.simulated);el('simulated').textContent=memory?.simulated?'● SIMULATED':'● SIMULATED CHAT';
     for(const {move,row,count,fill,percent}of rows){const value=message.tally[move];const share=shares[move];const locked=move==='SUPER'&&!superReady;
-      count.textContent=String(value);fill.style.width=`${share}%`;percent.textContent=locked?'LOCKED':`${share}%`;
+      count.textContent=voteCountLabel(value);fill.style.width=`${share}%`;percent.textContent=locked?'LOCK':`${share}%`;
       row.classList.toggle('locked',locked);row.classList.toggle('leader',highest>0&&weights[move]===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
       row.setAttribute('aria-label',`${current?bossMove(current,move).label:names[move]} ${value} voters${locked?', locked':`, ${share} percent influence`}`);
       row.title=`${value} viewer vote${value===1?'':'s'} · ${share}% of attack draw influence`;
@@ -181,11 +182,11 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
     el('hype').textContent=`${Math.round(state.hype)}%`;el('hype-fill').style.width=`${state.hype}%`;
-    const superReady=!!state.bossDef||state.hype>=100&&state.supers_used<3;
+    const superReady=!!state.bossDef||state.hype>=100&&state.supers_used<3;setText('super-command',`→ ${chatCommand('SUPER',state.bossDef,true)}`);el('super-command').hidden=!availableMoves(state).includes('SUPER');
     const moveName=(move:Move)=>bossMove(state,move).label;
     stage.classList.toggle('custom-boss',!!state.bossDef);
     const bossTitle=host.querySelector<HTMLElement>('.boss header h2')!;bossTitle.textContent=state.bossDef?.name??'CHAT GOLEM';bossTitle.title=state.bossDef?.name??'Chat Golem';
-    for(const {move,row} of rows){row.hidden=!availableMoves(state).includes(move);row.querySelector('.vote-name')!.textContent=bossMove(state,move).command;row.querySelector<HTMLElement>('.vote-command')!.title=bossMove(state,move).command;}
+    for(const {move,row} of rows){row.hidden=!availableMoves(state).includes(move);row.querySelector('.vote-name')!.textContent=chatCommand(move,state.bossDef,true);row.querySelector<HTMLElement>('.vote-command')!.title=chatCommandLegend(state.bossDef);row.setAttribute('aria-label',`${chatCommand(move,state.bossDef)}: ${bossMove(state,move).label}`);}
     const scouting=scoutingPresentation(state);
     el('scouting').hidden=scouting.kind==='hidden';
     el('scouting').classList.toggle('fixed',scouting.kind==='fixed');

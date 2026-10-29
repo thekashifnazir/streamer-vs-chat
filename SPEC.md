@@ -14,7 +14,7 @@ What Codex builds. The numbers are tuned by `spikes/defence-sim/sim.mjs` **[MEAS
 | Low-HP mercy | streamer below 30 HP takes ×0.6 damage (HIT and CHIP) |
 | Beat timeline | Votes collected during beat N are drawn at the end of beat N. The telegraph runs for the next 800 ms and the hit lands at its end. Beat N+1's voting is already open meanwhile |
 
-**Votes:** `!jab` `!hookl` `!hookr` `!combo`, plus `!super` when the hype meter is full.
+**Default-boss votes:** `!jab` (`!j`) = guard; `!left` (`!l`) = hook from the left → LEAN →; `!right` (`!r`) = hook from the right → ← LEAN; `!combo` (`!c`) = guard; `!super` (`!s`) = either lean when hype is full. Legacy `!hookl` / `!hookr` remain accepted. Commands are case-insensitive and only the first token counts; the ! is required. Custom/Forge bosses accept exactly their own commands, without default aliases. Internal move IDs, scouting/memory identities and weighted draws are unchanged.
 - One vote per viewer per beat, and the latest message wins.
 - The move is a **weighted draw by vote share**, not the most-voted. Plurality let one spammer group decide every beat in big chats; the draw kept casual win rates flat from 0 to 500 viewers.
 - The same move can't come up 3 beats in a row: if the draw repeats a move for the third time, replace it with a uniform pick from the other three of JAB/HOOK_L/HOOK_R/COMBO.
@@ -59,7 +59,7 @@ One rule for viewers to read: **straight attacks (jab, combo) need the guard, sw
 - Log every telegraph, defence, lean direction and reaction time.
 - The habit is **lean side**: the share of the streamer's dodge leans (on hooks and supers) that go to one side.
 - A weakness card shows only when that share is at least 65% **and** n ≥ 12 **and** the Wilson lower bound with z = 1.645 is at least 0.60 (the scouting spike's `leanLB`). A habit is **fixed** when, over the last 8 leans, the dominant side's share is ≤ 62.5% (the scouting spike's rule).
-- Example card: "DODGES LEFT EVERY TIME 83% (n=30)". The matching vote button glows (a left-leaner's card lights `!hookl`, which needs a lean right; a right-leaner's lights `!hookr`), and the telegraph names the exploit. An exploit adds no damage: it only steers votes and labels the telegraph.
+- Example card: "DODGES LEFT EVERY TIME 83% (n=30)". The matching vote button glows (a left-leaner's card lights `!left` (`!l`), which needs a lean right; a right-leaner's lights `!right` (`!r`)), and the telegraph names the exploit. An exploit adds no damage: it only steers votes and labels the telegraph.
 - After an exploit fires, there's a 3-beat cooldown before it can fire again.
 - Fixing the habit removes the card and gives the streamer +10 HP. The HP cap stays 100.
 

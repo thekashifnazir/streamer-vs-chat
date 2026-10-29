@@ -1,3 +1,4 @@
+import {chatCommand} from '../../shared/src/chat-commands';
 import {difficultyName, type Difficulty} from '../../shared/src/tempo';
 import {type BossDef,isDefaultBoss,validateBoss} from '../../shared/src/boss-def';
 import { parseChatVote, type StreamerInput, type TallySnapshot, type PoseState } from '@svc/shared';
@@ -69,7 +70,7 @@ export class GameSession {
     if(this.armed&&!wasOver&&this.current.round.over) {
       const result=this.current.log.rounds.at(-1)!;
       const score=this.current.match.round_wins;
-      const text=`Streamer vs Chat · Round ${result.number}: ${result.winner==='streamer'?'STREAMER':this.current.bossDef?.name??'CHAT GOLEM'} wins (${Math.round(result.streamer_hp)}/100 vs ${Math.round(result.boss_hp)}/${this.current.boss.max_hp} HP) · ${score.streamer}–${score.boss}${this.current.match.winner?' · MATCH OVER':''} · ${difficultyName(this.current.difficulty)}`;
+      const text=`Streamer vs Chat · Round ${result.number}: ${result.winner==='streamer'?'STREAMER':this.current.bossDef?.name??'CHAT GOLEM'} wins (${Math.round(result.streamer_hp)}/100 vs ${Math.round(result.boss_hp)}/${this.current.boss.max_hp} HP) · ${score.streamer}–${score.boss}${this.current.match.winner?' · MATCH OVER':''} · ${difficultyName(this.current.difficulty)} · Chat: ${chatCommand('HOOK_L',this.current.bossDef)} / ${chatCommand('HOOK_R',this.current.bossDef)}`;
       this.results.enqueue(text,now);
       this.nextRoundAt=this.current.match.winner?null:now+3000;
     }

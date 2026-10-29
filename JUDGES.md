@@ -17,6 +17,9 @@ Simulated chat is never sent to a live Twitch channel.
 
 ## 2. Five-minute tour
 
+Chat Golem commands (first word, case-insensitive): **!jab (!j)** = guard; **!left (!l)** = hook from the left → **LEAN →**; **!right (!r)** = hook from the right → **← LEAN**; **!combo (!c)** = guard; **!super (!s)** = either lean, only at full hype. Custom Forge bosses use exactly their displayed commands. Keyboard K / A / D / J controls the streamer.
+
+
 1. **Play a round on the keyboard.** Open the address, choose **Standing**, tick **My space is clear and I can move comfortably.**, then follow the tutorial: press **K → A → J** (hold **K** to guard, hold **A/D** to lean, **J** for bonus punches). With **No punches**, the tutorial is **K → A → D**. Difficulty initially selects **Medium** (3.0 s beats, 1.0 s warnings). The **Difficulty** menu below the game also offers Easy, Hard and Expert, applying at the next match; Hard has the original 0.8 s warning. When **HANDS UP!** appears, Guard a JAB or COMBO; for HOOK L lean right, for HOOK R lean left; either lean dodges SUPER.
 2. **Change the crowd.** Between rounds, set **Crowd** to **500 viewers**, then choose **Next round** or **New match** and watch the vote bars. The selector is disabled during a fight. The attack is drawn by vote share, so a big chat stays unpredictable.
 3. **See the scouting.** Lean the same way most of the time in round 1. From round 2, enough consistent successful dodges can show your habit on the left rail (at least 12 samples, ≥65% share and a confidence bound); it is not guaranteed every match. Balance your last eight dodge leans to clear it and heal up to 10 HP. If chat repeats one move enough, a right-rail card reveals it: pre-hold that card's correct defence before the tell, then defend successfully for **READ IT** and +25% automatic counter damage.

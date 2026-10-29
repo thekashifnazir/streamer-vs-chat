@@ -1,3 +1,4 @@
+import {chatCommandLegend} from '../../shared/src/chat-commands';
 import {tempoFor,type Difficulty} from '../../shared/src/tempo';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import type {BossDef} from '../../shared/src/boss-def';
@@ -93,6 +94,7 @@ function paint() {
   hud.setForge(forgeSnapshot,!game||game.round.over);
   if(game&&coldOpenAt===null)viewerMemory?.observe(game);
   hud.setMemory(viewerMemory?.view()??null);
+  document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef);
   hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0,difficulty:difficulty.value as Difficulty}),!liveMode);
   hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   trackFight();trackLocalRound();
