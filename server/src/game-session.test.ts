@@ -121,3 +121,8 @@ it('applies the selected difficulty only at START and includes it in the result 
  await new Promise(resolve=>setTimeout(resolve,0));expect(send.mock.calls[0]?.[0]).toContain('· Medium');expect(send.mock.calls[0]?.[0]).toContain('!left (!l) / !right (!r)');
  game.command({kind:'session',action:'start'});expect(game.state.difficulty).toBe('easy');game.close();
 });
+it('retains individual presentation receipts for punches between routine HUD broadcasts',()=>{
+ const{game,at}=rig();game.command({kind:'session',action:'start'});
+ for(const time of [100,550]){at(time);game.input({kind:'punch',side:'L',source:'keyboard',at:time});}
+ expect(game.bossImpacts.entries.map(item=>[item.kind,item.amount,item.at])).toEqual([['punch',1,100],['punch',1,550]]);game.close();
+});

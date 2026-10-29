@@ -81,7 +81,7 @@ export function createFxScheduler(options:{calm?:boolean;seed?:number}={}){
     if(result.counter_dmg>0)emit(`${key}:counter`,'counter','boss',result.at,FEEL.hitstop.counter,FEEL.trauma.counter,result.move);
    }
    for(const result of state.log.rounds.slice(previous.log.rounds.length))if(result.reason==='ko')emit(`${result.number}:ko`,'ko',result.winner==='streamer'?'boss':'streamer',result.at,FEEL.hitstop.KO,FEEL.trauma.KO);
-   for(const name of ['streamer','boss'] as const)if(state[name].hp<previous[name].hp)rails[name].trail=clock+FEEL.trail.delayMs;
+   for(const name of ['streamer','boss'] as const)if(state[name].hp<previous[name].hp)rails[name].trail=clock+(name==='boss'?FEEL.bossHit.trailDelayMs:FEEL.trail.delayMs);
    previous=state;paused=state.paused;return cues;
   },
   update(realNow:number):FxFrame{

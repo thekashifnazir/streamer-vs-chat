@@ -1,3 +1,4 @@
+import {createBossImpactLedger} from '../../shared/src/boss-impact';
 import {chatCommand} from '../../shared/src/chat-commands';
 import {difficultyName, type Difficulty} from '../../shared/src/tempo';
 import {type BossDef,isDefaultBoss,validateBoss} from '../../shared/src/boss-def';
@@ -17,9 +18,12 @@ export function parseSessionCommand(value:unknown):SessionCommand|null {
   return event.kind==='session'&&(event.action==='start'||event.action==='next-round'||event.action==='summary')?{kind:'session',action:event.action}:null;
 }
 export type SessionChat={user:string;text:string;simulated:boolean;role:ChatRole;displayName?:string;source?:'twitch'|'sim'|'booth'};
+let presentationSource=0;
 /** Owns the live clock and reducer. Waiting for explicit START avoids unattended live results. */
 export class GameSession {
   private current:GameState;
+  private impactLedger=createBossImpactLedger(`server-${++presentationSource}`);
+  get bossImpacts(){return this.impactLedger.snapshot();}
   private armed=false;
   private pendingDifficulty:Difficulty='hard';
   private pendingBoss:BossDef|null|undefined;
@@ -66,6 +70,7 @@ export class GameSession {
     const previous=this.current;
     const wasOver=this.current.round.over;
     this.current=step(this.current,event,now);
+    this.impactLedger.observe(previous,this.current);
     this.options.onState?.(previous,this.current);
     if(this.armed&&!wasOver&&this.current.round.over) {
       const result=this.current.log.rounds.at(-1)!;

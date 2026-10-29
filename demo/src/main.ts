@@ -1,3 +1,4 @@
+import {createBossImpactLedger} from '../../shared/src/boss-impact';
 import {chatCommandLegend} from '../../shared/src/chat-commands';
 import {tempoFor,type Difficulty} from '../../shared/src/tempo';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
@@ -5,7 +6,7 @@ import type {BossDef} from '../../shared/src/boss-def';
 import '../../overlay/src/style.css';
 import './style.css';
 import { createRailsHud } from '../../overlay/src/hud';
-import { createGame, step, type GameState } from '../../shared/src/engine';
+import { createGame, step as engineStep, type GameState } from '../../shared/src/engine';
 import type { PoseState, StreamerInput } from '@svc/shared';
 import { createKeyboard } from '../../capture/src/keyboard';
 import { PoseCamera } from '../../capture/src/camera';
@@ -18,6 +19,8 @@ import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {createDemoViewerMemory} from './viewer-memory';
 
+const impactLedger=createBossImpactLedger('browser');
+const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);return after;};
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const stage=el('stage');
 const host=el('game-hud');
@@ -95,6 +98,7 @@ function paint() {
   if(game&&coldOpenAt===null)viewerMemory?.observe(game);
   hud.setMemory(viewerMemory?.view()??null);
   document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef);
+  hud.setBossReceipts(impactLedger.snapshot());
   hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0,difficulty:difficulty.value as Difficulty}),!liveMode);
   hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   trackFight();trackLocalRound();

@@ -21,7 +21,7 @@
   <a href="#how-it-works"><img src="https://img.shields.io/badge/Twitch-EventSub%20%C2%B7%20Helix%20%C2%B7%20Clips-9146FF?style=for-the-badge&logo=twitch&logoColor=white" alt="Twitch EventSub, Helix and Clips"></a>
   <a href="#how-it-works"><img src="https://img.shields.io/badge/MediaPipe-Pose-0097A7?style=for-the-badge" alt="MediaPipe Pose"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/Node-22%20%C2%B7%20TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Node 22 and TypeScript"></a>
-  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-537%20offline-5C5850?style=for-the-badge" alt="537 offline tests"></a>
+  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-601%20offline-5C5850?style=for-the-badge" alt="601 offline tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-5C5850?style=for-the-badge" alt="Licence: MIT"></a>
 </p>
 
@@ -36,7 +36,7 @@ Most chat games ask chat to spam and the streamer to watch. Here chat runs the b
 | Hard casual player win rate, 0 to 500 viewers (4,000 rounds per cell, gate is 30–70%) | **48.5–65.6%** |
 | Hard no-punch player win rate (gate is at least 30%) | **35.9–53.1%** |
 | 1,000 simulated chatters: chat to HUD | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
-| Offline tests (unit, golden vectors, recorded pose clips, transports) | **537**, no Twitch or external network |
+| Offline tests (unit, golden vectors, recorded pose clips, transports) | **601**, no Twitch or external network |
 
 ## How to play
 
@@ -128,7 +128,7 @@ In the no-login demo, open **Boss Forge**, pick one of four prebaked bosses—Ne
 |---|---|
 | Main Codex thread (submit this ID) | `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` |
 | Commits on `main`, all written in that thread | **31** at the pre-ship snapshot `4b20fb2` |
-| Tests over the build | 19 on day 1 → **537** at ship |
+| Tests over the build | 19 on day 1 → **601** at ship |
 | How the work was split | One root thread with subagent lanes for the engine, Twitch/server and HUD, plus an independent subagent review before each commit |
 
 What the live tests and reviews caught, each fixed in the thread:

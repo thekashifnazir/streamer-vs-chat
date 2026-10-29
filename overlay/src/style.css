@@ -320,3 +320,11 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .rails-hud:not(.custom-boss) .vote-percent,.rails-hud:not(.custom-boss) .vote-row.locked .vote-percent{font:700 36px/1 Barlow,sans-serif}
 .seated.rails-hud:not(.custom-boss) .vote-row{column-gap:2px}
 .seated.rails-hud:not(.custom-boss) .vote-command small{left:144px;right:74px}
+
+/* Boss impact labels stay inside the damaged rail, above its sprite. */
+.boss-damage-numbers{position:absolute;left:14px;right:14px;bottom:300px;height:160px;pointer-events:none;z-index:3}
+.boss-damage-number{position:absolute;left:8px;bottom:0;color:var(--yellow);font:400 100px/1 Anton,Impact,sans-serif;text-shadow:3px 3px #08050c,-3px -3px #08050c;white-space:nowrap}
+.boss-damage-number[data-kind="counter"]{color:var(--pink)}
+.seated .boss-damage-numbers{bottom:205px;height:110px}.seated .boss-damage-number{font-size:70px}
+
+.boss-damage-label{position:absolute;top:100%;left:0;color:white;white-space:nowrap;font:400 36px/1 Anton,Impact,sans-serif}

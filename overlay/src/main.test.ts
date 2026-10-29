@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from 'vitest';
-const hud=vi.hoisted(()=>({setInputLocked:vi.fn(),setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),setForge:vi.fn(),dispose:vi.fn()}));
+const hud=vi.hoisted(()=>({setBossReceipts:vi.fn(),setInputLocked:vi.fn(),setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),setForge:vi.fn(),dispose:vi.fn()}));
 vi.mock('./hud',()=>({createRailsHud:()=>hud}));
 class Socket extends EventTarget {
  static instances:Socket[]=[];
@@ -45,4 +45,13 @@ it('shows the server-owned input lock independently of ordinary game renders',as
  const tick=(inputsStopped:boolean)=>socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'tick',state:{},inputsStopped})}));
  tick(true);expect(hud.setInputLocked).toHaveBeenLastCalledWith(true);socket.tick('connected');expect(hud.setInputLocked).toHaveBeenLastCalledWith(true);
  tick(false);expect(hud.setInputLocked).toHaveBeenLastCalledWith(false);tick(true);expect(hud.setInputLocked).toHaveBeenLastCalledWith(true);window.dispatchEvent(new Event('beforeunload'));
+});
+it('primes boss receipts once on each connection and forwards subsequent batches before rendering',async()=>{
+ const window=await page(),socket=Socket.instances[0]!;
+ const receipts={source:'server-1',entries:[{id:1,kind:'punch',amount:1,brace:false,round:1,at:100}]};
+ const tick=(connection:Socket)=>connection.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'tick',state:{},bossImpacts:receipts})}));
+ tick(socket);expect(hud.setBossReceipts).toHaveBeenLastCalledWith(receipts,true);
+ tick(socket);expect(hud.setBossReceipts).toHaveBeenLastCalledWith(receipts,false);
+ socket.close();await vi.advanceTimersByTimeAsync(1000);tick(Socket.instances[1]!);expect(hud.setBossReceipts).toHaveBeenLastCalledWith(receipts,true);
+ window.dispatchEvent(new Event('beforeunload'));
 });

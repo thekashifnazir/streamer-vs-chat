@@ -1,3 +1,4 @@
+import {FEEL} from '../../shared/src/feel';
 export type AtlasFrame = {frame:{x:number;y:number;w:number;h:number};spriteSourceSize:{x:number;y:number};sourceSize:{w:number;h:number};anchor:{x:number;y:number};duration:number};
 export type BossAtlas = {frames:Record<string,AtlasFrame>;animations:Record<string,string[]>};
 export const bossSheetUrl=new URL('../../assets/boss/boss-sheet@1x.png',import.meta.url).href;
@@ -28,7 +29,7 @@ export class BossSprite {
     this.sheet.src=bossSheetUrl;
     void fetch(bossAtlasUrl).then(response=>{if(!response.ok)throw new Error('Boss atlas unavailable');return response.json();}).then(atlas=>{if(!this.dead)this.atlas=atlas;}).catch(()=>{canvas.setAttribute('aria-label','Chat Golem boss');});
   }
-  draw(clip:string,elapsed:number):void {
+  draw(clip:string,elapsed:number,flashOpacity=0):void {
     const ctx=this.canvas.getContext('2d');
     if(!ctx)return;
     ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
@@ -36,6 +37,8 @@ export class BossSprite {
     const frame=this.atlas.frames[animationFrame(this.atlas,clip,elapsed)]!;
     const placement=framePlacement(frame,this.canvas.width,this.canvas.height);
     ctx.drawImage(this.sheet,frame.frame.x,frame.frame.y,frame.frame.w,frame.frame.h,placement.x,placement.y,placement.width,placement.height);
+    if(flashOpacity>0){ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=flashOpacity;ctx.fillStyle=FEEL.bossHit.flashColor;
+      ctx.fillRect((this.canvas.width-FEEL.bossHit.flashWidth)/2,this.canvas.height-FEEL.bossHit.flashHeight-FEEL.bossHit.flashBottomPx,FEEL.bossHit.flashWidth,FEEL.bossHit.flashHeight);ctx.restore();}
   }
   dispose(){this.dead=true;this.sheet.src='';}
 }
