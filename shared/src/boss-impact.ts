@@ -1,6 +1,6 @@
 import type {GameState} from './engine';
 /** Bounded presentation receipts, outside combat state; no identities or chat text. */
-export type BossImpactReceipt={id:number;kind:'counter'|'punch';amount:number;brace:boolean;round:number;at:number};
+export type BossImpactReceipt={id:number;kind:'counter'|'punch'|'finisher';amount:number;brace:boolean;round:number;at:number};
 export type BossImpactBatch={source:string;entries:BossImpactReceipt[]};
 export function createBossImpactLedger(source:string){
  let sequence=0;const entries:BossImpactReceipt[]=[];
@@ -8,6 +8,13 @@ export function createBossImpactLedger(source:string){
  return {
   observe(before:GameState,after:GameState){
    if(before.match.seed!==after.match.seed||before.round.number!==after.round.number||after.round.elapsed_ms<before.round.elapsed_ms)return;
+   if(after.log.bossDamage){
+    for(const hit of after.log.bossDamage.slice(before.log.bossDamage?.length??0)){
+     const resolution=hit.kind==='counter'?after.log.resolved.find(result=>result.round===hit.round&&result.beat===hit.beat&&result.at===hit.at):undefined;
+     if(hit.damage>0)add({kind:hit.kind,amount:hit.damage,brace:!!resolution?.braced,round:hit.round,at:hit.at});
+    }
+    return;
+   }
    let remaining=Math.max(0,before.boss.hp-after.boss.hp);
    for(const result of after.log.resolved.slice(before.log.resolved.length)){
     const amount=Math.min(remaining,result.actual_counter_dmg??result.counter_dmg);

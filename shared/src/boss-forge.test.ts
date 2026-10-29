@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {DEFAULT_BOSS,validateBoss,type BossDef} from './boss-def';
 import {gateBoss,tuneBoss,scaleBoss} from './boss-forge';
-import {createGame,step,bossMove} from './engine';
+import {createGame,step,bossMove,FOCUS_RULES} from './engine';
 import {parseChatVote,MOVES} from './index';
 import {DIFFICULTIES,tempoFor,scaleTelegraph} from './tempo';
 const fixture=()=>JSON.parse(readFileSync(new URL('../../fixtures/bosses/tin-tactician.json',import.meta.url),'utf8')) as BossDef;
@@ -41,22 +41,38 @@ describe('Forge deterministic §5 balance gate',()=>{
 
 import {forgePlan,evaluateForgePlan} from './boss-forge';
 import type {EngineEvent} from './engine';
-it('compiled R1 arithmetic matches production reducer HP and winner for seeded plans',()=>{
+it('compiled focus/finisher/SUPER arithmetic matches production HP and winner for seeded plans',()=>{
  for(const difficulty of DIFFICULTIES)for(const def of [DEFAULT_BOSS,fixture()])for(const player of [0,1] as const)for(const sample of [0,19,145]){
-  const plan=forgePlan(def,player,2,sample,difficulty),events:{event:EngineEvent;at:number}[]=[];
+  const plan=forgePlan(def,player,2,sample,difficulty),events:{at:number;run:()=>void}[]=[];
+  const tempo=tempoFor(difficulty),reserved=def===DEFAULT_BOSS?2*tempo.telegraph+2*Math.round(600*tempo.tempo):Math.max(...def.moves.map(move=>scaleTelegraph(move.telegraph_ms,difficulty)+(move.hits-1)*tempo.comboGap));
+  // Forge's conservative schedule reserves the whole longest chain before
+  // admitting any final draw, even if that particular draw is a shorter move.
+  expect(plan).toHaveLength(Math.floor((74999-reserved)/tempo.beat));
+  expect(plan.length*tempo.beat+reserved).toBeLessThan(75000);
   let state=createGame({bossDef:def,difficulty,moves:plan.map(item=>item.move)});
+  const queue=(at:number,run:()=>void)=>events.push({at,run});
+  const pose=(at:number,guard:boolean,lean:'L'|'R'|null=null)=>{state=step(state,{kind:'pose',guard,lean,source:'keyboard',at},at);};
   plan.forEach((item,beat)=>{
-   const spec=bossMove(state,item.move),draw=(beat+1)*tempoFor(difficulty).beat,landing=draw+scaleTelegraph(spec.telegraph_ms,difficulty),end=landing+(spec.hits-1)*tempoFor(difficulty).comboGap;
-   events.push({event:{kind:'pose',guard:false,lean:null,source:'keyboard',at:draw+1},at:draw+1});
-   const guard=item.outcome==='BLOCK'||item.outcome==='PERFECT'||item.outcome==='CHIP';
-   const lean=item.outcome==='DODGE'?(spec.defence==='lean_left'?'L':'R'):null;
-   const at=landing-(item.outcome==='PERFECT'?300:500);events.push({event:{kind:'pose',guard,lean,source:'keyboard',at},at});
-   for(let punch=0;punch<item.punches;punch++)events.push({event:{kind:'punch',side:'L',source:'keyboard',at:end+100+punch*450},at:end+100+punch*450});
-   if(item.stray)events.push({event:{kind:'punch',side:'L',source:'keyboard',at:end+1100},at:end+1100});
+   if(item.skip)return;
+   const spec=bossMove(state,item.move),draw=(beat+1)*tempoFor(difficulty).beat,isSuper=!!item.superSteps;
+   const landing=draw+scaleTelegraph(spec.telegraph_ms,difficulty)*(isSuper?2:1),gap=isSuper?Math.round(600*tempoFor(difficulty).tempo):tempoFor(difficulty).comboGap,end=landing+(isSuper?2:spec.hits-1)*gap;
+   queue(draw,()=>{state=step(state,{kind:'advance'},draw);if(item.superSteps&&state.activeAttack){state={...state,activeAttack:{...state.activeAttack,super_steps:item.superSteps.map(step=>step.defence)}};}});
+   queue(draw+1,()=>pose(draw+1,false));
+   if(item.superSteps)item.superSteps.forEach((part,index)=>{
+    const at=Math.max(index?landing+(index-1)*gap+1:draw+2,landing+index*gap-500),guard=part.outcome==='BLOCK'||part.outcome==='CHIP',lean=part.outcome==='DODGE'?(part.defence==='lean_left'?'L':'R'):null;
+    queue(at,()=>pose(at,guard,lean));
+   });
+   else{
+    const guard=item.outcome==='BLOCK'||item.outcome==='PERFECT'||item.outcome==='CHIP',lean=item.outcome==='DODGE'?(spec.defence==='lean_left'?'L':'R'):null;
+    const at=landing-(item.outcome==='PERFECT'?300:500);queue(at,()=>pose(at,guard,lean));
+   }
+   queue(end,()=>{state=step(state,{kind:'advance'},end);if(state.focus===100&&state.finisher.used<2&&!state.activeAttack)pose(end,!!item.finisher);});
+   for(let punch=0;punch<item.punches;punch++){const at=end+100+punch*450;queue(at,()=>{state=step(state,{kind:'punch',side:'L',source:'keyboard',at},at);});}
+   if(item.stray){const at=end+1100;queue(at,()=>{state=step(state,{kind:'punch',side:'L',source:'keyboard',at},at);});}
   });
-  for(const {event,at} of events.sort((a,b)=>a.at-b.at))if(at<75000)state=step(state,event,at);
+  for(const {at,run}of events.sort((a,b)=>a.at-b.at))if(at<75000)run();
   state=step(state,{kind:'advance'},75000);const fast=evaluateForgePlan(def,plan,difficulty);
-  expect(fast.hp).toBeCloseTo(state.streamer.hp,8);expect(fast.bossHp).toBeCloseTo(state.boss.hp,8);expect(fast.winner).toBe(state.round.winner);
+  expect(fast.hp,`${difficulty} ${def.name} p${player} s${sample}`).toBeCloseTo(state.streamer.hp,8);expect(fast.bossHp,`${difficulty} ${def.name} p${player} s${sample}`).toBeCloseTo(state.boss.hp,8);expect(fast.winner).toBe(state.round.winner);
  }
 },30000);
 it('scales Forge telegraphs and hit gaps through difficulty timing',()=>{
@@ -87,4 +103,21 @@ it('orders a previous Expert stray after the next attack lethal hit',()=>{
  state=step(state,{kind:'punch',side:'L',source:'keyboard',at:10363},10363);
  state=step(state,{kind:'advance'},75000);
  const fast=evaluateForgePlan(def,plan,'expert');expect(fast.hp).toBe(0);expect(fast.bossHp).toBe(def.hp);expect(fast.hp).toBe(state.streamer.hp);expect(fast.bossHp).toBe(state.boss.hp);expect(fast.winner).toBe(state.round.winner);
+});
+it('fires a ready guarded gap before a simultaneous next draw',()=>{
+ const def=fixture();def.moves[0]={...def.moves[0]!,defence:'lean_left',telegraph_ms:1169,hits:1};
+ const reads=Math.ceil(100/FOCUS_RULES.clean),plan=Array.from({length:reads+1},()=>({move:'JAB' as const,outcome:'DODGE' as const,punches:0,stray:false,finisher:true}));
+ let state=createGame({bossDef:def,difficulty:'expert',moves:plan.map(item=>item.move)});
+ for(let beat=0;beat<plan.length;beat++){
+  const draw=(beat+1)*1950,landing=draw+950;
+  state=step(state,{kind:'advance'},draw);
+  state=step(state,{kind:'pose',guard:false,lean:null,source:'keyboard',at:draw+1},draw+1);
+  state=step(state,{kind:'pose',guard:false,lean:'L',source:'keyboard',at:landing-500},landing-500);
+  state=step(state,{kind:'advance'},landing);
+  if(state.focus===100)state=step(state,{kind:'pose',guard:true,lean:'L',source:'keyboard',at:landing},landing);
+ }
+ expect(state.log.finishers[0]?.at).toBe((reads+1)*1950);
+ // Compare the completed bounded plan, before unspecified autopilot inputs.
+ const fast=evaluateForgePlan(def,plan,'expert');
+ expect(fast.hp).toBe(state.streamer.hp);expect(fast.bossHp).toBe(state.boss.hp);
 });

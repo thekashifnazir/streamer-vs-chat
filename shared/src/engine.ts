@@ -4,6 +4,7 @@ import { DEFAULT_BOSS,isDefaultBoss,validateBoss, type BossDef, type BossMoveDef
 import { MOVES, type ChatVote, type Control, type Move, type PoseState, type PunchEvent } from './index.js';
 
 export const RULES={beat:TEMPO.hard.beat,telegraph:TEMPO.hard.telegraph,round:75000,streamerHp:100,bossHp:DEFAULT_BOSS.hp,counter:700,punchThrottle:450} as const;
+export const FOCUS_RULES={clean:12,perfect:24,superStep:10,hitLoss:10,hold:1000,finisherDamage:4,window:3000,maxFinishers:2} as const;
 export type Side='L'|'R';
 export type Winner='streamer'|'boss';
 export type Outcome='HIT'|'BLOCK'|'PERFECT'|'DODGE'|'CHIP';
@@ -16,10 +17,13 @@ export type DefenceInput={round:number;at:number;capture_at:number;source:PoseSt
 export type ScoutingFix={round:number;at:number;side:Side;hp_gained:number};
 export type Attack={round:number;beat:number;move:Move;at:number;lands_at:number;exploit:boolean;exploit_side?:Side;vetoed:boolean;guard_response?:Reaction;lean_response?:Reaction;last_attempt?:Reaction;combo_hit?:number;chain_outcome?:Outcome;first_guard?:boolean;first_perfect?:boolean;combo_broken?:boolean;damage?:number;actual_damage?:number;supporters?:readonly string[];brace?:boolean;super_steps?:SuperStep[];super_results?:Outcome[]};
 export type Resolution={round:number;beat:number;move:Move;at:number;outcome:Outcome;dmg:number;counter_dmg:number;guard:boolean;lean:Side|null;defence:'guard'|'lean'|'none';reaction_ms:number|null;reaction_kind:'held'|'reacted'|'none';capture_at:number|null;received_at:number|null;actual_dmg?:number;actual_counter_dmg?:number;supporters?:readonly string[];braced?:boolean;super_steps?:SuperStep[];super_results?:Outcome[]};
+export type BossDamage={round:number;beat:number;at:number;kind:'counter'|'punch'|'finisher';damage:number};
+export type Finisher={round:number;beat:number;at:number;damage:number;actual_damage:number;window_ends_at:number};
 export type DamageCredit={round:number;beat:number;at:number;damage:number;supporters:readonly string[]};
-export type RoundResult={number:number;winner:Winner;at:number;reason:'ko'|'timeout';streamer_hp:number;boss_hp:number;min_streamer_hp?:number;duration_ms?:number};
+export type RoundResult={number:number;winner:Winner;at:number;reason:'ko'|'timeout';streamer_hp:number;boss_hp:number;min_streamer_hp?:number;duration_ms?:number;boss_max_hp?:number};
 export type GameState={
   now:number;difficulty:Difficulty;streamer:{hp:number;max_hp:number};boss:{hp:number;max_hp:number};
+  focus:number;finisher:{used:number;ends_at:number|null;ready_at:number|null};
   hype:number;supers_used:number;viewers:number;history:Move[];tally:Counts;voters:number;votes:Record<string,Move>;raiders:Record<string,boolean>;raid:{ends_at:number|null};
   paused:boolean;stopped:boolean;
   round:{number:number;over:boolean;winner:Winner|null;ended_at:number|null;end_reason:'ko'|'timeout'|null;elapsed_ms:number;remaining_ms:number;min_streamer_hp?:number};
@@ -30,7 +34,7 @@ export type GameState={
   input:{guard:boolean;lean:Side|null;guard_at:number;lean_at:number;last_punch_at:number;guard_capture_at:number|null;lean_capture_at:number|null;guard_source:PoseState['source'];lean_source:PoseState['source'];guard_received_at:number|null;lean_received_at:number|null};
   clock:{started_at:number;ends_at:number;next_beat:number;beat:number;paused_at:number|null};
   activeAttack:Attack|null;
-  log:{telegraphs:Attack[];resolved:Resolution[];rounds:RoundResult[];inputs:DefenceInput[];fixes:ScoutingFix[];damage:DamageCredit[];superSteps:SuperStepResult[]};
+  log:{telegraphs:Attack[];resolved:Resolution[];rounds:RoundResult[];inputs:DefenceInput[];fixes:ScoutingFix[];damage:DamageCredit[];superSteps:SuperStepResult[];finishers:Finisher[];bossDamage:BossDamage[]};
   rng:number;moves?:Move[];bossDef?:BossDef;
 };
 export type EngineVote=ChatVote&{raider?:boolean};
@@ -92,7 +96,7 @@ export function createGame(options:{seed?:number;roundSeed?:number;viewers?:numb
   const timing=tempoFor(difficulty);
   const bossDef=options.bossDef&&!isDefaultBoss(options.bossDef)?options.bossDef:undefined;
   if(bossDef&&validateBoss(bossDef).length)throw new Error('Invalid BossDef');
-  return {now,difficulty,streamer:{hp:100,max_hp:100},boss:{hp:bossDef?.hp??DEFAULT_BOSS.hp,max_hp:bossDef?.hp??DEFAULT_BOSS.hp},hype:0,supers_used:0,
+  return {now,difficulty,streamer:{hp:100,max_hp:100},boss:{hp:bossDef?.hp??DEFAULT_BOSS.hp,max_hp:bossDef?.hp??DEFAULT_BOSS.hp},focus:0,finisher:{used:0,ends_at:null,ready_at:null},hype:0,supers_used:0,
     viewers:Math.max(0,Math.floor(options.viewers??0)),history:[],tally:emptyCounts(),voters:0,votes:{},raiders:{},raid:{ends_at:null},paused:false,stopped:false,
     round:{number,over:false,winner:null,ended_at:null,end_reason:null,elapsed_ms:0,remaining_ms:75000,min_streamer_hp:100},
     match:{seed,round_wins:{streamer:0,boss:0},winner:null},
@@ -100,14 +104,14 @@ export function createGame(options:{seed?:number;roundSeed?:number;viewers?:numb
     chatScouting:{history:[],card:null,n:0,share:0,lowerBound:0,openingPending:true,openings:[]},counter:{open:false,closes_at:0},
     input:{guard:false,lean:null,guard_at:-Infinity,lean_at:-Infinity,last_punch_at:-Infinity,guard_capture_at:null,lean_capture_at:null,guard_source:'keyboard',lean_source:'keyboard',guard_received_at:null,lean_received_at:null},
     clock:{started_at:now,ends_at:now+75000,next_beat:now+timing.beat,beat:0,paused_at:null},activeAttack:null,
-    log:{telegraphs:[],resolved:[],rounds:[],inputs:[],fixes:[],damage:[],superSteps:[]},rng:(options.roundSeed??(seed+number))>>>0,
+    log:{telegraphs:[],resolved:[],rounds:[],inputs:[],fixes:[],damage:[],superSteps:[],finishers:[],bossDamage:[]},rng:(options.roundSeed??(seed+number))>>>0,
     ...(options.moves===undefined?{}:{moves:[...options.moves]}),...(bossDef?{bossDef:structuredClone(bossDef)}:{}),
   };
 }
 function copy(state:GameState):GameState{
   // Fixed-size structural copy. Histories and vote maps are copied only on writes.
   return {...state,streamer:{...state.streamer},boss:{...state.boss},round:{...state.round},match:{...state.match,round_wins:{...state.match.round_wins}},
-    scouting:{...state.scouting},chatScouting:{...state.chatScouting},raid:{...state.raid},counter:{...state.counter},input:{...state.input},clock:{...state.clock},log:{...state.log},
+    finisher:{...state.finisher},scouting:{...state.scouting},chatScouting:{...state.chatScouting},raid:{...state.raid},counter:{...state.counter},input:{...state.input},clock:{...state.clock},log:{...state.log},
     activeAttack:state.activeAttack?{...state.activeAttack,...(state.activeAttack.super_results?{super_results:[...state.activeAttack.super_results]}:{})}:null};
 }
 function scout(s:GameState,newDodge=false,at=s.now){
@@ -147,7 +151,7 @@ function finish(s:GameState,winner:Winner,at:number,reason:'ko'|'timeout'){
   if(s.match.round_wins[winner]>=2)s.match.winner=winner;
   s.activeAttack=null;s.counter.open=false;
   s.tally=emptyCounts();s.votes={};s.raiders={};s.voters=0;
-  s.log.rounds=[...s.log.rounds,{number:s.round.number,winner,at,reason,streamer_hp:s.streamer.hp,boss_hp:s.boss.hp,min_streamer_hp:Math.min(s.round.min_streamer_hp??100,s.streamer.hp),duration_ms:s.round.elapsed_ms}];
+  s.log.rounds=[...s.log.rounds,{number:s.round.number,winner,at,reason,streamer_hp:s.streamer.hp,boss_hp:s.boss.hp,min_streamer_hp:Math.min(s.round.min_streamer_hp??100,s.streamer.hp),duration_ms:s.round.elapsed_ms,boss_max_hp:s.boss.max_hp}];
 }
 function ko(s:GameState,at:number){
   if(s.streamer.hp<=0){s.streamer.hp=0;finish(s,'boss',at,'ko');}
@@ -163,10 +167,33 @@ function damage(s:GameState,amount:number,at:number):number{
   }
   return dealt;
 }
+function gainFocus(s:GameState,outcome:Outcome,at:number,superStep=false){
+  const amount=outcome==='HIT'?-FOCUS_RULES.hitLoss:outcome==='PERFECT'?FOCUS_RULES.perfect:outcome==='BLOCK'||outcome==='DODGE'?(superStep?FOCUS_RULES.superStep:FOCUS_RULES.clean):0;
+  const before=s.focus;s.focus=Math.max(0,Math.min(100,s.focus+amount));
+  if(s.focus<100)s.finisher.ready_at=null;
+  else if(before<100)s.finisher.ready_at=at;
+}
+function recordBossDamage(s:GameState,kind:BossDamage['kind'],amount:number,at:number,beat=s.clock.beat-1):number{
+  const before=s.boss.hp;s.boss.hp=Math.max(0,before-amount);const actual=before-s.boss.hp;
+  if(actual>0)s.log.bossDamage=[...s.log.bossDamage,{round:s.round.number,beat,at,kind,damage:actual}];
+  return actual;
+}
+function finisherDue(s:GameState):number{
+  if(s.focus!==100||s.finisher.used>=FOCUS_RULES.maxFinishers||!s.input.guard||s.activeAttack)return Infinity;
+  const due=Math.max(s.input.guard_at+FOCUS_RULES.hold,s.finisher.ready_at??s.now,s.now);
+  return due<s.clock.ends_at?due:Infinity;
+}
+function fireFinisher(s:GameState,at:number){
+  s.focus=0;s.finisher.ready_at=null;s.finisher.used++;s.finisher.ends_at=at+FOCUS_RULES.window;
+  const actual=recordBossDamage(s,'finisher',FOCUS_RULES.finisherDamage,at);
+  s.log.finishers=[...s.log.finishers,{round:s.round.number,beat:s.clock.beat-1,at,damage:FOCUS_RULES.finisherDamage,actual_damage:actual,window_ends_at:at+FOCUS_RULES.window}];
+  ko(s,at);
+}
 function resolved(s:GameState,attack:Attack,at:number,outcome:Outcome,dmg:number){
   const bossBefore=s.boss.hp,baseCounter=counterDamage(outcome);
   const braced=!!attack.brace&&baseCounter>0,counter=baseCounter*(braced?1.25:1);
-  if(counter){s.boss.hp=Math.max(0,s.boss.hp-counter);s.counter={open:true,closes_at:at+700};}
+  if(counter){recordBossDamage(s,'counter',counter,at,attack.beat);s.counter={open:true,closes_at:at+700};}
+  if(!attack.super_steps)gainFocus(s,outcome,at);
   const straight=bossMove(s,attack.move).defence==='guard';
   const reaction=straight&&s.input.guard?attack.guard_response:
     outcome==='DODGE'?attack.lean_response:outcome==='CHIP'?attack.guard_response:
@@ -188,6 +215,7 @@ function hit(s:GameState,at:number){
     const outcome:Outcome=clean?(guardStep?'BLOCK':'DODGE'):!guardStep&&s.input.guard?'CHIP':'HIT';
     const current=clean?0:damage(s,outcome==='CHIP'?[3,3,4][hitIndex]!:[8,8,9][hitIndex]!,at);
     attack.damage=(attack.damage??0)+current;
+    gainFocus(s,outcome,at,true);
     attack.super_results=[...(attack.super_results??[]),outcome];
     const order:Record<Outcome,number>={DODGE:0,BLOCK:1,PERFECT:1,CHIP:2,HIT:3};
     attack.chain_outcome=!attack.chain_outcome||order[outcome]>order[attack.chain_outcome]?outcome:attack.chain_outcome;
@@ -268,12 +296,17 @@ function advance(s:GameState,now:number){
     const landing=s.activeAttack?s.activeAttack.lands_at+((s.activeAttack.combo_hit??0)*attackStepGap(s,s.activeAttack)):Infinity;
     const closing=s.counter.open?s.counter.closes_at:Infinity;
     const expiry=s.raid.ends_at??Infinity;
-    const due=Math.min(expiry,closing,landing,s.clock.next_beat,s.clock.ends_at);
+    const finisher=finisherDue(s),finisherExpiry=s.finisher.ends_at??Infinity;
+    const due=Math.min(expiry,closing,landing,finisher,finisherExpiry,s.clock.next_beat,s.clock.ends_at);
     if(due>now)break;
+    s.now=due;
     // The order at a shared millisecond is an explicit rule, not queue insertion order.
     if(expiry===due){s.raid.ends_at=null;s.raiders={};}
     if(closing===due)s.counter.open=false;
+    if(finisherExpiry===due)s.finisher.ends_at=null;
     if(landing===due)hit(s,due);
+    if(s.round.over)break;
+    if(finisher===due&&!s.activeAttack)fireFinisher(s,due);
     if(s.round.over)break;
     if(s.clock.next_beat===due){
       // A long SUPER owns the attack lane. Keep the tempo grid and its pending votes;
@@ -318,6 +351,8 @@ export function step(state:GameState,event:EngineEvent,now:number):GameState{
         s.clock.started_at+=delta;s.clock.ends_at+=delta;s.clock.next_beat+=delta;
         if(s.raid.ends_at!==null)s.raid.ends_at+=delta;
         if(s.counter.open)s.counter.closes_at+=delta;
+        if(s.finisher.ends_at!==null)s.finisher.ends_at+=delta;
+        if(s.finisher.ready_at!==null)s.finisher.ready_at+=delta;
         if(s.activeAttack){
           s.activeAttack.at+=delta;s.activeAttack.lands_at+=delta;
           s.log.telegraphs=s.log.telegraphs.map(t=>t.round===s.activeAttack!.round&&t.beat===s.activeAttack!.beat?{...t,lands_at:s.activeAttack!.lands_at}:t);
@@ -365,7 +400,7 @@ export function step(state:GameState,event:EngineEvent,now:number):GameState{
     if(!event.guard&&s.input.guard&&s.activeAttack?.combo_hit)s.activeAttack.combo_broken=true;
     s.input.guard=event.guard;s.input.lean=event.lean;
   }else if(event.kind==='punch'){
-    if(now-s.input.last_punch_at>=450){s.input.last_punch_at=now;s.boss.hp=Math.max(0,s.boss.hp-(s.counter.open?1.5:1));ko(s,now);}
+    if(now-s.input.last_punch_at>=450){s.input.last_punch_at=now;recordBossDamage(s,'punch',(s.counter.open?1.5:1)*(s.finisher.ends_at!==null&&now<s.finisher.ends_at?2:1),now);ko(s,now);}
   }else if(event.kind==='vote'||event.kind==='vote-batch'){
     s.votes={...s.votes};s.raiders={...s.raiders};s.tally={...s.tally};
     for(const vote of event.kind==='vote'?[event]:event.votes)acceptVote(s,vote);

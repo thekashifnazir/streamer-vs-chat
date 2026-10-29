@@ -337,3 +337,172 @@ Only the following four SUPER-containing vectors changed. Every other vector JSO
 +      "t_ms": 7600,
        "path": "streamer.hp",
 ```
+
+
+## Part D — FOCUS, FINISHER and damage placement
+
+The pure reducer gains focus from clean defences, loses it on HIT, and fires from due-time processing only when guard has been held continuously for 1,000 ms and no attack is active. Guard held during an attack counts; it fires at the first ready idle instant. Two finishers per round, round reset, pause/STOP game-time freezing, half-open 3,000 ms double-punch window and actual damage/KO receipts are tested. Beat deadlines and the 75-second round are unchanged by the window. Counters, punches and finishers share exact boss-impact receipts; FINISHER damage appears in recap totals without awarding chat damage credit.
+
+### Authorized balance tuning
+
+The requested starting point (8 flat damage, clean +15 / PERFECT +30, SUPER clean +10 / HIT −10, 2× warning, 600 ms Hard gaps) failed coordinated R2 casual at 50/500 viewers. The complete failed run is preserved below. D4's order was followed: lower flat damage to 4 first, then lower clean/PERFECT focus gains. Probes below are 4,000-round coordinated R2 casual cells with the same production reducer/model/seed, with no gate changes. A dash means the second cell was not run after the first already failed.
+
+| Flat damage | Clean / PERFECT | 50 viewers | 500 viewers | Result |
+|---:|---:|---:|---:|---|
+| 8 | 15 / 30 | 72.600% | 73.400% | FAIL |
+| 7 | 15 / 30 | 72.125% | 72.925% | FAIL |
+| 6 | 15 / 30 | 71.750% | 72.325% | FAIL |
+| 5 | 15 / 30 | 71.175% | 71.675% | FAIL |
+| 4 | 15 / 30 | 71.075% | — | FAIL |
+| 4 | 14 / 28 | 70.825% | — | FAIL |
+| 4 | 13 / 26 | 70.450% | — | FAIL |
+| 4 | 12 / 24 | 69.975% | 69.950% | PASS cells; full run below |
+
+Final constants are flat 4, clean +12, PERFECT +24, SUPER clean +10, HIT −10. SUPER timing remains 2× warning / 600 ms Hard steps. The prototype's rates were not reproduced: already-held guard (especially a braced coordinated JAB) can trigger automatically in the actual reducer's first ready idle gap. The sim retains those true inputs rather than inventing an opt-out; deliberate first-gap attempts independently use the player's p. Both behavior models are INFERRED, not physical measurements.
+
+The Forge gate compiles damage-independent schedules and evaluates the same chronological damage/focus/finisher arithmetic, including equal-time resolve/finisher/next-draw ordering. Production replay regressions cover the packed schedules. The cold eight-step doubled-Tin tuning run took 2,422 ms on this machine, factor 0.5832868303571428; it passed without changing gates. This is a local compute measurement, not a claim about Kash's laptop or physical play.
+
+### Original full run (8 / 15 / 30): failed, retained honestly
+
+```text
+
+> sim
+> tsx scripts/sim.ts
+
+bossHp=135 ·4000 rounds/cell ·seed2026 ·ordinary · R1
+player        v=0    v=3   v=50  v=500
+casual       61.4   61.0   59.2   58.2
+good         99.4   99.6   99.6   99.8
+seated       76.1   77.8   75.9   75.3
+nopunch      46.4   47.9   44.3   43.9
+keyboard     96.9   97.8   97.8   97.9
+PASS: casual30–70%, no-punch≥30%
+ordinary R2 after real R1 warmups · brace attempt 0.35,hold 0.85
+casual       61.7   68.5   60.1   59.3 · cards/exploits/fixes 53/56/13 brace=0 42/42/20 brace=3719 71/88/36 brace=648 70/93/32 brace=541
+good         99.8   99.7   99.7   99.6 · cards/exploits/fixes 64/42/10 brace=0 24/21/5 brace=2403 58/42/25 brace=479 40/38/14 brace=436
+seated       75.0   80.9   75.6   76.7 · cards/exploits/fixes 70/70/16 brace=0 48/69/23 brace=3622 79/93/32 brace=630 66/92/33 brace=517
+nopunch      47.9   56.0   44.8   44.4 · cards/exploits/fixes 82/84/23 brace=0 62/78/25 brace=4249 75/97/44 brace=700 89/146/47 brace=563
+keyboard     96.8   97.8   98.3   97.9 · cards/exploits/fixes 66/46/12 brace=0 48/49/23 brace=2953 63/74/34 brace=512 76/67/27 brace=467
+PASS: cards=1246,exploits=1387,fixes=494,braces=22439
+bossHp=135 ·4000 rounds/cell ·seed2026 ·coordinated · R1
+player        v=0    v=3   v=50  v=500
+casual       61.4   61.0   63.8   62.5
+good         99.4   99.6   99.8   99.7
+seated       76.1   77.8   80.4   79.3
+nopunch      46.4   47.9   48.6   49.4
+keyboard     96.9   97.8   98.3   98.7
+PASS: casual30–70%, no-punch≥30%
+coordinated R2 after real R1 warmups · brace attempt 0.35,hold 0.85
+casual       61.7   68.5   72.6   73.4 · cards/exploits/fixes 53/56/13 brace=0 42/42/20 brace=3719 31/20/6 brace=5848 33/26/5 brace=5973
+good         99.8   99.7   99.9   99.9 · cards/exploits/fixes 64/42/10 brace=0 24/21/5 brace=2403 19/10/3 brace=4078 15/7/2 brace=4107
+seated       75.0   80.9   86.5   86.6 · cards/exploits/fixes 70/70/16 brace=0 48/69/23 brace=3622 30/22/10 brace=5741 40/34/9 brace=5768
+nopunch      47.9   56.0   60.4   61.0 · cards/exploits/fixes 82/84/23 brace=0 62/78/25 brace=4249 39/38/14 brace=6515 43/38/16 brace=6567
+keyboard     96.8   97.8   98.8   98.9 · cards/exploits/fixes 66/46/12 brace=0 48/49/23 brace=2953 22/11/5 brace=4771 33/14/10 brace=4801
+FAIL: scouting balance or coverage gate
+FOCUS/FINISHER INFERRED: first ready idle gap, trigger probability=player p; no beat shifts.
+Difficulty model INFERRED: p=min(.95,p+.08*(effective telegraph_ms-800)/400); perfect/punch unchanged.
+easy    casual     79.3   79.3   80.4   79.3
+easy    nopunch    65.8   68.5   67.8   68.5
+medium  casual     74.5   73.6   71.5   70.8
+medium  nopunch    59.0   59.1   55.8   56.5
+hard    casual     61.4   61.0   59.2   58.2
+hard    nopunch    46.4   47.9   44.3   43.9
+expert  casual     50.4   48.4   45.1   44.4
+expert  nopunch    34.9   35.9   30.3   29.5
+Forge default.json: {"casual":[61.25000000000001,61.1,58.525000000000006,58.35],"nopunch":[48.75,48.825,43.325,43.6]} PASS
+Forge nak-muay.json: {"casual":[61.25000000000001,64.64999999999999,64.47500000000001,65.14999999999999],"nopunch":[48.75,51.675000000000004,50.1,52.05]} PASS
+Forge neon-kraken.json: {"casual":[61.25000000000001,64.64999999999999,64.47500000000001,65.14999999999999],"nopunch":[48.75,51.675000000000004,50.1,52.05]} PASS
+Forge tin-tactician.json: {"casual":[61.25000000000001,64.64999999999999,64.47500000000001,65.14999999999999],"nopunch":[48.75,51.675000000000004,50.1,52.05]} PASS
+Forge velvet-sentinel.json: {"casual":[61.25000000000001,64.64999999999999,64.47500000000001,65.14999999999999],"nopunch":[48.75,51.675000000000004,50.1,52.05]} PASS
+
+```
+
+### Golden compatibility and new mechanics
+
+No additional golden JSON changed for D. `round-thirty-attacks` retains its exact original bytes and counter-only expectation of 760 HP. The runner also asserts both real 4-damage finishers and actual 752 HP, then adds back their separately asserted damage only for that legacy counter projection. FINISHER is fully active; it is not disabled or silently ignored. Dedicated reducer tests assert focus changes, real total damage, KO, pause, cap, window and beat timing.
+
+### Floating damage layout regression
+
+The latest rendered-playtest report is fixed by anchoring numbers over the boss head/torso, below the measured vote legend, with three horizontally spread lanes. The number container clips inside the boss rail. FEEL owns widths/spacing; the widest glyph/shadow and stamp fit their boxes. `overlay/src/layout.test.ts` checks all three number boxes through the full rise at 1920×1080 standing and seated, inside the rail and disjoint from vote rows. Existing memory/Forge layout is unchanged. This is automated geometry evidence; a fresh rendered OBS/physical webcam pass remains a Mac check.
+
+### Independent review
+
+Part C's full staged 28-file diff was independently reviewed and cleared before c3def17. Part D engine ordering, pause semantics, full sequence damage/scouting, Forge parity and UI geometry were independently reviewed. Findings corrected: stale FINISHER help overwritten at runtime, obsolete SUPER “either lean” instruction, an 8-damage UI expectation after tuning, and the too-narrow damage number box. Final verification and review are recorded below.
+
+### Needs Kash
+
+- Physical webcam play, seated/standing comfort and real OBS rendering of sequence chips, FOCUS/FINISHER and horizontal damage lanes.
+- Real chat/camera/announcer listening checks. No live Twitch, API key, deployment or physical play was used here.
+
+
+### Final fresh-clone verification — PASS
+
+Node 22.23.4; independent empty clone/cache at `/private/tmp/queue13g2-fresh-vcjw3etz`. The exact uncommitted D candidate was copied over committed C before `npm ci`; every non-documentation candidate file was byte-compared with the working tree afterward and matched. Later edits only update these recorded results and README/SPEC prose. No credentials or live integrations were loaded.
+
+| Check | Result | Seconds |
+|---|---|---:|
+| npm ci | PASS | 4.30 |
+| npm test — 642/642, 88 files | PASS | 19.69 |
+| npx tsc --noEmit | PASS | 2.80 |
+| npm run build:demo | PASS | 1.45 |
+| npm run sim — every gate | PASS | 507.74 |
+
+Offline build: 25.5 MB raw / 15.4 MB gzip, no server credentials. The final independent subagent review cleared D and ran 101/101 targeted tests across seven files. Local full suite also passed 642/642. No classifier source or fixture landmarks changed. Only the four listed SUPER golden objects changed; D adds no golden JSON changes.
+
+The 1-decimal console rounds coordinated R2 casual at 50/500 viewers to 70.0; full-precision cells are 69.975% / 69.950%, both within the unchanged ≤70 gate. Ordinary/coordinated R2 coverage passes with 1,308/941 cards, 1,522/893 exploits, 547/280 fixes and 23,410/73,961 braces. All difficulty gates pass; Expert no-punch's existing lack of a 30% floor is unchanged. The interrupted duplicate local candidate run is not used as gate evidence; the completed fresh-clone run below is definitive.
+
+### Final complete balance output (4 / 12 / 24)
+
+```text
+
+> sim
+> tsx scripts/sim.ts
+
+INFERRED FOCUS/FINISHER: clean +12, PERFECT +24, SUPER step +10, HIT -10; finisher 4 damage, notice probability=player p, no beat shifts.
+bossHp=135 ·4000 rounds/cell ·seed2026 ·ordinary · R1
+player        v=0    v=3   v=50  v=500
+casual       56.8   57.0   55.8   54.7
+good         99.2   99.5   99.6   99.7
+seated       73.0   75.0   73.4   72.4
+nopunch      43.5   44.0   40.3   39.7
+keyboard     96.3   97.2   97.4   97.5
+PASS: casual30–70%, no-punch≥30%
+ordinary R2 after real R1 warmups · brace attempt 0.35,hold 0.85
+casual       57.6   65.3   56.8   55.6 · cards/exploits/fixes 60/73/17 brace=0 44/50/23 brace=3867 73/97/36 brace=649 74/92/35 brace=568
+good         99.6   99.6   99.7   99.5 · cards/exploits/fixes 69/50/11 brace=0 27/26/7 brace=2564 55/41/28 brace=524 53/47/19 brace=452
+seated       71.5   78.2   72.7   74.0 · cards/exploits/fixes 71/82/18 brace=0 53/68/23 brace=3812 85/105/41 brace=629 68/94/36 brace=513
+nopunch      43.6   51.9   40.6   40.6 · cards/exploits/fixes 80/87/25 brace=0 62/78/26 brace=4382 80/114/46 brace=732 90/142/51 brace=578
+keyboard     96.0   97.4   97.9   97.3 · cards/exploits/fixes 67/50/11 brace=0 51/56/24 brace=3117 70/89/41 brace=543 76/81/29 brace=480
+PASS: cards=1308,exploits=1522,fixes=547,braces=23410
+bossHp=135 ·4000 rounds/cell ·seed2026 ·coordinated · R1
+player        v=0    v=3   v=50  v=500
+casual       56.8   57.0   59.8   58.2
+good         99.2   99.5   99.7   99.6
+seated       73.0   75.0   77.3   76.6
+nopunch      43.5   44.0   44.7   45.1
+keyboard     96.3   97.2   98.2   98.4
+PASS: casual30–70%, no-punch≥30%
+coordinated R2 after real R1 warmups · brace attempt 0.35,hold 0.85
+casual       57.6   65.3   70.0   70.0 · cards/exploits/fixes 60/73/17 brace=0 44/50/23 brace=3867 36/28/8 brace=5932 35/27/6 brace=6112
+good         99.6   99.6   99.8   99.9 · cards/exploits/fixes 69/50/11 brace=0 27/26/7 brace=2564 26/19/7 brace=4310 20/12/4 brace=4349
+seated       71.5   78.2   84.7   84.4 · cards/exploits/fixes 71/82/18 brace=0 53/68/23 brace=3812 35/34/9 brace=5956 44/38/13 brace=6036
+nopunch      43.6   51.9   57.0   57.4 · cards/exploits/fixes 80/87/25 brace=0 62/78/26 brace=4382 41/40/14 brace=6689 48/43/18 brace=6832
+keyboard     96.0   97.4   98.5   98.6 · cards/exploits/fixes 67/50/11 brace=0 51/56/24 brace=3117 32/13/6 brace=5075 40/19/10 brace=4928
+PASS: cards=941,exploits=893,fixes=280,braces=73961
+FOCUS/FINISHER INFERRED: first ready idle gap, trigger probability=player p; no beat shifts.
+Difficulty model INFERRED: p=min(.95,p+.08*(effective telegraph_ms-800)/400); perfect/punch unchanged.
+easy    casual     75.7   75.6   76.8   76.1
+easy    nopunch    60.1   63.2   64.1   64.1
+medium  casual     70.1   69.3   67.7   66.1
+medium  nopunch    53.8   54.6   50.4   52.2
+hard    casual     56.8   57.0   55.8   54.7
+hard    nopunch    43.5   44.0   40.3   39.7
+expert  casual     45.3   44.5   40.9   41.2
+expert  nopunch    31.1   32.2   26.4   25.8
+Forge default.json: {"casual":[56.85,57.125,55.074999999999996,54.75],"nopunch":[44.55,44.525,39.550000000000004,39.525]} PASS
+Forge nak-muay.json: {"casual":[56.85,60.425,60.550000000000004,61.550000000000004],"nopunch":[44.55,47.275,46,47.375]} PASS
+Forge neon-kraken.json: {"casual":[56.85,60.425,60.550000000000004,61.550000000000004],"nopunch":[44.55,47.275,46,47.375]} PASS
+Forge tin-tactician.json: {"casual":[56.85,60.425,60.550000000000004,61.550000000000004],"nopunch":[44.55,47.275,46,47.375]} PASS
+Forge velvet-sentinel.json: {"casual":[56.85,60.425,60.550000000000004,61.550000000000004],"nopunch":[44.55,47.275,46,47.375]} PASS
+
+```

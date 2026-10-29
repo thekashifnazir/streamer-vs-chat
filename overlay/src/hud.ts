@@ -1,5 +1,7 @@
 import {superSequencePresentation,renderSuperSteps,superNoticePresentation,type SuperNoticesView} from './super-ui';
 import type {BossImpactBatch} from '../../shared/src/boss-impact';
+import {bossDamageLayout} from './damage-layout';
+import {finisherPresentation,renderFocus} from './focus-ui';
 import {FEEL} from '../../shared/src/feel';
 import {createBossFeedback,playBossImpactSounds,renderBossDamageNumbers,type BossImpact} from './boss-feedback';
 import {chatCommand,chatCommandLegend,voteCountLabel} from '../../shared/src/chat-commands';
@@ -74,13 +76,14 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   host.classList.add('rails-host');
   host.innerHTML=`<main class="rails-hud" aria-label="Streamer vs Chat">
   <aside class="rail streamer"><header><p class="eyebrow" data-id="input-lock" role="status">STREAMER</p><h1>KASH</h1></header>
-  <div class="hp"><strong data-id="streamer-hp">100</strong><span>%</span></div><div class="health-bar" data-id="streamer-bar"><i></i><span></span></div>
+  <div class="hp"><strong data-id="streamer-hp">100</strong><span>%</span><span class="focus-meter" data-id="focus-meter"><b data-id="focus-value">FOCUS 0</b><span class="focus-track"><i data-id="focus-fill"></i></span></span></div><div class="health-bar" data-id="streamer-bar"><i></i><span></span></div>
   <p class="rounds">ROUNDS <strong data-id="streamer-wins">0</strong> – <span data-id="boss-wins">0</span></p>
   <section class="scouting" data-id="scouting" hidden aria-live="polite"><p class="eyebrow" data-id="scouting-label">SCOUTED</p><div data-id="habit-details"><h2 data-id="habit">DODGES LEFT</h2><strong class="habit-share" data-id="habit-share"></strong><p class="scouting-evidence"><span data-id="habit-n"></span><span data-id="exploit-cooldown"></span></p><p>CHAT: VOTE <b data-id="exploit-command"></b></p></div><div data-id="fixed-details" hidden><strong class="fixed-stamp">FIXED!</strong><p data-id="fixed-reward"></p></div></section>
   <section class="status-card"><p class="eyebrow" data-id="phase">READY TO FIGHT</p><p data-id="status">GUARD STRAIGHTS.<br>LEAN FROM SWINGS.</p><small data-id="result"></small></section><section class="viewer-record" data-id="viewer-record" hidden><h2>YOUR RECORD <span>VS THIS CHAT</span></h2><div class="record-values"><p><b data-id="record-streams"></b><span>STREAMS</span></p><p><b data-id="record-kos"></b><span title="Bosses KO">BOSS KOs</span></p><p><b data-id="record-deaths"></b><span title="Times KO">TIMES KO</span></p></div></section><section class="memory-hall" data-id="memory-hall" hidden><h2>CHAT HALL OF FAME <span>ALL TIME</span></h2><ol data-id="memory-hall-list"></ol></section>
   <div class="blocked-stamp" data-id="blocked" hidden>BLOCKED!</div><footer><p class="simulated" data-id="simulated" hidden>● SIMULATED CHAT</p><p class="calm-badge" data-id="calm" hidden>CALM FX</p><p class="connection" data-id="connection" role="status">CONNECTING…</p><div class="hud-options"><button data-id="sound" type="button">SOUND OFF · M</button><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer></aside>
   <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b><b class="difficulty-tag" data-id="difficulty">HARD</b></span></div>
   <div class="super-ready-banner" data-id="super-ready" role="status" hidden>SUPER READY: chat type !s</div><div class="super-denied-banner" data-id="super-denied" role="status" hidden>!s needs 100% HYPE</div>
+  <div class="finisher-banner" data-id="finisher-ready" role="status" hidden></div>
   <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><div class="super-steps" data-id="super-steps" aria-label="SUPER defence sequence" hidden></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
@@ -107,6 +110,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   const observer=new ResizeObserver(fit);observer.observe(host);fit();
   const bossFeedback=createBossFeedback();
   const floatingNodes=new Map<string,HTMLElement>();
+  el('boss-damage').style.setProperty('--damage-number-box',`${options.seated?FEEL.bossHit.seatedNumberBoxPx:FEEL.bossHit.numberBoxPx}px`);
   const sprite=new BossSprite(el<HTMLCanvasElement>('boss-sprite'));
   let soundBusy=false,disposed=false;
   const sound=new GameSound({defaultEnabled:options.soundDefault??options.simulated===undefined,onChange:()=>soundLabel()});
@@ -157,7 +161,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
 
   function setModes(next:Partial<HudModes>) {
     const updated={...modes,...next};if(updated.seated===modes.seated&&updated.noPunch===modes.noPunch&&stage.dataset.modesReady)return;
-    modes=updated;stage.dataset.modesReady='true';stage.classList.toggle('seated',modes.seated);stage.classList.toggle('no-punch',modes.noPunch);
+    modes=updated;el('boss-damage').style.setProperty('--damage-number-box',`${modes.seated?FEEL.bossHit.seatedNumberBoxPx:FEEL.bossHit.numberBoxPx}px`);stage.dataset.modesReady='true';stage.classList.toggle('seated',modes.seated);stage.classList.toggle('no-punch',modes.noPunch);
     for(const side of ['left','right'])el(side+'-arrow').querySelector('span')!.textContent=modes.seated?'TILT':'LEAN';
     if(current)render(current,currentSimulated);
   }
@@ -192,6 +196,8 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     hp('streamer',state.streamer.hp,state.streamer.max_hp);hp('boss',state.boss.hp,state.boss.max_hp);
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
+    renderFocus(el('focus-meter'),el('focus-value'),el('focus-fill'),state);
+    const finisherView=finisherPresentation(state);el('finisher-ready').hidden=!finisherView.visible;el('finisher-ready').classList.toggle('window-active',finisherView.active);setText('finisher-ready',finisherView.text);
     el('hype').textContent=`${Math.round(state.hype)}%`;el('hype-fill').style.width=`${state.hype}%`;
     const superReady=!!state.bossDef||state.hype>=100&&state.supers_used<3;setText('super-command',`→ ${chatCommand('SUPER',state.bossDef,true)}`);el('super-command').hidden=!availableMoves(state).includes('SUPER');
     const moveName=(move:Move)=>bossMove(state,move).label;
@@ -279,7 +285,9 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   renderTally({kind:'tally',tally:{JAB:0,HOOK_L:0,HOOK_R:0,COMBO:0,SUPER:0},voters:0,simulated:!!options.simulated});
   let frameId:number;
   const animate=()=>{if(disposed)return;const now=performance.now(),frame=fx.update(now),bossHit=bossFeedback.frame(now,frame.calm);
-    renderBossDamageNumbers(el('boss-damage'),floatingNodes,bossHit.numbers);
+    const damageZone=el('boss-damage'),bossRail=host.querySelector<HTMLElement>('.rail.boss')!,railRect=bossRail.getBoundingClientRect(),legend=host.querySelector<HTMLElement>('.hype-vote-legend')!,votesRect=legend.getBoundingClientRect(),scale=railRect.width/(modes.seated?300:470);
+    if(scale>0){damageZone.style.top=`${bossDamageLayout(modes.seated?300:470,1080,(votesRect.bottom-railRect.top)/scale,modes.seated).top}px`;}
+    renderBossDamageNumbers(damageZone,floatingNodes,bossHit.numbers);
     for(const name of ['streamer','boss'] as const){const rail=host.querySelector<HTMLElement>(`.rail.${name}`)!,view=frame[name];rail.style.transform=`translate(${view.x+(name==='boss'?bossHit.knockback:0)}px,${view.y}px) rotate(${view.rotation}deg)`;
       const bar=el(name+'-bar');bar.style.boxShadow=view.flash?`0 0 0 3px ${view.flash.color}`:'none';bar.style.outline=view.flash?`${3*view.flash.opacity}px solid ${view.flash.color}`:'none';
       if(!view.trail){const trail=bar.querySelector<HTMLElement>('i')!;trail.style.transition=`width ${name==='boss'?FEEL.bossHit.trailMs:300}ms linear`;trail.style.width=bar.querySelector<HTMLElement>('span')!.style.width;}

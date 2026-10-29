@@ -42,3 +42,29 @@ it('gives the widest share its own intrinsic-width row in standing and seated la
   for(const scale of [1,720/1080]){expect(maxContentWidth*scale).toBeLessThan(inner*scale);expect(contentHeight*scale).toBeLessThan(cardHeight*scale);}
  }
 });
+
+import {bossDamageLayout} from './damage-layout';
+import {FEEL} from '../../shared/src/feel';
+it('keeps every floating number box below vote rows and inside the boss rail at1920x1080 standing/seated',()=>{
+ // Design-space rail boxes; production gets the lower boundary from the rendered
+ // vote legend, so differing fonts, wrapped locks and mode cards cannot move a
+ // number back across a vote row. Include all three lane positions and full rise.
+ for(const seated of [false,true]){
+  const width=seated?300:470,numberHeight=seated?70:100;
+  for(const votesBottom of [560,650,750]){
+   const layout=bossDamageLayout(width,1080,votesBottom,seated);
+   // Actual shipped Anton ink for −13.75 is235.25px at100px; include
+   // the6px shadow, plus the widest36px counter label (<=216px).
+   const inkWidth=235.25*numberHeight/100+6;
+   expect(layout.boxWidth).toBeGreaterThanOrEqual(Math.max(inkWidth,216));
+   for(const center of layout.centers)for(const rise of [0,FEEL.bossHit.floatRisePx]){
+    const box={left:center-layout.boxWidth/2,right:center+layout.boxWidth/2,top:layout.top+72-rise,bottom:layout.top+72-rise+numberHeight+36};
+    expect(box.left).toBeGreaterThanOrEqual(0);expect(box.right).toBeLessThanOrEqual(width);
+    expect(box.top).toBeGreaterThan(votesBottom);expect(box.bottom).toBeLessThanOrEqual(1080);
+   }
+  }
+ }
+ expect(css).toContain('.boss-damage-numbers{position:absolute;left:0;right:0;');
+ expect(css).toContain('overflow:hidden;pointer-events:none;z-index:3');
+ expect(css).toContain('.boss-damage-number{position:absolute;left:50%;top:72px;');
+});

@@ -43,6 +43,6 @@ export function renderBossDamageNumbers(container:HTMLElement,nodes:Map<string,H
  for(const item of numbers){
   let node=nodes.get(item.id);
   if(!node){node=container.ownerDocument.createElement('strong');node.className='boss-damage-number';const value=container.ownerDocument.createElement('span');value.className='boss-damage-value';value.textContent=item.text;node.append(value);node.dataset.kind=item.kind;node.dataset.braced=String(item.brace);const stamp=impactStamp(item.kind,item.brace);if(stamp){const label=container.ownerDocument.createElement('small');label.className='boss-damage-label';label.textContent=stamp;node.append(label);}container.append(node);nodes.set(item.id,node);}
-  node.style.bottom=`${item.lane*FEEL.bossHit.numberLanePx}px`;node.style.transform=`translateY(${item.y}px)`;node.style.opacity=String(item.opacity);
+  node.style.left=`clamp(calc(var(--damage-number-box) / 2), calc(50% + ${(item.lane-1)*FEEL.bossHit.numberLanePx}px), calc(100% - var(--damage-number-box) / 2))`;node.style.transform=`translateY(${item.y}px)`;node.style.opacity=String(item.opacity);
  }
 }

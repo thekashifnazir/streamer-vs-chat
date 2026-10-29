@@ -99,7 +99,7 @@ function paint() {
   hud.setForge(forgeSnapshot,!game||game.round.over);
   if(game&&coldOpenAt===null)viewerMemory?.observe(game);
   hud.setMemory(viewerMemory?.view()??null);
-  document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef);
+  document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef)+' · FINISHER READY: hold K (guard) for 1 s; no punches required.';
   hud.setBossReceipts(impactLedger.snapshot());hud.setSuperNotices(superNotices.snapshot());
   hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0,difficulty:difficulty.value as Difficulty}),!liveMode);
   hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');

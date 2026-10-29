@@ -322,12 +322,12 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .seated.rails-hud:not(.custom-boss) .vote-command small{left:144px;right:74px}
 
 /* Boss impact labels stay inside the damaged rail, above its sprite. */
-.boss-damage-numbers{position:absolute;left:14px;right:14px;bottom:300px;height:160px;pointer-events:none;z-index:3}
-.boss-damage-number{position:absolute;left:8px;bottom:0;color:var(--yellow);font:400 100px/1 Anton,Impact,sans-serif;text-shadow:3px 3px #08050c,-3px -3px #08050c;white-space:nowrap}
+.boss-damage-numbers{position:absolute;left:0;right:0;top:730px;bottom:0;overflow:hidden;pointer-events:none;z-index:3}
+.boss-damage-number{position:absolute;left:50%;top:72px;width:var(--damage-number-box);margin-left:calc(var(--damage-number-box) / -2);text-align:center;color:var(--yellow);font:400 100px/1 Anton,Impact,sans-serif;text-shadow:3px 3px #08050c,-3px -3px #08050c;white-space:nowrap}
 .boss-damage-number[data-kind="counter"]{color:var(--pink)}
-.seated .boss-damage-numbers{bottom:205px;height:110px}.seated .boss-damage-number{font-size:70px}
+.seated .boss-damage-number{font-size:70px}
 
-.boss-damage-label{position:absolute;top:100%;left:0;color:white;white-space:nowrap;font:400 36px/1 Anton,Impact,sans-serif}
+.boss-damage-label{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:var(--damage-number-box);text-align:center;color:white;white-space:nowrap;font:400 36px/1 Anton,Impact,sans-serif}
 
 /* SUPER is a visible sequence, with an unlock line independent of vote-cell width. */
 .super-steps{display:flex;justify-content:center;gap:12px;margin-top:20px}.super-steps[hidden]{display:none}
@@ -339,3 +339,10 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .vote-row.super-locked>.super-lock{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:400 36px/1 Anton,Impact,sans-serif;color:#c8c2d5}.super-lock>span{white-space:nowrap}
 
 .hype-vote-legend{position:relative;margin-top:10px;font:700 36px/1 Barlow,Arial,sans-serif;color:#c8c2d5;text-align:left;z-index:1}
+
+.focus-meter{display:flex;flex:0 0 112px;flex-direction:column;width:112px;margin-left:auto;gap:6px;color:var(--cyan);text-align:left}.hp .focus-meter b{font:700 36px/1 Barlow,Arial,sans-serif;white-space:nowrap}.focus-track{display:block;width:100%;height:12px;background:#40374d}.focus-track i{display:block;height:100%;width:0;background:var(--cyan)}.focus-meter.ready{color:var(--yellow)}.focus-meter.ready i{background:var(--yellow)}
+.finisher-banner{position:absolute;left:485px;right:485px;top:390px;padding:12px;background:#08050cf2;border:4px solid var(--yellow);color:var(--yellow);font:400 44px/1 Anton,Impact,sans-serif;text-align:center;z-index:4}
+
+.finisher-banner.window-active{top:auto;bottom:28px}
+
+.seated:not(.memory-on) .streamer .hp strong{font-size:80px}

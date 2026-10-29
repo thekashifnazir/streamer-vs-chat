@@ -21,7 +21,7 @@
   <a href="#how-it-works"><img src="https://img.shields.io/badge/Twitch-EventSub%20%C2%B7%20Helix%20%C2%B7%20Clips-9146FF?style=for-the-badge&logo=twitch&logoColor=white" alt="Twitch EventSub, Helix and Clips"></a>
   <a href="#how-it-works"><img src="https://img.shields.io/badge/MediaPipe-Pose-0097A7?style=for-the-badge" alt="MediaPipe Pose"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/Node-22%20%C2%B7%20TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Node 22 and TypeScript"></a>
-  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-601%20offline-5C5850?style=for-the-badge" alt="601 offline tests"></a>
+  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-642%20offline-5C5850?style=for-the-badge" alt="642 offline tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-5C5850?style=for-the-badge" alt="Licence: MIT"></a>
 </p>
 
@@ -33,10 +33,10 @@ Most chat games ask chat to spam and the streamer to watch. Here chat runs the b
 
 | Headline result | |
 |---|---|
-| Hard casual player win rate, 0 to 500 viewers (4,000 rounds per cell, gate is 30–70%) | **48.5–65.6%** |
-| Hard no-punch player win rate (gate is at least 30%) | **35.9–53.1%** |
+| Hard casual player win rate, 0 to 500 viewers (4,000 rounds per cell, gate is 30–70%) | **54.7–70.0%** |
+| Hard no-punch player win rate (gate is at least 30%) | **39.7–57.4%** |
 | 1,000 simulated chatters: chat to HUD | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
-| Offline tests (unit, golden vectors, recorded pose clips, transports) | **601**, no Twitch or external network |
+| Offline tests (unit, golden vectors, recorded pose clips, transports) | **642**, no Twitch or external network |
 
 ## How to play
 
@@ -46,7 +46,7 @@ Chat Golem commands (first word, case-insensitive): **!jab (!j)** = guard; **!le
 
 1. Open **[streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com)**. No account, no install; it keeps working offline once loaded.
 2. Choose **Standing** or **Seated**, optionally **No punches**, and tick **My space is clear and I can move comfortably.** Follow the tutorial: **K → A → J** (or **K → A → D** with no punches). Difficulty starts at **Medium**; the control below the game offers Easy / Medium / Hard / Expert. Webcam is optional.
-3. Simulated chat (badged **SIMULATED**) plays the boss. When **HANDS UP!** appears you have 1.0 s on Medium: guard a JAB or COMBO, lean right for HOOK L, left for HOOK R. SUPER has a longer warning and three highlighted guard/lean steps. Hard retains the original 0.8 s warning.
+3. Simulated chat (badged **SIMULATED**) plays the boss. When **HANDS UP!** appears you have 1.0 s on Medium: guard a JAB or COMBO, lean right for HOOK L, left for HOOK R. SUPER has a longer warning and three highlighted guard/lean steps. Hard retains the original 0.8 s warning. Clean defences fill **FOCUS**. At **FINISHER READY**, hold **K** (guard) continuously for **1 s** in a gap between attacks: the FINISHER deals **4 damage**, then gives **3 s** of double-damage bonus punches. It works with no punches too; attacks keep their normal schedule.
 4. In round 2, **scouting cards** appear when there is enough consistent evidence: your lean habit on the left rail for chat, chat's repeated move on the right rail for you.
 
 Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simulated, and the known limits.
@@ -87,8 +87,8 @@ Hard balance was rerun for this ship pass. Load and soak figures are recomputed 
 
 | What | Result |
 |---|---|
-| Hard casual win rate across 0/3/50/500 viewers, ordinary and coordinated chat, rounds 1 and 2 | **48.5–65.6%** |
-| Hard no-punch win rate, same matrices | **35.9–53.1%** |
+| Hard casual win rate across 0/3/50/500 viewers, ordinary and coordinated chat, rounds 1 and 2 | **54.7–70.0%** |
+| Hard no-punch win rate, same matrices | **39.7–57.4%** |
 | Golden vectors through the shared reducer | **59** |
 | 1,000-chatter load: ingest to HUD p95 / worst beat drift / dropped votes | **104 ms / 12 ms / 0** |
 | 30-minute soak: server heap growth after warm-up | **+6.3182%** (gate under 20%) (measured 28 October; recomputed from the saved heap samples) |
@@ -128,7 +128,7 @@ In the no-login demo, open **Boss Forge**, pick one of four prebaked bosses—Ne
 |---|---|
 | Main Codex thread (submit this ID) | `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` |
 | Commits on `main`, all written in that thread | **31** at the pre-ship snapshot `4b20fb2` |
-| Tests over the build | 19 on day 1 → **601** at ship |
+| Tests over the build | 19 on day 1 → **642** at ship |
 | How the work was split | One root thread with subagent lanes for the engine, Twitch/server and HUD, plus an independent subagent review before each commit |
 
 What the live tests and reviews caught, each fixed in the thread:

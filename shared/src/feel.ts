@@ -6,7 +6,7 @@ export const FEEL={
  ko:{slowSpeed:.5,slowDurationMs:600},
  trail:{delayMs:500},
  superNotice:{readyMs:3000,deniedMs:1000},
- bossHit:{floatMs:600,floatRisePx:72,knockbackPx:12,knockbackMs:180,trailMs:400,trailDelayMs:400,numberLanes:3,numberLanePx:150,flashBottomPx:100,flashMs:80,flashWidth:150,flashHeight:200,flashColor:'#ffffff',maxNumbers:12},
+ bossHit:{floatMs:600,floatRisePx:72,knockbackPx:12,knockbackMs:180,trailMs:400,trailDelayMs:400,numberLanes:3,numberLanePx:60,numberBoxPx:248,seatedNumberBoxPx:224,flashBottomPx:100,flashMs:80,flashWidth:150,flashHeight:200,flashColor:'#ffffff',maxNumbers:12},
  slam:{durationMs:120,fromScale:1.25,calmFadeMs:150},
  flash:{areaPx:390*44,largeAreaPx:57500,maxLargePerSecond:3,color:'#ff3b30',durationMs:80},
 } as const;

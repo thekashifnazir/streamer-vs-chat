@@ -104,3 +104,13 @@ it('the presentation API reuses number rendering for future FINISHER without com
  renderBossDamageNumbers(container as unknown as HTMLElement,nodes,feedback.frame(0).numbers);
  expect(container.children[0]!.children[0]!.textContent).toBe('−12');expect(container.children[0]!.dataset.kind).toBe('finisher');expect(container.children[0]!.children[1]!.textContent).toBe('FINISHER!');expect(container.children[0]!.children[1]!.className).toBe('boss-damage-label');
 });
+
+it('renders a real FINISHER receipt as its own4damage stamp without a bonus-punch sound',()=>{
+ const ledger=createBossImpactLedger('finisher'),feedback=createBossFeedback(),play=vi.fn(),container=new DamageNode(),nodes=new Map<string,HTMLElement>();
+ let state=createGame();state.focus=100;state.finisher.ready_at=0;feedback.setReceipts(ledger.snapshot());feedback.observe(state,0);
+ const next=step(step(state,{kind:'pose',guard:true,lean:null,source:'keyboard',at:0},0),{kind:'advance'},1000);
+ ledger.observe(state,next);feedback.setReceipts(ledger.snapshot());const impacts=feedback.observe(next,1000);playBossImpactSounds(impacts,play);
+ expect(impacts).toMatchObject([{kind:'finisher',amount:4}]);expect(play).not.toHaveBeenCalled();
+ renderBossDamageNumbers(container as unknown as HTMLElement,nodes,feedback.frame(1000).numbers);
+ expect(container.children[0]!.children.map(node=>node.textContent)).toEqual(['−4','FINISHER!']);
+});

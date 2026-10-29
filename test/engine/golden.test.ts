@@ -38,6 +38,16 @@ for(const vector of vectors)it(`golden ${vector.id}`,()=>{
     }
     for(const item of vector.expect.filter((e:any)=>e.t_ms===t))check(state,item);
   }
-  for(const item of vector.expect.filter((e:any)=>e.t_ms==='end'))check(state,item);
+  for(const item of vector.expect.filter((e:any)=>e.t_ms==='end')){
+    if(vector.id==='round-thirty-attacks'&&item.path==='boss.hp'){
+      // This original vector isolates thirty automatic BLOCK counters. Keep its bytes
+      // unchanged while separately checking the additional, fully active FINISHERs.
+      const finishers=state.log.finishers;
+      expect(finishers).toHaveLength(2);
+      expect(finishers.map(f=>f.actual_damage)).toEqual([4,4]);
+      expect(state.boss.hp).toBe(752);
+      check({...state,boss:{...state.boss,hp:state.boss.hp+finishers.reduce((sum,f)=>sum+f.actual_damage,0)}},item);
+    }else check(state,item);
+  }
 });
 it('loads all50 supplied vectors plus6 Queue11a vectors',()=>expect(vectors).toHaveLength(59));

@@ -1,7 +1,7 @@
 import {tempoFor,type Difficulty} from '../shared/src/tempo.js';
 import {defenceReadProbability} from '../shared/src/sim-model.js';
 import {type BossDef} from '../shared/src/boss-def.js';
-import { createGame,step,mulberry32,type GameState,type EngineEvent,type Side,type Counts,bossMove } from '../shared/src/engine.js';
+import { createGame,step,mulberry32,type GameState,type EngineEvent,type Side,type Counts,bossMove,FOCUS_RULES,attackStepGap,attackDuration } from '../shared/src/engine.js';
 import {createCrowd,crowdVoteCounts}from '../shared/src/crowd.js';
 import {fileURLToPath}from 'node:url';
 import {resolve}from 'node:path';
@@ -30,69 +30,64 @@ export function simulateScoutingRound(player:Player,viewers:number,seed:number,o
   return playRound(initial,player,seed^0x16D439A7,options);
 }
 function playRound(initial:GameState,player:Player,seed:number,options:SimulationOptions={}):GameState{
-  const model=PLAYERS[player],random=mulberry32(seed^0xA53140F9),timing=mulberry32(seed^0x64A24F17),prediction=mulberry32(seed^0x42A291B7);
-  const group=Math.floor(initial.viewers*READ_MODEL.coordinatedFraction);
-  const coordinated=options.profile==='coordinated'&&group>=8?group:0;
-  const crowd=createCrowd(initial.viewers-coordinated,seed^0x7A917D21);
-  let state=initial;
-  const start=initial.clock.started_at,tempo=tempoFor(initial.difficulty),beatLimit=Math.floor((75000-1-tempo.telegraph)/tempo.beat);
-  let earlyBeat=0,finalCounts:Counts|undefined;
-  const pending:{event:EngineEvent;at:number}[]=[];
-  // Early voting overlaps the previous attack's telegraph/COMBO. Interleave it
-  // chronologically before any pose/punch that crosses that window, never backdate.
-  const apply=(event:EngineEvent,at:number)=>{
-    while(!state.round.over){
-      const earlyAt=earlyBeat<beatLimit?start+earlyBeat*tempo.beat+999:Infinity;
-      const pendingAt=pending[0]?.at??Infinity;
-      if(Math.min(earlyAt,pendingAt)>at)break;
-      if(pendingAt<=earlyAt){const next=pending.shift()!;state=step(state,next.event,next.at);continue;}
-      state=step(state,{kind:'advance'},earlyAt);
-      const full=crowdVoteCounts(crowd,state),early={...full};
-      for(const move of Object.keys(full) as (keyof Counts)[]){early[move]=0;for(let i=0;i<full[move];i++)if(timing()<READ_MODEL.earlyFraction(initial.difficulty))early[move]++;}
-      // A persistent coordinated JAB preference is public, learnable pressure;
-      // the unchanged no-triple rule still replaces a third drawn JAB.
-      full.JAB+=coordinated;early.JAB+=coordinated;
-      finalCounts=full;
-      state=step(state,{kind:'crowd-votes',counts:early},earlyAt);
-      earlyBeat++;
+ const model=PLAYERS[player],random=mulberry32(seed^0xA53140F9),timing=mulberry32(seed^0x64A24F17),prediction=mulberry32(seed^0x42A291B7),finishRandom=mulberry32(seed^0x5A849D31);
+ const group=Math.floor(initial.viewers*READ_MODEL.coordinatedFraction),coordinated=options.profile==='coordinated'&&group>=8?group:0;
+ const crowd=createCrowd(initial.viewers-coordinated,seed^0x7A917D21),start=initial.clock.started_at,tempo=tempoFor(initial.difficulty);
+ let state=initial,finalCounts:Counts|undefined,serial=0;
+ const queue:{at:number;serial:number;run:()=>void}[]=[];
+ const schedule=(at:number,run:()=>void)=>{if(at<start+75000)queue.push({at,serial:serial++,run});};
+ const apply=(event:EngineEvent,at:number)=>{state=step(state,event,at);};
+ const pose=(at:number,guard:boolean,lean:Side|null=null)=>apply({kind:'pose',guard,lean,at,source:player==='keyboard'?'keyboard':'pose'},at);
+ const tryFinisher=(at:number)=>{
+  // INFERRED: at each first ready idle gap the player notices with base p.
+  if(state.round.over||state.activeAttack||state.focus!==100)return;
+  if(finishRandom()<model.p){pose(at,true);schedule(at+FOCUS_RULES.hold,()=>apply({kind:'advance'},at+FOCUS_RULES.hold));}
+  else pose(at,false);
+ };
+ const beatLimit=Math.floor((75000-1-tempo.telegraph)/tempo.beat);
+ for(let beat=0;beat<beatLimit;beat++){
+  const draw=start+(beat+1)*tempo.beat,earlyAt=start+beat*tempo.beat+999;
+  schedule(earlyAt,()=>{
+   apply({kind:'advance'},earlyAt);const full=crowdVoteCounts(crowd,state),early={...full};
+   for(const move of Object.keys(full)as(keyof Counts)[]){early[move]=0;for(let i=0;i<full[move];i++)if(timing()<READ_MODEL.earlyFraction(initial.difficulty))early[move]++;}
+   full.JAB+=coordinated;early.JAB+=coordinated;finalCounts=full;apply({kind:'crowd-votes',counts:early},earlyAt);
+  });
+  schedule(draw-101,()=>{if(!state.activeAttack?.super_steps)pose(draw-101,false);});
+  schedule(draw-100,()=>{
+   if(state.activeAttack?.super_steps)return;const card=state.chatScouting.card;
+   if(card&&prediction()<(options.braceRate??READ_MODEL.attempt))pose(draw-100,card==='JAB'||card==='COMBO',card==='HOOK_L'?'R':card==='HOOK_R'?'L':card==='SUPER'?(prediction()<model.lean?'L':'R'):null);
+  });
+  schedule(draw-1,()=>{if(finalCounts)apply({kind:'crowd-votes',counts:finalCounts},draw-1);});
+  schedule(draw,()=>{
+   apply({kind:'advance'},draw);const attack=state.activeAttack;
+   if(!attack||attack.at!==draw||state.round.over)return;
+   const spec=bossMove(state,attack.move),landing=attack.lands_at,gap=attackStepGap(state,attack),steps=attack.super_steps??[spec.defence];
+   const readProbability=defenceReadProbability(model.p,landing-draw)*(attack.exploit?.7:1);
+   const holdRead=!!attack.brace&&prediction()<READ_MODEL.hold;
+   steps.forEach((defence,index)=>{
+    const read=random()<readProbability,straight=defence==='guard';let guard=false,lean:Side|null=null,perfect=false;
+    if(holdRead&&!attack.super_steps){guard=straight;lean=straight?null:state.input.lean;}
+    else if(read){if(straight){guard=true;perfect=!attack.super_steps&&random()<model.perfect;}else lean=defence==='lean_any'?(random()<model.lean?'L':'R'):defence==='lean_right'?'R':'L';}
+    else if(!straight){guard=random()<.3;lean=guard?null:defence==='lean_right'?'L':defence==='lean_left'?'R':null;}
+    if(!holdRead||attack.super_steps){
+     const reset=index?landing+(index-1)*gap+1:draw+1;
+     schedule(reset,()=>pose(reset,false));
+     const react=Math.max(reset+1,landing+index*gap-(perfect?300:500));schedule(react,()=>pose(react,guard,lean));
     }
-    state=step(state,event,at);
-  };
-  const pose=(at:number,guard:boolean,lean:'L'|'R'|null=null)=>apply({kind:'pose',guard,lean,at,source:player==='keyboard'?'keyboard':'pose'},at);
-  const bonus=(event:EngineEvent,at:number,nextInputAt:number)=>{if(at>nextInputAt){pending.push({event,at});pending.sort((a,b)=>a.at-b.at);}else apply(event,at);};
-  for(let beat=0;beat<beatLimit&&!state.round.over;beat++){
-    const draw=start+(beat+1)*tempo.beat;
-    if(draw>=start+75000)break;
-    // Flush the early cohort before the final tally, then optionally read the card.
-    pose(draw-101,false,null);
-    const card=state.chatScouting.card;
-    const attempt=!!card&&prediction()<(options.braceRate??READ_MODEL.attempt);
-    if(attempt)pose(draw-100,card==='JAB'||card==='COMBO',card==='HOOK_L'?'R':card==='HOOK_R'?'L':card==='SUPER'?(prediction()<model.lean?'L':'R'):null);
-    apply({kind:'crowd-votes',counts:finalCounts!},draw-1);
-    apply({kind:'advance'},draw);
-    const attack=state.activeAttack;
-    if(!attack||state.round.over)break;
-    const spec=bossMove(state,attack.move),landing=attack.lands_at,straight=spec.defence==='guard';
-    const read= random()<defenceReadProbability(model.p,landing-draw)*(attack.exploit?.7:1);
-    const holdRead=!!attack.brace&&prediction()<READ_MODEL.hold;
-    let guard=false,lean:'L'|'R'|null=null,perfect=false;
-    if(holdRead){guard=straight;lean=straight?null:state.input.lean;}
-    else if(read){
-      if(straight){guard=true;perfect=random()<model.perfect;}
-      else lean=spec.defence==='lean_any'?(random()<model.lean?'L':'R'):spec.defence==='lean_right'?'R':'L';
-    }else if(!straight){guard=random()<.3;lean=guard?null:spec.defence==='lean_right'?'L':spec.defence==='lean_left'?'R':null;}
-    if(!holdRead){pose(draw+1,false,null);pose(Math.max(draw+2,landing-(perfect?300:500)),guard,lean);}
-    apply({kind:'advance'},landing+(spec.hits-1)*tempo.comboGap);
-    if(state.round.over)break;
-    const resolution=state.log.resolved.at(-1)!;
-    if(state.counter.open&&model.punch>0){
-      const punches=Math.min(2,Math.max(0,Math.round(model.punch+random()-.5)));
-      for(let i=0;i<punches&&!state.round.over;i++)bonus({kind:'punch',side:i?'R':'L',at:resolution.at+100+i*450,source:player==='keyboard'?'keyboard':'pose'},resolution.at+100+i*450,draw+tempo.beat-101);
-    }
-    if(!state.round.over&&model.punch>0&&random()<.25){const at=resolution.at+1100,event:EngineEvent={kind:'punch',side:'L',at,source:player==='keyboard'?'keyboard':'pose'};bonus(event,at,draw+tempo.beat-101);}
-  }
-  if(!state.round.over)apply({kind:'advance'},start+75000);
-  return state;
+   });
+   const end=draw+attackDuration(state,attack.move);
+   schedule(end,()=>{
+    apply({kind:'advance'},end);if(state.round.over)return;const resolution=state.log.resolved.at(-1);
+    if(!resolution||resolution.beat!==attack.beat)return;
+    if(state.counter.open&&model.punch>0){const punches=Math.min(2,Math.max(0,Math.round(model.punch+random()-.5)));for(let i=0;i<punches;i++){const at=end+100+i*450;schedule(at,()=>apply({kind:'punch',side:i?'R':'L',at,source:player==='keyboard'?'keyboard':'pose'},at));}}
+    if(model.punch>0&&random()<.25){const at=end+1100;schedule(at,()=>apply({kind:'punch',side:'L',at,source:player==='keyboard'?'keyboard':'pose'},at));}
+    tryFinisher(end);
+   });
+  });
+ }
+ while(queue.length&&!state.round.over){queue.sort((a,b)=>a.at-b.at||a.serial-b.serial);const event=queue.shift()!;event.run();}
+ if(!state.round.over)apply({kind:'advance'},start+75000);
+ return state;
 }
 export function runBalance(rounds=4000,seed=2026,options:SimulationOptions={}){
   const viewers=[0,3,50,500],table:Record<string,number[]>={};
@@ -134,6 +129,7 @@ export function runScouting(rounds=4000,seed=2026,options:SimulationOptions={}){
 }
 export function runDifficulty(rounds=4000,seed=2026){
   const viewers=[0,3,50,500],table:Record<string,Record<string,number[]>>={};
+  console.log('FOCUS/FINISHER INFERRED: first ready idle gap, trigger probability=player p; no beat shifts.');
   console.log('Difficulty model INFERRED: p=min(.95,p+.08*(effective telegraph_ms-800)/400); perfect/punch unchanged.');
   for(const difficulty of ['easy','medium','hard','expert'] as const){
     table[difficulty]={};
@@ -159,6 +155,7 @@ export function runDifficulty(rounds=4000,seed=2026){
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   let pass=true;
+  console.log(`INFERRED FOCUS/FINISHER: clean +${FOCUS_RULES.clean}, PERFECT +${FOCUS_RULES.perfect}, SUPER step +${FOCUS_RULES.superStep}, HIT -${FOCUS_RULES.hitLoss}; finisher ${FOCUS_RULES.finisherDamage} damage, notice probability=player p, no beat shifts.`);
   for(const profile of ['ordinary','coordinated'] as const){
     console.log(`bossHp=135 ·4000 rounds/cell ·seed2026 ·${profile} · R1`);
     console.log('player        v=0    v=3   v=50  v=500');

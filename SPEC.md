@@ -194,7 +194,7 @@ Memory observes server-accepted input and completed round evidence; it never sup
 
 `BossDef` is `{name,tagline,hp,moves}`; each move is `{command,label,defence,damage,chip,telegraph_ms,hits}`. Names contain 1–24 printable characters, taglines 1–80 and labels 1–32. HP is 90–200; 3–5 unique lowercase ASCII commands match `^![a-z]{2,10}$`. Defences are `guard|lean_left|lean_right|lean_any`; damage is 4–30 per hit, chip is nonnegative and at most half damage, tells are 600–1200 ms, hits are integers 1–3 and total damage is at most 36. Require guard and lean coverage. Unknown fields, controls, blocked words and protected broadcaster/recent-chatter names (including punctuation/case/one-edit variants) fail validation. Reserved commands include `!pause !stop !super !vote !forge`; only the exact canonical built-in may retain `!super`.
 
-The default Chat Golem data exactly preserves §1–§4 and all golden vectors. Custom moves map to the five existing internal slots in array order; their commands, displayed names, defences, per-hit damage and timing come from the definition. A custom fifth slot is ordinary, without the built-in SUPER gate. Autopilot samples available custom moves; weighted draws and no-triple remain. Multihits land 300 ms apart, apply mercy per hit, resolve immediately on lethal damage, and open one counter only when the whole chain is clean. Counter damage/windows/punch throttle, round duration, safety and match rules stay unchanged. Switching definition between rounds clears chat-move scouting history because the slot identities changed; body-lean evidence carries normally.
+The default Chat Golem data retains the original stored move definitions; §14 and §15 extend default SUPER and add FOCUS/FINISHER. Custom moves map to the five existing internal slots in array order; their commands, displayed names, defences, per-hit damage and timing come from the definition. A custom fifth slot is ordinary, without the built-in SUPER gate. Autopilot samples available custom moves; weighted draws and no-triple remain. Multihits land 300 ms apart, apply mercy per hit, resolve immediately on lethal damage, and open one counter only when the whole chain is clean. Counter damage/windows/punch throttle, round duration, safety and match rules stay unchanged. Switching definition between rounds clears chat-move scouting history because the slot identities changed; body-lean evidence carries normally.
 
 `gateBoss` uses 4,000 seeded R1 rounds for casual and no-punch at 0/3/50/500 viewers, with unchanged §5 models and gates. To meet the interactive bound, compile damage-independent persona/read/perfect/chip/punch trajectories into a bounded cache, then evaluate using the same damage/counter arithmetic as the reducer. Seeded trajectory tests replay through `step` and compare HP/winner. The ordinary/coordinated R1/R2 production-reducer matrices still run in CI; default and every prebaked fixture additionally pass the Forge gate. `tuneBoss` bisects one uniform damage/chip scale within 0.2–2.0 and legal numeric bounds for eight iterations toward mean casual 50%, then returns the best all-cell passing candidate or an explicit rejected result. Never weaken a gate.
 
@@ -215,22 +215,22 @@ Difficulty is selected before START. The engine defaults to Hard for compatibili
 | Hard | 1 | 2400 ms | 800 ms | 300 ms |
 | Expert | 0.8125 | 1950 ms | 650 ms | 244 ms |
 
-`shared/src/tempo.ts` owns the tempo table. Each move's effective telegraph is `round(stored telegraph_ms × tempo)`, including Forge moves; the hit gap is `round(300 × tempo)`. Boss validation still checks the stored, unscaled values. The 75-second round, HP, damage, chip, 700 ms counter window, punch throttle, scouting thresholds, SUPER cap and voting rules remain unchanged. Hard preserves all existing golden vectors without edits.
+`shared/src/tempo.ts` owns the tempo table. Each move's effective telegraph is `round(stored telegraph_ms × tempo)`, including Forge moves; the hit gap is `round(300 × tempo)`. Boss validation still checks the stored, unscaled values. The 75-second round, HP, damage, chip, 700 ms counter window, punch throttle, scouting thresholds, SUPER cap and voting rules remain unchanged. The default level is Hard; §14 lists the SUPER-only golden updates, while other golden JSON remains unchanged.
 
 The difficulty simulation's guard/lean success model is **INFERRED**, not a measured physical-response curve: `min(.95, p + .08 × (effective telegraph_ms − 800) / 400)`. Perfect and punch probabilities are unchanged. The written formula produces Easy +.08, Medium +.04 and Expert −.03 before the cap; it takes precedence here over the prompt's conflicting Easy +.16 / Medium +.08 examples. At Hard it exactly equals the existing model.
 
-Measured ordinary R1 wins, 4,000 rounds per cell, seed 2026 (percent; viewers 0 / 3 / 50 / 500):
+Measured ordinary R1 wins after §14–§15, 4,000 rounds per cell, seed 2026 (percent, rounded to one decimal; viewers 0 / 3 / 50 / 500):
 
 | Level | Player | 0 | 3 | 50 | 500 |
 |---|---|---:|---:|---:|---:|
-| Easy | Casual | 75.175 | 73.600 | 70.875 | 69.450 |
-| Easy | No-punch | 58.950 | 59.225 | 55.075 | 55.750 |
-| Medium | Casual | 69.450 | 67.350 | 63.950 | 61.875 |
-| Medium | No-punch | 51.800 | 52.075 | 46.750 | 47.075 |
-| Hard | Casual | 55.650 | 55.000 | 49.850 | 48.475 |
-| Hard | No-punch | 41.125 | 42.150 | 35.875 | 36.050 |
-| Expert | Casual | 43.950 | 43.550 | 39.225 | 37.125 |
-| Expert | No-punch | 28.975 | 31.625 | 25.525 | 25.400 |
+| Easy | Casual | 75.7 | 75.6 | 76.8 | 76.1 |
+| Easy | No-punch | 60.1 | 63.2 | 64.1 | 64.1 |
+| Medium | Casual | 70.1 | 69.3 | 67.7 | 66.1 |
+| Medium | No-punch | 53.8 | 54.6 | 50.4 | 52.2 |
+| Hard | Casual | 56.8 | 57.0 | 55.8 | 54.7 |
+| Hard | No-punch | 43.5 | 44.0 | 40.3 | 39.7 |
+| Expert | Casual | 45.3 | 44.5 | 40.9 | 41.2 |
+| Expert | No-punch | 31.1 | 32.2 | 26.4 | 25.8 |
 
 All difficulty gates pass: win rates decrease in level order (2 percentage points tolerance), Easy casual ≤90%, Expert casual ≥15%, Medium no-punch ≥40%. The original four Hard matrices and fixture gates remain mandatory and unchanged. Expert no-punch has no 30% floor; that existing floor continues to apply to Hard.
 
@@ -244,3 +244,16 @@ The first step lands after twice the move’s scaled telegraph (Hard 1600 ms). R
 A full SUPER can cross a fixed beat boundary. An occupied boundary advances on the same grid without overwriting the active sequence; accepted votes are retained until the next available draw. It does not shift later beat deadlines. End guards reject a selected move whose full chain would reach/exceed the round deadline. The Forge plan-length guard reserves full SUPER duration, including both gaps; its conservative fixed prefix is replay-tested rather than claimed equivalent to arbitrary unscripted terminal autopilot picks.
 
 The unlock remains hype=100 and fewer than three supers used. Locked !s/!super votes stay dropped. The HUD shows LOCKED · HYPE n%, the full ordered chips, current highlight and tick/cross results (TILT seated). A fresh unlock shows SUPER READY: chat type !s for up to 3 s; rejected votes get a 1 s hint, at most once per beat. Hype’s visible legend explains that votes fill it and more voters fill it faster. The local bot queues one “HYPE is full! Type !s for the SUPER” notice per round through the existing 10 s / three-message bounded queue. Preview and new-match notice state reset explicitly; pause/resume does not permit a duplicate round announcement. Notification display timestamps use wall time outside the reducer, so preview hints expire while waiting for START.
+
+
+## 15. FOCUS and FINISHER
+
+FOCUS is authoritative reducer state in the range 0–100 and resets to 0 each round. A clean BLOCK or DODGE adds **12**, PERFECT adds **24**, and each clean default SUPER step adds **10**. Every HIT subtracts **10**, floored at 0; CHIP leaves it unchanged. SUPER gains are per step, without a second gain from its aggregate result. These final values follow the permitted tuning order: FINISHER damage was reduced from 8 to 4 before ordinary clean/PERFECT gains were reduced from 15/30 to 12/24. The gate evidence is in [the 13g review](docs/queue13g-review.md).
+
+At 100 FOCUS the HUD shows **FINISHER READY: hold your guard 1 s**. With no telegraphed or active attack, a continuous 1,000 ms game-time guard triggers the FINISHER automatically, including a guard already held long enough when FOCUS becomes ready. Keyboard players hold **K**; seated and no-punch players use the same rule. Releasing guard restarts the hold; pose/input events and due-time processing share the pure reducer, with no internal clock calls. A round allows at most **two** FINISHERs.
+
+FINISHER consumes all FOCUS, deals **4 flat boss damage** (clipped to remaining HP), then opens a **3,000 ms game-time bonus window**. Punches deal double their ordinary amount during that window: **2**, or **3** while the existing counter window is also open. The 450 ms punch throttle and 700 ms counter window are unchanged. FINISHER has no stun: beats, telegraphs and the 75-second round deadline never shift, and the window neither delays nor skips an attack. STOP/pause freeze its expiry and guard-hold timing like other game timers; a new round resets its usage and window.
+
+The HUD uses the existing boss damage presentation for **FINISHER!**, its exact damage pop and a bonus-window countdown. Explicit FINISHER and boss-damage ledger entries preserve actual dealt damage for presentation, session stats and recaps; FINISHER does not invent chat-voter damage credit.
+
+**INFERRED simulation model:** at the first eligible gap, a player deliberately attempts the guard hold with their existing skill probability `p`. This is an attention/choice model, not an additional gameplay success roll: a guard already held continuously in the actual reducer can trigger automatically regardless of that simulated deliberate attempt. The sim uses the same reducer, final gains/damage and unchanged beats. All four production matrices, both R2 coverage gates, the difficulty matrix and all five Boss Forge fixture gates remain required without weakened bounds. Physical webcam play remains an explicit Mac check; simulated success is not measured body-response evidence.

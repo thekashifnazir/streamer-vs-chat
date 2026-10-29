@@ -38,11 +38,12 @@ export function summarizeGame(state:GameState,round?:number):GameSummary{
   let chatMvp:GameSummary['chatMvp']=null;
   for(const [user,damage]of credits)if(!chatMvp||damage>chatMvp.damage+1e-9||(Math.abs(damage-chatMvp.damage)<=1e-9&&user<chatMvp.user))chatMvp={user,damage};
   const current=selected(state.round.number)&&!state.round.over;
+  const superDodges=(state.log.superSteps??[]).filter(step=>selected(step.round)&&step.outcome==='DODGE');
   const stats:GameStats={attacks:hits.length,defended:byOutcome('BLOCK')+byOutcome('PERFECT')+byOutcome('DODGE'),perfects:byOutcome('PERFECT'),blocks:byOutcome('BLOCK'),dodges:byOutcome('DODGE'),chips:byOutcome('CHIP'),hits:byOutcome('HIT'),
     damageTaken:damageLog.reduce((sum,hit)=>sum+hit.damage,0),
-    damageDealt:rounds.reduce((sum,result)=>sum+135-result.boss_hp,0)+(current?state.boss.max_hp-state.boss.hp:0),
+    damageDealt:rounds.reduce((sum,result)=>sum+(result.boss_max_hp??135)-result.boss_hp,0)+(current?state.boss.max_hp-state.boss.hp:0),
     reactionMs:reactions.length?reactions.reduce((sum,hit)=>sum+hit.reaction_ms!,0)/reactions.length:null,
-    leftDodges:hits.filter(hit=>hit.outcome==='DODGE'&&hit.lean==='L').length,rightDodges:hits.filter(hit=>hit.outcome==='DODGE'&&hit.lean==='R').length,
+    leftDodges:hits.filter(hit=>!hit.super_steps&&hit.outcome==='DODGE'&&hit.lean==='L').length+superDodges.filter(step=>step.lean==='L').length,rightDodges:hits.filter(hit=>!hit.super_steps&&hit.outcome==='DODGE'&&hit.lean==='R').length+superDodges.filter(step=>step.lean==='R').length,
     durationMs:rounds.reduce((sum,result)=>sum+(result.duration_ms??0),0)+(current?state.round.elapsed_ms:0)};
   return {round:round??null,winner:round===undefined?state.match.winner:rounds.at(-1)?.winner??null,roundWins:{...state.match.round_wins},stats,chatMvp,
     topMoments:moments(state).filter(moment=>selected(moment.round)).sort(rank).slice(0,3)};
