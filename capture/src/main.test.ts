@@ -63,7 +63,7 @@ it('keeps connection and calibration warnings separate from server game status t
   expect(get('session-warning').textContent).toBe('Connect to the local server first.');
   expect(get('session-warning').hidden).toBe(false);
   get('resume-input').click();
-  expect(get('session-warning').textContent).toBe('Connect to the local server first.');
+  expect(get('session-warning').textContent).toContain('connect to the local server');
   socket.readyState=1;get('input-source').value='pose';get('input-source').change();
   socket.send.mockClear();get('next-round').click();socket.tick();
   expect(get('session-warning').textContent).toContain('Resume inputs');
@@ -94,9 +94,9 @@ it('reload restores stored calibration but stays STOPPED until clear space, came
  first.window.dispatchEvent(new Event('beforeunload'));vi.resetModules();const{get,socket}=await page(storage);
  expect(get('input-source').value).toBe('pose');expect(get('calibration-status').textContent).toContain('restored');expect(get('save-calibration').disabled).toBe(false);expect(cameraHarness.starts).toBe(0);
  socket.dispatchEvent(new Event('open'));expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'stop',by:'capture'}));socket.send.mockClear();
- get('clear-space').checked=true;get('clear-space').change();get('resume-input').click();expect(get('connection-status').textContent).toContain('Start camera');expect(get('input-lock').textContent).toContain('start the camera');
+ get('clear-space').checked=true;get('clear-space').change();get('resume-input').click();expect(get('connection-status').textContent).toContain('No camera');expect(get('input-lock').textContent).toContain('start the camera');
  expect(socket.send.mock.calls.map(([raw])=>JSON.parse(raw)).some(value=>value.kind==='control'&&value.action==='resume')).toBe(false);
- get('start-camera').click();await Promise.resolve();await Promise.resolve();expect(cameraHarness.starts).toBe(1);get('resume-input').click();expect(get('connection-status').textContent).toContain('Start camera');expect(get('input-lock').textContent).toContain('keep head, shoulders and wrists in frame');
+ get('start-camera').click();await Promise.resolve();await Promise.resolve();expect(cameraHarness.starts).toBe(1);get('resume-input').click();expect(get('connection-status').textContent).toContain('frames are 500 ms');expect(get('input-lock').textContent).toContain('frames are 500 ms');
  cameraHarness.frame!({landmarks:guardFrame(),at:performance.now(),fps:30,inferenceMs:4});get('start-match').click();expect(get('session-warning').textContent).toContain('Resume inputs');
  expect(socket.send.mock.calls.map(([raw])=>JSON.parse(raw)).some(value=>value.kind==='pose'&&value.guard)).toBe(false);
  get('resume-input').click();expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'resume',by:'capture'}));
@@ -109,7 +109,7 @@ it('forget removes the saved profile so the next reload requires calibration aga
 });
 
 it('offline Resume never arms a restored page before its reconnection',async()=>{
- const{get,socket}=await page(storedProfile());get('clear-space').checked=true;get('clear-space').change();socket.readyState=0;get('resume-input').click();expect(get('connection-status').textContent).toContain('Connect to the local server');socket.readyState=1;socket.dispatchEvent(new Event('open'));
+ const{get,socket}=await page(storedProfile());get('clear-space').checked=true;get('clear-space').change();socket.readyState=0;get('resume-input').click();expect(get('connection-status').textContent).toContain('connect to the local server');socket.readyState=1;socket.dispatchEvent(new Event('open'));
  expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'stop',by:'capture'}));socket.send.mockClear();get('start-match').click();expect(get('session-warning').textContent).toContain('Resume inputs');expect(socket.send).not.toHaveBeenCalled();
 });
 
@@ -142,7 +142,7 @@ it('START requires a freshly framed pose even after Resume succeeded',async()=>{
  const {get,socket}=await page(storedProfile());get('clear-space').checked=true;get('clear-space').change();get('start-camera').click();await Promise.resolve();await Promise.resolve();
  cameraHarness.frame!({landmarks:guardFrame(),at:performance.now(),fps:30,inferenceMs:4});get('resume-input').click();expect(get('input-lock').hidden).toBe(true);
  cameraHarness.frame!({landmarks:[],at:performance.now(),fps:30,inferenceMs:4});socket.send.mockClear();get('start-match').click();
- expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).kind==='session')).toBe(false);expect(get('input-lock').hidden).toBe(false);expect(get('input-lock').textContent).toContain('keep head, shoulders and wrists in frame');expect(get('resume-input').focused).toBe(true);
+ expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).kind==='session')).toBe(false);expect(get('input-lock').hidden).toBe(false);expect(get('input-lock').textContent).toContain('Head not detected');expect(get('resume-input').focused).toBe(true);
 });
 
 it('initial server READY cannot bypass the first explicit Resume',async()=>{
@@ -151,4 +151,68 @@ it('initial server READY cannot bypass the first explicit Resume',async()=>{
  expect(get('input-lock').hidden).toBe(false);expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'stop',by:'capture'}));socket.send.mockClear();
  socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'input-status',stopped:true,state:{source:'keyboard',guard:false,lean:null}})}));expect(socket.send).not.toHaveBeenCalled();
  get('start-match').click();expect(socket.send).not.toHaveBeenCalled();
+});
+
+const landmarkCases=([ [0,'Head'],[11,'Left shoulder'],[12,'Right shoulder'],[15,'Left wrist'],[16,'Right wrist'] ] as const)
+ .flatMap(([index,name])=>[
+  {name:`${name} left boundary`,index,patch:{x:-.001},message:`${name} leaves the left`},
+  {name:`${name} right boundary`,index,patch:{x:1.001},message:`${name} leaves the right`},
+  {name:`${name} top boundary`,index,patch:{y:-.001},message:`${name} leaves the top`},
+  {name:`${name} bottom boundary`,index,patch:{y:1.001},message:`${name} leaves the bottom`},
+  {name:`${name} visibility`,index,patch:{visibility:.499},message:`${name} visibility below 0.5`},
+ ]);
+for(const scenario of landmarkCases)it(`uses one matching blocker for status, banner and Resume: ${scenario.name}`,async()=>{
+ const {get,socket}=await page(storedProfile());get('clear-space').checked=true;get('clear-space').change();get('start-camera').click();await Promise.resolve();await Promise.resolve();
+ const frame=guardFrame();Object.assign(frame[scenario.index]!,scenario.patch);
+ cameraHarness.frame!({landmarks:frame,at:performance.now(),fps:30,inferenceMs:4});socket.send.mockClear();get('resume-input').click();
+ const message=get('camera-status').textContent;expect(message).toContain(scenario.message);
+ expect(get('input-lock').textContent).toBe(`INPUTS LOCKED: ${message}`);expect(get('connection-status').textContent).toBe(message);
+ expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).action==='resume')).toBe(false);
+});
+for(const scenario of ['no camera','calibration','stale','seated'] as const)it(`uses one matching blocker for status, banner and Resume: ${scenario}`,async()=>{
+ const clock=vi.spyOn(performance,'now').mockReturnValue(10000);
+ try{
+ const {get,socket}=await page(scenario==='calibration'?undefined:storedProfile());get('input-source').value='pose';get('input-source').change();get('clear-space').checked=true;get('clear-space').change();
+ if(scenario!=='no camera'){get('start-camera').click();await Promise.resolve();await Promise.resolve();}
+ if(scenario==='stale'||scenario==='seated'){
+  if(scenario==='seated'){get('posture').value='seated';} // restored calibration already ready; test framing gate independently
+  const frame=guardFrame();if(scenario==='seated'){frame[11]!.x=.35;frame[12]!.x=.65;}
+  cameraHarness.frame!({landmarks:frame,at:10000,fps:30,inferenceMs:4});
+ }
+ if(scenario==='stale')clock.mockReturnValue(10500);
+ socket.send.mockClear();get('resume-input').click();const message=get('camera-status').textContent;
+ expect(message).toContain({'no camera':'No camera',calibration:'Calibration not ready',stale:'frames are 500 ms',seated:'Seated too close'}[scenario]);
+ expect(get('input-lock').textContent).toBe(`INPUTS LOCKED: ${message}`);expect(get('connection-status').textContent).toBe(message);
+ expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).action==='resume')).toBe(false);
+ }finally{clock.mockRestore();}
+});
+
+it('keeps a real recorded failing wrist frame sticky across a clear frame and refuses Resume with the same reason',async()=>{
+ const clock=vi.spyOn(performance,'now').mockReturnValue(10000);
+ try{
+ const fixture=JSON.parse(readFileSync(new URL('../../test/fixtures/kash-guard-through-leans-logitech.landmarks.json',import.meta.url),'utf8')) as {frames:{t:number;lm:number[][]}[]};
+ const convert=(lm:number[][])=>lm.map(([x,y,z,visibility])=>({x:x!,y:y!,z:z!,visibility:visibility!}));
+ const good=fixture.frames.find(f=>[0,11,12,15,16].every(i=>{const p=f.lm[i]!;return p[0]!>=0&&p[0]!<=1&&p[1]!>=0&&p[1]!<=1&&p[3]!>=.5;}))!;
+ const bad=fixture.frames.find(f=>f.lm[16]![1]!>1)!;
+ expect(good).toBeDefined();expect(bad).toBeDefined();
+ const {get,socket}=await page(storedProfile());get('clear-space').checked=true;get('clear-space').change();get('start-camera').click();await Promise.resolve();await Promise.resolve();
+ cameraHarness.frame!({landmarks:convert(bad.lm),at:10000,fps:30,inferenceMs:4});const failure=get('camera-status').textContent;expect(failure).not.toContain('Calibration ready');
+ clock.mockReturnValue(10500);cameraHarness.frame!({landmarks:convert(good.lm),at:10500,fps:30,inferenceMs:4});get('resume-input').click();
+ expect(get('camera-status').textContent).toBe(failure);expect(get('connection-status').textContent).toBe(failure);expect(get('input-lock').textContent).toBe(`INPUTS LOCKED: ${failure}`);
+ expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).action==='resume')).toBe(false);
+ clock.mockReturnValue(11000);cameraHarness.frame!({landmarks:convert(good.lm),at:11000,fps:30,inferenceMs:4});get('resume-input').click();expect(get('input-lock').hidden).toBe(true);
+ expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'resume',by:'capture'}));
+ }finally{clock.mockRestore();}
+});
+
+for(const scenario of ['clear space','connection','benchmark'] as const)it(`matches shared input blocker in pose status, banner and Resume: ${scenario}`,async()=>{
+ const {get,socket}=await page(storedProfile());
+ if(scenario!=='clear space'){get('clear-space').checked=true;get('clear-space').change();}
+ if(scenario==='connection')socket.readyState=0;
+ if(scenario==='benchmark')get('benchmark-camera').click();
+ get('resume-input').click();const message=get('camera-status').textContent;
+ expect(message).toContain({'clear space':'My space is clear',connection:'connect to the local server',benchmark:'camera comparison'}[scenario]);
+ expect(get('input-lock').textContent).toBe(`INPUTS LOCKED: ${message}`);expect(get('connection-status').textContent).toBe(message);
+ expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).action==='resume')).toBe(false);
+ if(scenario==='benchmark'){get('stop-camera').click();await Promise.resolve();await Promise.resolve();}
 });

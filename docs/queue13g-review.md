@@ -17,3 +17,11 @@ None. No golden fixture JSON was edited in this pass. Existing vectors remain ma
 ## Needs Kash
 
 Physical Chrome webcam play and OBS/720p legibility checks. These are explicit Mac checks; synthetic/recorded inputs and unit helpers do not establish physical webcam results.
+
+## Part E — one webcam readiness gate
+
+Camera status, INPUTS LOCKED and refused Resume use the same detailed input/pose blocker snapshot. Messages name missing camera, unfinished calibration, frames ≥500 ms old, head/left or right shoulder/wrist missing/out of bounds/below 0.5 visibility, or seated shoulders wider than 0.20. Tracking failures remain sticky for 1 s after the last failing frame; Resume conservatively waits for that recovery period. The bounds/visibility/freshness checks are not relaxed. Setup stages (no camera/calibration/first frame) do not introduce a gratuitous recovery wait after setup completes.
+
+Confirmed code cause: the previous camera status used metrics, framing and seated distance only. Resume separately checked camera/calibration readiness and frame age, so even the same fresh framed landmarks could produce “in frame” while calibration still prevented Resume. Between frames, the status could also become stale until the next callback. The framing predicates themselves agreed on the same synchronous frame; wrist y/visibility flicker as the live cause remains a hypothesis, not established by code inspection.
+
+A real recorded wrist-boundary failure is replayed unchanged through the actual capture page helper, followed by a valid frame and timed recovery. It verifies matching status/banner/Resume messages for the full sticky second. Separate cases cover all five named landmarks, each frame edge, low visibility, camera/calibration/500 ms boundary/seated distance, plus clear-space, server connection and benchmark blockers. 44 page-handler tests pass. Independent subagent review cleared the implementation after ensuring Resume passes one computed blocker snapshot through all three surfaces, including the exact sticky-expiry boundary. No classifier math or fixture JSON changed.

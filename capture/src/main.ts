@@ -1,6 +1,6 @@
 import './style.css';
 import type { Difficulty, PoseState, StreamerInput } from '@svc/shared';
-import { PoseClassifier, measurePose, type Landmark } from './classifier';
+import { PoseClassifier, type Landmark } from './classifier';
 import { createCalibration, type CalibrationMode } from './calibration';
 import {createCalibrationProfiles} from './calibration-profile';
 import { createKeyboard } from './keyboard';
@@ -8,7 +8,8 @@ import { PoseCamera } from './camera';
 import { FixtureRecorder, saveJson } from './recorder';
 import { LocalReplay } from './replay';
 import { CaptureBenchmark, type PoseDelegate } from './benchmark';
-import { NO_POSE_MESSAGE, trackingMessage } from './tracking-status';
+import { NO_POSE_MESSAGE } from './tracking-status';
+import {poseBlocker as readinessBlocker,createStickyBlocker,FRAME_MAX_AGE_MS} from './input-blocker';
 
 const element = <T extends HTMLElement>(id:string) => document.getElementById(id) as T;
 const source=element<HTMLSelectElement>('input-source');
@@ -75,24 +76,24 @@ function sessionWarning(message='') {
   warning.textContent=message;warning.hidden=!message;
 }
 function allowed() { return clearSpace.checked && !stopped && !benchmarking; }
+const stickyPoseBlocker=createStickyBlocker();
 function poseBlocker() {
   if(source.value!=='pose')return '';
-  if(!cameraRunning)return 'start the camera, then press Resume inputs.';
-  if(!calibration.snapshot.ready)return 'finish webcam calibration, then press Resume inputs.';
-  const metrics=measurePose(landmarks);
-  if(performance.now()-lastFrameAt>=500||!inFrame()||!metrics)return 'keep head, shoulders and wrists in frame, then press Resume inputs.';
-  if(posture.value==='seated'&&metrics.shoulderWidth>.2)return 'sit about 1 m further back, then press Resume inputs.';
-  return '';
+  const now=performance.now();
+  const message=readinessBlocker({cameraRunning,calibrated:calibration.snapshot.ready,lastFrameAt,landmarks,seated:posture.value==='seated',now});
+  if(!cameraRunning||!calibration.snapshot.ready||!Number.isFinite(lastFrameAt)){stickyPoseBlocker.reset();return message;}
+  return stickyPoseBlocker.update(message,now);
 }
 function inputBlocker() {
   if(!clearSpace.checked)return 'tick “My space is clear”, then press Resume inputs.';
   if(socket?.readyState!==WebSocket.OPEN)return 'connect to the local server, then press Resume inputs.';
   if(benchmarking)return 'wait for the camera comparison, then press Resume inputs.';
-  return poseBlocker()||'press Resume inputs.';
+  return poseBlocker();
 }
-function updateInputLock() {
+function updateInputLock(blocker=inputBlocker()) {
+  if(source.value==='pose')cameraStatus.textContent=blocker||'Head, shoulders and wrists in frame. Calibration ready.';
   const banner=element('input-lock');
-  banner.hidden=allowed();banner.textContent=banner.hidden?'':`INPUTS LOCKED: ${inputBlocker()}`;
+  banner.hidden=allowed()&&!blocker;banner.textContent=banner.hidden?'':`INPUTS LOCKED: ${blocker||'press Resume inputs.'}`;
 }
 function updateKeyboard() { keyboard.setEnabled(source.value==='keyboard' && allowed());updateInputLock(); }
 function neutral(at=performance.now()):PoseState {
@@ -166,7 +167,6 @@ const camera=new PoseCamera(video,sample=>{
   const metrics=result.metrics;
   const framed=inFrame();
   const seatedTooClose=posture.value==='seated'&&metrics&&metrics.shoulderWidth>.20;
-  cameraStatus.textContent=trackingMessage(metrics!==null,framed,!!seatedTooClose);
   // Clear space and calibration gate webcam input; keyboard remains independent.
   lastPose=calibrated.ready&&framed&&!seatedTooClose?result.state:neutral(sample.at);
   lastPose.source='pose';
@@ -179,7 +179,7 @@ const camera=new PoseCamera(video,sample=>{
   element('diagnostics').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms inference\n${metrics?`g ${metrics.g.toFixed(2)} · tilt ${metrics.tilt.toFixed(2)} · S ${metrics.shoulderWidth.toFixed(3)}`:NO_POSE_MESSAGE}\n${calibrated.guardThreshold===null?'CALIBRATION REQUIRED':`guard ON ${calibrated.guardThreshold.toFixed(2)} · OFF ${(calibrated.guardThreshold-(calibrated.guardReleaseBand??.25)).toFixed(2)}`}\n${calibrated.leanThresholds?`lean ON L ${calibrated.leanThresholds.L.toFixed(2)} / R ${calibrated.leanThresholds.R.toFixed(2)}`:'LEAN CALIBRATION REQUIRED'}\n${calibrated.neutralSwayP95===null?'':`neutral sway p95 ${calibrated.neutralSwayP95.toFixed(2)} · lean floor ${calibrated.leanFloor?.toFixed(2)}`}\n${metrics?`guard anatomy ${metrics.guardAnatomy?'READY':'RAISE WRISTS ABOVE ELBOWS / MID-TORSO'}`:''}\n${(performance.now()-sample.at).toFixed(1)} ms frame → input`;
   updateInputLock();
   if(recorder.recording)recordStatus.textContent=`Recording ${recorder.frameCount} frames · K/A/D/J supply labels in either input mode.`;
-},message=>{if(benchmarking){benchmark.fail(message);return;}replay.stop();delegate.disabled=false;stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());});
+},message=>{if(benchmarking){benchmark.fail(message);return;}replay.stop();delegate.disabled=false;stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());updateInputLock();});
 
 element('start-camera').addEventListener('click',async()=>{
   const button=element<HTMLButtonElement>('start-camera');button.disabled=true;
@@ -191,7 +191,7 @@ element('start-camera').addEventListener('click',async()=>{
 });
 element('stop-camera').addEventListener('click',()=>{
   if(benchmarking)benchmark.cancel();replay.stop();camera.stop();delegate.disabled=false;stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();classifier.reset();
-  if(source.value==='pose')emit(neutral());cameraStatus.textContent='Camera off. Keyboard remains available.';
+  if(source.value==='pose')emit(neutral());cameraStatus.textContent='Camera off. Keyboard remains available.';updateInputLock();
 });
 element('start-calibration').addEventListener('click',()=>{
   if(!clearSpace.checked){element('calibration-status').textContent='Confirm your clear space first.';return;}
@@ -205,16 +205,14 @@ posture.addEventListener('change',()=>{
   if(!restoreCalibration())element('saved-calibration-status').textContent='No compatible saved calibration for this posture. Calibrate before webcam play.';
   if(source.value==='pose')emit(neutral());
 });
-source.addEventListener('change',()=>{source.blur();sessionWarning();classifier.reset();lastPose=neutral();emit({kind:'control',action:'stop',by:'capture'});transmit(neutral());updateKeyboard();});
+source.addEventListener('change',()=>{stickyPoseBlocker.reset();source.blur();sessionWarning();classifier.reset();lastPose=neutral();emit({kind:'control',action:'stop',by:'capture'});transmit(neutral());updateKeyboard();});
 clearSpace.addEventListener('change',()=>{if(!clearSpace.checked&&benchmarking)benchmark.cancel();sessionWarning();updateReplay();if(!clearSpace.checked){emit({kind:'control',action:'stop',by:'capture'});transmit(neutral());}updateKeyboard();});
 element('stop-input').addEventListener('click',()=>emit({kind:'control',action:'stop',by:'capture'}));
 element('resume-input').addEventListener('click',()=>{
-  if(benchmarking){connectionStatus.textContent='Wait for the camera comparison before resuming.';return;}
-  if(!clearSpace.checked){connectionStatus.textContent='Confirm your clear space before resuming.';return;}
-  if(socket?.readyState!==WebSocket.OPEN){connectionStatus.textContent='Connect to the local server before resuming.';sessionWarning('Connect to the local server first.');return;}
+  const blocker=inputBlocker();
+  updateInputLock(blocker);
+  if(blocker){connectionStatus.textContent=blocker;sessionWarning(blocker);return;}
   sessionWarning();
-  const resumeMetrics=source.value==='pose'?measurePose(landmarks):null;
-  if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!inFrame()||!resumeMetrics||(posture.value==='seated'&&resumeMetrics.shoulderWidth>.2))){connectionStatus.textContent='Start camera with valid calibration and keep head, shoulders and wrists in frame before resuming.';return;}
   stopped=false;resumeAuthorized=true;transmit({kind:'control',action:'resume',by:'capture'});updateKeyboard();
 });
 element('record-start').addEventListener('click',()=>{
@@ -237,10 +235,10 @@ element('record-stop').addEventListener('click',()=>{
 const heartbeat=window.setInterval(()=>{
   const at=performance.now();updateInputLock();
   if(source.value==='keyboard')emit({kind:'pose',...keyboard.physical,source:'keyboard',at});
-  else if(cameraRunning&&at-lastFrameAt<500)emit({...lastPose,at});
+  else if(cameraRunning&&at-lastFrameAt<FRAME_MAX_AGE_MS)emit({...lastPose,at});
   else transmit(neutral(at));
-  if(cameraRunning&&at-lastFrameAt>=500) {
-    cameraStatus.textContent=NO_POSE_MESSAGE;
+  if(cameraRunning&&at-lastFrameAt>=FRAME_MAX_AGE_MS) {
+    updateInputLock();
     element('fps-debug').textContent=NO_POSE_MESSAGE;
     element('diagnostics').textContent=NO_POSE_MESSAGE;
   }
