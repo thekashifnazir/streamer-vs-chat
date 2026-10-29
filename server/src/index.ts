@@ -94,7 +94,7 @@ function messages(drain=false){
   const visible=game.summaryVisible||!!game.state.match.winner;
   const summary=visible?memorySession.publicSummary(game.summary()):undefined;
   const audit=telemetry?.snapshot(drain);
-  return [{...game.tally(),...(audit?{hardening:audit}:{})},{kind:'tick',state:projectState(game.state),simulated:mock,started:game.started,modes:game.modes,transport,...(audit?{hardening:audit}:{})},
+  return [{...game.tally(),...(audit?{hardening:audit}:{})},{kind:'tick',state:projectState(game.state),simulated:mock,started:game.started,inputsStopped:captureInputs.stopped,modes:game.modes,transport,...(audit?{hardening:audit}:{})},
     {kind:'memory',memory:memorySession.view(summary)},
     {kind:'forge',forge:forge?.snapshot()},
     {kind:'highlights',...(summary?{summary}:{}),entries:entries(),visible}];
@@ -107,11 +107,11 @@ function broadcast(){
 }
 const captureInputs=new CaptureInputs({onOptions:options=>{game.configure(options);broadcast();},onReplay:result=>{clearTimeout(replayTimeouts.get(result.highlightId));replayTimeouts.delete(result.highlightId);highlights.ackReplay(result.highlightId,result.available);},onInput:(event,at)=>{
   if(event.kind==='control'&&event.action!=='resume')cancelForge();
-  game.input(event,at);captureInputs.setStopped(game.frozen,at);if(event.kind==='control')broadcast();
+  game.input(event,at);captureInputs.setStopped(game.frozen||(!game.started&&captureInputs.stopped),at);if(event.kind==='control')broadcast();
 },onSession:event=>{
   if(event.action==='start')cancelForge(true);
   game.command(event);if(event.action==='summary')void memorySession.finalize(game.summary()).then(()=>broadcast()).catch(()=>console.error('[memory] Could not finalize viewer memory.'));
-  captureInputs.setStopped(game.frozen,Date.now());broadcast();
+  captureInputs.setStopped(game.frozen||(!game.started&&captureInputs.stopped),Date.now());broadcast();
 }});
 const onMessage=(message:IncomingChat)=>{
   if(message.simulated===mock&&message.displayName){recentNames.delete(message.user);recentNames.set(message.user,message.displayName);while(recentNames.size>100)recentNames.delete(recentNames.keys().next().value!);}
@@ -123,7 +123,7 @@ const onMessage=(message:IncomingChat)=>{
   if(control&&control.action!=='resume')cancelForge();
   const receivedAt=Date.now();memorySession.beforeChat(message);const vote=game.chat(message);
   memorySession.acceptedVote(message,vote,`${gameEpoch}:${game.runId}:${game.state.round.number}:${game.state.clock.beat}`);
-  telemetry?.message(message,game.state,game.runId,receivedAt);captureInputs.setStopped(game.frozen,Date.now());
+  telemetry?.message(message,game.state,game.runId,receivedAt);captureInputs.setStopped(game.frozen||(!game.started&&captureInputs.stopped),Date.now());
   if(control)broadcast();
 };
 const onTwist=(event:IncomingTwist)=>{game.twist(event);};
@@ -178,7 +178,7 @@ attachOverlaySockets(server,sockets,()=>messages(),client=>captureInputs.attach(
 // Routine chat, pose and optional-event views share this 10 Hz clock. Safety controls,
 // session commands, options and highlight status changes flush immediately.
 let nextBroadcast=Date.now();
-const ticks=setInterval(()=>{const now=Date.now();captureInputs.expire(now);game.advance();if(forgeRoundPending){forgeRoundPending=false;void runForge();}captureInputs.setStopped(game.frozen,now);if(now>=nextBroadcast){nextBroadcast=now+100;broadcast();}},20);
+const ticks=setInterval(()=>{const now=Date.now();captureInputs.expire(now);game.advance();if(forgeRoundPending){forgeRoundPending=false;void runForge();}captureInputs.setStopped(game.frozen||(!game.started&&captureInputs.stopped),now);if(now>=nextBroadcast){nextBroadcast=now+100;broadcast();}},20);
 const viewers=setInterval(()=>void updateViewers(),60000);
 server.listen(3000,'127.0.0.1',()=>{
   console.log(`[server] http://localhost:3000 · ${mock?'SIMULATED':'live auth'} · Open /capture and press START MATCH when ready.`);

@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from 'vitest';
-const hud=vi.hoisted(()=>({setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),setForge:vi.fn(),dispose:vi.fn()}));
+const hud=vi.hoisted(()=>({setInputLocked:vi.fn(),setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),setForge:vi.fn(),dispose:vi.fn()}));
 vi.mock('./hud',()=>({createRailsHud:()=>hud}));
 class Socket extends EventTarget {
  static instances:Socket[]=[];
@@ -38,4 +38,11 @@ it('passes authoritative Forge phase snapshots to the view without starting a ga
  const forge={betweenRounds:true,status:'collecting',ideas:[],idea:null,boss:null,errors:[],before:null,after:null,factor:null,ai:null};
  socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'forge',forge})}));expect(hud.setForge).toHaveBeenLastCalledWith(forge);expect(hud.render).not.toHaveBeenCalled();
  socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'forge',forge:{...forge,betweenRounds:false}})}));expect(hud.setForge).toHaveBeenLastCalledWith({...forge,betweenRounds:false});window.dispatchEvent(new Event('beforeunload'));
+});
+
+it('shows the server-owned input lock independently of ordinary game renders',async()=>{
+ const window=await page(),socket=Socket.instances[0]!;expect(hud.setInputLocked).toHaveBeenLastCalledWith(true);
+ const tick=(inputsStopped:boolean)=>socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'tick',state:{},inputsStopped})}));
+ tick(true);expect(hud.setInputLocked).toHaveBeenLastCalledWith(true);socket.tick('connected');expect(hud.setInputLocked).toHaveBeenLastCalledWith(true);
+ tick(false);expect(hud.setInputLocked).toHaveBeenLastCalledWith(false);tick(true);expect(hud.setInputLocked).toHaveBeenLastCalledWith(true);window.dispatchEvent(new Event('beforeunload'));
 });

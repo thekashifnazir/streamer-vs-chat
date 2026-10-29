@@ -2,11 +2,11 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { WebSocket, WebSocketServer } from 'ws';
-import { expect, it } from 'vitest';
+import { expect, it,vi } from 'vitest';
 import { CaptureInputs } from './inputs';
 
 it('rejects oversized capture frames without crashing and releases capture ownership',async()=>{
-  const channel=new CaptureInputs();
+  const started=vi.fn();const channel=new CaptureInputs({onSession:started});
   const http=createServer();
   const ws=new WebSocketServer({server:http,maxPayload:1024});
   ws.on('connection',client=>channel.attach(client));
@@ -16,7 +16,10 @@ it('rejects oversized capture frames without crashing and releases capture owner
   let second:WebSocket|undefined;
   try {
     await once(first,'open');
-    let message=once(first,'message');
+    let message=once(first,'message');first.send(JSON.stringify({kind:'session',action:'start'}));
+    expect(JSON.parse(String((await message)[0]))).toMatchObject({kind:'input-error',message:expect.stringContaining('INPUTS LOCKED')});expect(started).not.toHaveBeenCalled();
+    message=once(first,'message');first.send(JSON.stringify({kind:'control',action:'resume',by:'capture'}));expect(JSON.parse(String((await message)[0])).stopped).toBe(false);
+    message=once(first,'message');
     first.send(JSON.stringify({kind:'pose',guard:true,lean:'L',at:1,source:'keyboard'}));
     expect(JSON.parse(String((await message)[0]))).toMatchObject({state:{guard:true,lean:'L'},captureAt:1});
     const closed=once(first,'close');first.send('x'.repeat(2048));await closed;
@@ -44,6 +47,7 @@ it('clears game defence after a stopped capture disconnects and a moderator resu
   const client=new WebSocket(`ws://127.0.0.1:${(http.address() as AddressInfo).port}`);
   try {
     await once(client,'open');
+    const resumed=once(client,'message');client.send(JSON.stringify({kind:'control',action:'resume',by:'capture'}));await resumed;
     client.send(JSON.stringify({kind:'session',action:'start'}));
     let message=once(client,'message');
     client.send(JSON.stringify({kind:'pose',guard:true,lean:'R',at:1,source:'keyboard'}));await message;

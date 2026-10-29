@@ -32,7 +32,8 @@ export function parseReplayResult(raw:unknown):ReplayResult|null {
 /** Server-owned input state. */
 export class InputStore {
   private state: PoseState = {kind:'pose', guard:false, lean:null, at:0, source:'keyboard'};
-  private stopped = false;
+  private stopped: boolean;
+  constructor(stopped=false){this.stopped=stopped;}
   private captureAt: number | null = null;
   private lastPunch: InputStatus['lastPunch'] = null;
   private receivedAt = 0;
@@ -69,7 +70,8 @@ export class InputStore {
 /** One active local capture socket; overlay connections never claim input ownership. */
 export class CaptureInputs {
   private owner: import('ws').WebSocket | undefined;
-  private store = new InputStore();
+  private store = new InputStore(true);
+  get stopped(){return this.store.snapshot().stopped;}
   constructor(private callbacks:{onInput?:(event:StreamerInput,receivedAt:number)=>void;onSession?:(event:import('./game-session').SessionCommand)=>void;onOptions?:(options:CaptureOptions)=>void;onReplay?:(result:ReplayResult)=>void}={}) {}
   setStopped(stopped:boolean,now:number):void {
     if(this.store.snapshot().stopped===stopped)return;
@@ -99,7 +101,7 @@ export class CaptureInputs {
       const now=Date.now();
       if(options){this.callbacks.onOptions?.(options);return;}
       if(replay){this.callbacks.onReplay?.(replay);return;}
-      if(session){this.callbacks.onSession?.(session);return;}
+      if(session){if(session.action==='start'&&this.stopped){client.send(JSON.stringify({kind:'input-error',message:'INPUTS LOCKED: Resume inputs before START MATCH.'}));return;}this.callbacks.onSession?.(session);return;}
       const status=this.store.receive(event!,now);
       if(event!.kind==='control'||event!.kind==='pose'||!status.stopped)this.callbacks.onInput?.(event!,now);
       client.send(JSON.stringify(status));

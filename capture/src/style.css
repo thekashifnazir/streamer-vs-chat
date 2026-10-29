@@ -69,3 +69,6 @@ header{align-items:flex-start;flex-direction:column;gap:12px}
 .fps-debug{position:absolute;right:16px;top:14px;background:#0d0b13dc;padding:4px 8px;font:12px ui-monospace,monospace;color:#c4eedf}
 
 .session-warning{color:var(--yellow);font-weight:700}
+
+.input-lock{border:2px solid var(--yellow);border-radius:6px;background:#302817;color:var(--yellow);padding:16px;font-size:24px;line-height:1.3;font-weight:800}
+.input-lock[hidden]{display:none}

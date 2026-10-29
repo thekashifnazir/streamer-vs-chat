@@ -7,6 +7,7 @@ import { createRailsHud, type HudModes } from './hud';
 import type { GameSummary } from '../../shared/src/highlights';
 import type { HighlightEntry } from '../../server/src/clips';
 const hud=createRailsHud(document.querySelector<HTMLElement>('#hud')!);
+hud.setInputLocked(true);
 let disposed=false;
 let reconnect:number|undefined;
 let socket:WebSocket;
@@ -22,8 +23,8 @@ function connect(){
   connection.addEventListener('message',event=>{
     if(!current())return;
     try {
-      const message=JSON.parse(String(event.data)) as {kind:string;state?:GameState;simulated?:boolean;tally?:TallySnapshot['tally'];modes?:HudModes;summary?:GameSummary;entries?:HighlightEntry[];visible?:boolean;transport?:string;memory?:ViewerMemoryView|null;forge?:ForgeSnapshot|null};
-      if(message.kind==='tick'&&message.state){if(message.transport){transport=message.transport;badge();}if(message.modes)hud.setModes(message.modes);hud.render(message.state,!!message.simulated);}
+      const message=JSON.parse(String(event.data)) as {kind:string;state?:GameState;simulated?:boolean;inputsStopped?:boolean;tally?:TallySnapshot['tally'];modes?:HudModes;summary?:GameSummary;entries?:HighlightEntry[];visible?:boolean;transport?:string;memory?:ViewerMemoryView|null;forge?:ForgeSnapshot|null};
+      if(message.kind==='tick'&&message.state){if(typeof message.inputsStopped==='boolean')hud.setInputLocked(message.inputsStopped);if(message.transport){transport=message.transport;badge();}if(message.modes)hud.setModes(message.modes);hud.render(message.state,!!message.simulated);}
       else if(message.kind==='highlights')hud.setEndcard(message.visible&&message.summary?message.summary:null,[...(message.entries??[])].sort((a,b)=>b.highlight.priority-a.highlight.priority||a.highlight.at-b.highlight.at).flatMap(entry=>entry.status==='confirmed'&&entry.url?[{id:entry.highlight.id,label:`${entry.highlight.kind.toUpperCase()} · ROUND ${entry.highlight.round}`,url:entry.url,status:'confirmed' as const}]:[]));
       else if(message.kind==='forge')hud.setForge(message.forge??null);
       else if(message.kind==='memory')hud.setMemory(message.memory??null);

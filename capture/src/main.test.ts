@@ -9,6 +9,8 @@ const cameraHarness=vi.hoisted(()=>({starts:0,frame:null as ((sample:{landmarks:
 vi.mock('./camera',()=>({PoseCamera:class {constructor(_video:unknown,frame:typeof cameraHarness.frame){cameraHarness.frame=frame;}async start(){cameraHarness.starts++;return true;}stop() {}}}));
 class Element extends EventTarget {
   textContent=''; hidden=false; checked=false; disabled=false; value='';
+  focused=false;
+  focus(){this.focused=true;}
   blur() {}
   click(){this.dispatchEvent(new Event('click'));}
   change(){this.dispatchEvent(new Event('change'));}
@@ -50,20 +52,22 @@ it('keeps the clear-space start warning visible across live ticks until the chec
   expect(socket.send).not.toHaveBeenCalled();
   get('clear-space').checked=true;get('clear-space').change();
   expect(warning.hidden).toBe(true);
+  get('resume-input').click();
   get('start-match').click();
   expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'session',action:'start'}));
 });
 it('keeps connection and calibration warnings separate from server game status too',async()=>{
   const {get,socket}=await page();
   get('clear-space').checked=true;get('clear-space').change();
-  socket.readyState=0;get('start-match').click();socket.tick();
+  get('resume-input').click();socket.readyState=0;get('start-match').click();socket.tick();
   expect(get('session-warning').textContent).toBe('Connect to the local server first.');
   expect(get('session-warning').hidden).toBe(false);
   get('resume-input').click();
   expect(get('session-warning').textContent).toBe('Connect to the local server first.');
   socket.readyState=1;get('input-source').value='pose';get('input-source').change();
   socket.send.mockClear();get('next-round').click();socket.tick();
-  expect(get('session-warning').textContent).toContain('Finish webcam calibration');
+  expect(get('session-warning').textContent).toContain('Resume inputs');
+  expect(get('input-lock').textContent).toContain('start the camera');
   expect(get('session-warning').hidden).toBe(false);
   expect(socket.send).not.toHaveBeenCalled();
 });
@@ -90,9 +94,9 @@ it('reload restores stored calibration but stays STOPPED until clear space, came
  first.window.dispatchEvent(new Event('beforeunload'));vi.resetModules();const{get,socket}=await page(storage);
  expect(get('input-source').value).toBe('pose');expect(get('calibration-status').textContent).toContain('restored');expect(get('save-calibration').disabled).toBe(false);expect(cameraHarness.starts).toBe(0);
  socket.dispatchEvent(new Event('open'));expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'stop',by:'capture'}));socket.send.mockClear();
- get('clear-space').checked=true;get('clear-space').change();get('resume-input').click();expect(get('connection-status').textContent).toContain('Start camera');
+ get('clear-space').checked=true;get('clear-space').change();get('resume-input').click();expect(get('connection-status').textContent).toContain('Start camera');expect(get('input-lock').textContent).toContain('start the camera');
  expect(socket.send.mock.calls.map(([raw])=>JSON.parse(raw)).some(value=>value.kind==='control'&&value.action==='resume')).toBe(false);
- get('start-camera').click();await Promise.resolve();await Promise.resolve();expect(cameraHarness.starts).toBe(1);get('resume-input').click();expect(get('connection-status').textContent).toContain('Start camera');
+ get('start-camera').click();await Promise.resolve();await Promise.resolve();expect(cameraHarness.starts).toBe(1);get('resume-input').click();expect(get('connection-status').textContent).toContain('Start camera');expect(get('input-lock').textContent).toContain('keep head, shoulders and wrists in frame');
  cameraHarness.frame!({landmarks:guardFrame(),at:performance.now(),fps:30,inferenceMs:4});get('start-match').click();expect(get('session-warning').textContent).toContain('Resume inputs');
  expect(socket.send.mock.calls.map(([raw])=>JSON.parse(raw)).some(value=>value.kind==='pose'&&value.guard)).toBe(false);
  get('resume-input').click();expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'resume',by:'capture'}));
@@ -114,4 +118,37 @@ it('pre-selects Medium difficulty and sends the selected difficulty as a pending
  const {get,socket}=await page();get('difficulty').value='expert';get('difficulty').change();
  expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'capture-options',seated:false,noPunch:false,difficulty:'expert'}));
  expect(socket.send.mock.calls.map(([raw])=>JSON.parse(raw)).some(value=>value.kind==='session')).toBe(false);
+});
+
+it('locks a new keyboard page until clear-space and explicit Resume, keeps the banner across ticks and focuses Resume on START',async()=>{
+ const {get,socket}=await page();
+ expect(get('input-lock').hidden).toBe(false);expect(get('input-lock').textContent).toContain('INPUTS LOCKED');expect(get('input-lock').textContent).toContain('My space is clear');
+ get('start-match').click();expect(get('resume-input').focused).toBe(true);expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).kind==='session')).toBe(false);
+ get('clear-space').checked=true;get('clear-space').change();socket.tick(74000);
+ expect(get('input-lock').hidden).toBe(false);expect(get('input-lock').textContent).toContain('press Resume inputs');get('start-match').click();
+ expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).kind==='session')).toBe(false);
+ get('resume-input').click();expect(get('input-lock').hidden).toBe(true);expect(cameraHarness.starts).toBe(0);get('start-match').click();expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'session',action:'start'}));
+ get('stop-input').click();expect(get('input-lock').hidden).toBe(false);expect(get('input-lock').textContent).toContain('Resume inputs');
+});
+it('server READY respects explicit local Resume and local STOP while allowing moderator pause/resume',async()=>{
+ const {get,socket}=await page();get('clear-space').checked=true;get('clear-space').change();get('resume-input').click();expect(get('input-lock').hidden).toBe(true);
+ const status=(stopped:boolean)=>socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'input-status',stopped,state:{source:'keyboard',guard:false,lean:null}})}));
+ status(true);expect(get('input-lock').hidden).toBe(false);status(false);expect(get('input-lock').hidden).toBe(true);
+ get('stop-input').click();socket.send.mockClear();status(false);expect(get('input-lock').hidden).toBe(false);expect(socket.send).toHaveBeenCalledExactlyOnceWith(JSON.stringify({kind:'control',action:'stop',by:'capture'}));socket.send.mockClear();get('start-match').click();expect(socket.send).not.toHaveBeenCalled();
+ get('resume-input').click();expect(get('input-lock').hidden).toBe(true);
+});
+
+it('START requires a freshly framed pose even after Resume succeeded',async()=>{
+ const {get,socket}=await page(storedProfile());get('clear-space').checked=true;get('clear-space').change();get('start-camera').click();await Promise.resolve();await Promise.resolve();
+ cameraHarness.frame!({landmarks:guardFrame(),at:performance.now(),fps:30,inferenceMs:4});get('resume-input').click();expect(get('input-lock').hidden).toBe(true);
+ cameraHarness.frame!({landmarks:[],at:performance.now(),fps:30,inferenceMs:4});socket.send.mockClear();get('start-match').click();
+ expect(socket.send.mock.calls.some(([raw])=>JSON.parse(raw).kind==='session')).toBe(false);expect(get('input-lock').hidden).toBe(false);expect(get('input-lock').textContent).toContain('keep head, shoulders and wrists in frame');expect(get('resume-input').focused).toBe(true);
+});
+
+it('initial server READY cannot bypass the first explicit Resume',async()=>{
+ const {get,socket}=await page();get('clear-space').checked=true;get('clear-space').change();
+ socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'input-status',stopped:false,state:{source:'keyboard',guard:false,lean:null}})}));
+ expect(get('input-lock').hidden).toBe(false);expect(socket.send).toHaveBeenCalledWith(JSON.stringify({kind:'control',action:'stop',by:'capture'}));socket.send.mockClear();
+ socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'input-status',stopped:true,state:{source:'keyboard',guard:false,lean:null}})}));expect(socket.send).not.toHaveBeenCalled();
+ get('start-match').click();expect(socket.send).not.toHaveBeenCalled();
 });

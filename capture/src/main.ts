@@ -38,7 +38,8 @@ function updateReplay(){
 let socket:WebSocket;
 let reconnectTimer:number|undefined;
 let disposed=false;
-let stopped=false;
+let stopped=true;
+let resumeAuthorized=false;
 let cameraRunning=false;
 let benchmarking=false;
 const delegate=element<HTMLSelectElement>('pose-delegate');
@@ -62,7 +63,7 @@ const profiles=createCalibrationProfiles(()=>localStorage);
 function applyCalibration(){const saved=calibration.snapshot;if(saved.ready&&saved.guardThreshold!==null)classifier.setCalibration({guardThreshold:saved.guardThreshold,leanThresholds:saved.leanThresholds??undefined,guardReleaseBand:saved.guardReleaseBand??undefined,guardMedians:saved.guardMedians??undefined,neutralSwayP95:saved.neutralSwayP95??undefined});}
 function restoreCalibration(selectPose=false){
  const mode=posture.value as CalibrationMode,saved=profiles.load(mode);if(!saved||!calibration.restore(saved,mode))return false;
- classifier.reset();applyCalibration();lastPose=neutral();stopped=true;if(selectPose)source.value='pose';updateKeyboard();
+ classifier.reset();applyCalibration();lastPose=neutral();stopped=true;resumeAuthorized=false;if(selectPose)source.value='pose';updateKeyboard();
  transmit(neutral());transmit({kind:'control',action:'stop',by:'capture'});
  element('saved-calibration-status').textContent=`Saved ${mode} calibration restored. Start camera and check framing; confirm clear space and Resume inputs. Recalibrate after changing camera or position.`;return true;
 }
@@ -74,7 +75,26 @@ function sessionWarning(message='') {
   warning.textContent=message;warning.hidden=!message;
 }
 function allowed() { return clearSpace.checked && !stopped && !benchmarking; }
-function updateKeyboard() { keyboard.setEnabled(source.value==='keyboard' && allowed()); }
+function poseBlocker() {
+  if(source.value!=='pose')return '';
+  if(!cameraRunning)return 'start the camera, then press Resume inputs.';
+  if(!calibration.snapshot.ready)return 'finish webcam calibration, then press Resume inputs.';
+  const metrics=measurePose(landmarks);
+  if(performance.now()-lastFrameAt>=500||!inFrame()||!metrics)return 'keep head, shoulders and wrists in frame, then press Resume inputs.';
+  if(posture.value==='seated'&&metrics.shoulderWidth>.2)return 'sit about 1 m further back, then press Resume inputs.';
+  return '';
+}
+function inputBlocker() {
+  if(!clearSpace.checked)return 'tick “My space is clear”, then press Resume inputs.';
+  if(socket?.readyState!==WebSocket.OPEN)return 'connect to the local server, then press Resume inputs.';
+  if(benchmarking)return 'wait for the camera comparison, then press Resume inputs.';
+  return poseBlocker()||'press Resume inputs.';
+}
+function updateInputLock() {
+  const banner=element('input-lock');
+  banner.hidden=allowed();banner.textContent=banner.hidden?'':`INPUTS LOCKED: ${inputBlocker()}`;
+}
+function updateKeyboard() { keyboard.setEnabled(source.value==='keyboard' && allowed());updateInputLock(); }
 function neutral(at=performance.now()):PoseState {
   return {kind:'pose',guard:false,lean:null,at,source:source.value==='keyboard'?'keyboard':'pose'};
 }
@@ -85,7 +105,7 @@ function transmit(input:StreamerInput) {
 }
 function emit(input:StreamerInput) {
   if(input.kind==='control') {
-    if(input.action==='stop') { stopped=true; keyboard.release(); updateKeyboard(); }
+    if(input.action==='stop') { stopped=true;resumeAuthorized=false; keyboard.release(); updateKeyboard(); }
     transmit({...input,by:'capture'});
     return;
   }
@@ -98,7 +118,7 @@ function connect() {
   const connection=new WebSocket(`ws://${location.hostname}:3000/ws`);socket=connection;
   socket.addEventListener('open',()=>{
     if(disposed||socket!==connection){connection.close();return;}
-    connectionStatus.textContent='Server connected';sendOptions();
+    connectionStatus.textContent='Server connected';sendOptions();updateInputLock();
     transmit(neutral());
     if(stopped) transmit({kind:'control',action:'stop',by:'capture'});
   });
@@ -118,6 +138,9 @@ function connect() {
           if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify({kind:'replay-result',highlightId:message.highlightId,available:replay.has(message.highlightId)}));
         });
       } else if(message.kind==='input-status') {
+        if(message.stopped){stopped=true;keyboard.release();updateKeyboard();}
+        else if(resumeAuthorized&&clearSpace.checked&&!benchmarking&&!poseBlocker()){stopped=false;updateKeyboard();}
+        else {stopped=true;updateKeyboard();transmit({kind:'control',action:'stop',by:'capture'});}
         element('input-state').textContent=`SERVER · ${message.stopped?'STOPPED':'READY'}\n${message.state.source.toUpperCase()} · GUARD ${message.state.guard?'ON':'OFF'} · LEAN ${message.state.lean??'—'}\n${noPunch.checked?'PUNCHES OFF':message.lastPunch?`LAST BONUS PUNCH ${message.lastPunch.side}`:'NO BONUS PUNCH YET'}`;
       } else if(message.kind==='tick') {
         const game=message.state;
@@ -125,7 +148,7 @@ function connect() {
       } else if(message.kind==='input-error') connectionStatus.textContent=message.message;
     } catch { /* Ignore unrelated/malformed messages. */ }
   });
-  socket.addEventListener('close',()=>{if(disposed||socket!==connection)return;stopped=true;keyboard.release();updateKeyboard();connectionStatus.textContent='Server disconnected · inputs stopped. Resume after reconnect.';if(!disposed)reconnectTimer=window.setTimeout(connect,1000);});
+  socket.addEventListener('close',()=>{if(disposed||socket!==connection)return;stopped=true;resumeAuthorized=false;keyboard.release();updateKeyboard();connectionStatus.textContent='Server disconnected · inputs stopped. Resume after reconnect.';if(!disposed)reconnectTimer=window.setTimeout(connect,1000);});
   socket.addEventListener('error',()=>connection.close());
 }
 function inFrame() {
@@ -154,6 +177,7 @@ const camera=new PoseCamera(video,sample=>{
   recorder.frame(landmarks,sample.at);
   element('fps-debug').textContent=metrics?`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms`:NO_POSE_MESSAGE;
   element('diagnostics').textContent=`${sample.fps.toFixed(1)} FPS · ${sample.inferenceMs.toFixed(1)} ms inference\n${metrics?`g ${metrics.g.toFixed(2)} · tilt ${metrics.tilt.toFixed(2)} · S ${metrics.shoulderWidth.toFixed(3)}`:NO_POSE_MESSAGE}\n${calibrated.guardThreshold===null?'CALIBRATION REQUIRED':`guard ON ${calibrated.guardThreshold.toFixed(2)} · OFF ${(calibrated.guardThreshold-(calibrated.guardReleaseBand??.25)).toFixed(2)}`}\n${calibrated.leanThresholds?`lean ON L ${calibrated.leanThresholds.L.toFixed(2)} / R ${calibrated.leanThresholds.R.toFixed(2)}`:'LEAN CALIBRATION REQUIRED'}\n${calibrated.neutralSwayP95===null?'':`neutral sway p95 ${calibrated.neutralSwayP95.toFixed(2)} · lean floor ${calibrated.leanFloor?.toFixed(2)}`}\n${metrics?`guard anatomy ${metrics.guardAnatomy?'READY':'RAISE WRISTS ABOVE ELBOWS / MID-TORSO'}`:''}\n${(performance.now()-sample.at).toFixed(1)} ms frame → input`;
+  updateInputLock();
   if(recorder.recording)recordStatus.textContent=`Recording ${recorder.frameCount} frames · K/A/D/J supply labels in either input mode.`;
 },message=>{if(benchmarking){benchmark.fail(message);return;}replay.stop();delegate.disabled=false;stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();cameraStatus.textContent=message;emit(neutral());});
 
@@ -163,7 +187,7 @@ element('start-camera').addEventListener('click',async()=>{
   stopCameraButton.disabled=false;
   cameraStatus.textContent=`Opening camera and loading the local lite ${delegate.value} model…`;
   try {cameraRunning=await camera.start(delegate.value as PoseDelegate);}catch(error){cameraStatus.textContent=`Camera unavailable: ${error instanceof Error?error.message:'permission denied'}. Keyboard still works.`;}
-  finally{button.disabled=false;benchmarkButton.disabled=false;stopCameraButton.disabled=!cameraRunning;delegate.disabled=cameraRunning;updateReplay();}
+  finally{button.disabled=false;benchmarkButton.disabled=false;stopCameraButton.disabled=!cameraRunning;delegate.disabled=cameraRunning;updateReplay();updateInputLock();}
 });
 element('stop-camera').addEventListener('click',()=>{
   if(benchmarking)benchmark.cancel();replay.stop();camera.stop();delegate.disabled=false;stopCameraButton.disabled=true;cameraRunning=false;landmarks=[];lastPose=neutral();classifier.reset();
@@ -181,8 +205,8 @@ posture.addEventListener('change',()=>{
   if(!restoreCalibration())element('saved-calibration-status').textContent='No compatible saved calibration for this posture. Calibrate before webcam play.';
   if(source.value==='pose')emit(neutral());
 });
-source.addEventListener('change',()=>{source.blur();sessionWarning();classifier.reset();lastPose=neutral();transmit(neutral());updateKeyboard();});
-clearSpace.addEventListener('change',()=>{if(!clearSpace.checked&&benchmarking)benchmark.cancel();sessionWarning();updateReplay();if(!clearSpace.checked)transmit(neutral());updateKeyboard();});
+source.addEventListener('change',()=>{source.blur();sessionWarning();classifier.reset();lastPose=neutral();emit({kind:'control',action:'stop',by:'capture'});transmit(neutral());updateKeyboard();});
+clearSpace.addEventListener('change',()=>{if(!clearSpace.checked&&benchmarking)benchmark.cancel();sessionWarning();updateReplay();if(!clearSpace.checked){emit({kind:'control',action:'stop',by:'capture'});transmit(neutral());}updateKeyboard();});
 element('stop-input').addEventListener('click',()=>emit({kind:'control',action:'stop',by:'capture'}));
 element('resume-input').addEventListener('click',()=>{
   if(benchmarking){connectionStatus.textContent='Wait for the camera comparison before resuming.';return;}
@@ -191,7 +215,7 @@ element('resume-input').addEventListener('click',()=>{
   sessionWarning();
   const resumeMetrics=source.value==='pose'?measurePose(landmarks):null;
   if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!inFrame()||!resumeMetrics||(posture.value==='seated'&&resumeMetrics.shoulderWidth>.2))){connectionStatus.textContent='Start camera with valid calibration and keep head, shoulders and wrists in frame before resuming.';return;}
-  stopped=false;transmit({kind:'control',action:'resume',by:'capture'});updateKeyboard();
+  stopped=false;resumeAuthorized=true;transmit({kind:'control',action:'resume',by:'capture'});updateKeyboard();
 });
 element('record-start').addEventListener('click',()=>{
   if(recorder.recording)return;
@@ -211,7 +235,7 @@ element('record-stop').addEventListener('click',()=>{
   recordStatus.textContent=`Saved ${result.landmarks.frames.length} frames as ${name}.landmarks.json and ${name}.labels.json. Move both files into test/fixtures/.`;
 });
 const heartbeat=window.setInterval(()=>{
-  const at=performance.now();
+  const at=performance.now();updateInputLock();
   if(source.value==='keyboard')emit({kind:'pose',...keyboard.physical,source:'keyboard',at});
   else if(cameraRunning&&at-lastFrameAt<500)emit({...lastPose,at});
   else transmit(neutral(at));
@@ -230,8 +254,9 @@ noPunch.addEventListener('change',()=>{sendOptions();noPunch.blur();});
 posture.value=profiles.mode();restoreCalibration(true);updateKeyboard();connect();
 
 function sessionCommand(action:'start'|'next-round'|'summary') {
-  if(benchmarking){sessionWarning('Wait for the camera comparison before starting.');return;}
-  if(action!=='summary'&&!allowed()){sessionWarning('Confirm your clear space and Resume inputs before starting.');return;}
+  if(benchmarking){sessionWarning('Wait for the camera comparison before starting.');updateInputLock();element<HTMLButtonElement>('resume-input').focus();return;}
+  if(action!=='summary'&&source.value==='pose'&&poseBlocker()&&!stopped)emit({kind:'control',action:'stop',by:'capture'});
+  if(action!=='summary'&&!allowed()){sessionWarning('Confirm your clear space and Resume inputs before starting.');updateInputLock();element<HTMLButtonElement>('resume-input').focus();return;}
   if(action!=='summary'&&source.value==='pose'&&!calibration.snapshot.ready){sessionWarning('Finish webcam calibration, or select Keyboard.');return;}
   if(socket?.readyState!==WebSocket.OPEN){sessionWarning('Connect to the local server first.');return;}
   sessionWarning();sendOptions();
@@ -248,7 +273,7 @@ benchmarkButton.addEventListener('click',async()=>{
   if(!clearSpace.checked){benchmarkStatus.textContent='Confirm your clear space first.';return;}
   if(recorder.recording){benchmarkStatus.textContent='Stop the fixture recording before benchmarking.';return;}
   emit({kind:'control',action:'stop',by:'capture'});
-  const restoreCamera=cameraRunning;benchmarking=true;cameraRunning=false;replay.stop();
+  const restoreCamera=cameraRunning;benchmarking=true;cameraRunning=false;replay.stop();updateInputLock();
   benchmarkButton.disabled=true;delegate.disabled=true;element<HTMLButtonElement>('start-camera').disabled=true;stopCameraButton.disabled=false;
   element<HTMLButtonElement>('start-calibration').disabled=true;startRecordButton.disabled=true;
   benchmarkStatus.textContent='Comparing CPU and GPU locally. Allow camera access; inputs remain stopped.';
@@ -260,6 +285,6 @@ benchmarkButton.addEventListener('click',async()=>{
   }catch{benchmarkStatus.textContent='Needs Kash: measurement unavailable. No timing result recorded.';}
   finally{
     benchmarking=false;benchmarkButton.disabled=false;delegate.disabled=cameraRunning;element<HTMLButtonElement>('start-camera').disabled=false;stopCameraButton.disabled=!cameraRunning;
-    element<HTMLButtonElement>('start-calibration').disabled=!cameraRunning;startRecordButton.disabled=false;updateReplay();
+    element<HTMLButtonElement>('start-calibration').disabled=!cameraRunning;startRecordButton.disabled=false;updateReplay();updateInputLock();
   }
 });
