@@ -14,7 +14,7 @@ What Codex builds. The numbers are tuned by `spikes/defence-sim/sim.mjs` **[MEAS
 | Low-HP mercy | streamer below 30 HP takes ×0.6 damage (HIT and CHIP) |
 | Beat timeline | Votes collected during beat N are drawn at the end of beat N. The telegraph runs for the next 800 ms and the hit lands at its end. Beat N+1's voting is already open meanwhile |
 
-**Default-boss votes:** `!jab` (`!j`) = guard; `!left` (`!l`) = hook from the left → LEAN →; `!right` (`!r`) = hook from the right → ← LEAN; `!combo` (`!c`) = guard; `!super` (`!s`) = either lean when hype is full. Legacy `!hookl` / `!hookr` remain accepted. Commands are case-insensitive and only the first token counts; the ! is required. Custom/Forge bosses accept exactly their own commands, without default aliases. Internal move IDs, scouting/memory identities and weighted draws are unchanged.
+**Default-boss votes:** `!jab` (`!j`) = guard; `!left` (`!l`) = hook from the left → LEAN →; `!right` (`!r`) = hook from the right → ← LEAN; `!combo` (`!c`) = guard; `!super` (`!s`) = follow the three-step GUARD / LEAN sequence when hype is full. Legacy `!hookl` / `!hookr` remain accepted. Commands are case-insensitive and only the first token counts; the ! is required. Custom/Forge bosses accept exactly their own commands, without default aliases. Internal move IDs, scouting/memory identities and weighted draws are unchanged.
 - One vote per viewer per beat, and the latest message wins.
 - The move is a **weighted draw by vote share**, not the most-voted. Plurality let one spammer group decide every beat in big chats; the draw kept casual win rates flat from 0 to 500 viewers.
 - The same move can't come up 3 beats in a row: if the draw repeats a move for the third time, replace it with a uniform pick from the other three of JAB/HOOK_L/HOOK_R/COMBO.
@@ -31,11 +31,11 @@ What Codex builds. The numbers are tuned by `spikes/defence-sim/sim.mjs` **[MEAS
 | COMBO (2 hits, 300 ms apart) | BLOCK, if guard is held across both hits | no effect | no effect | HIT | 14 |
 | HOOK_L | CHIP 3 | DODGE = lean **right** | HIT | HIT | 12 |
 | HOOK_R | CHIP 3 | DODGE = lean **left** | HIT | HIT | 12 |
-| SUPER | CHIP 10 | DODGE = either way | DODGE | HIT | 25 |
+| SUPER sequence | GUARD step blocks; a held guard chips a missed lean step | Match each shown lean step | HIT on a wrong lean without guard | HIT | 8 / 8 / 9 (25 total); chip 3 / 3 / 4 |
 
 Streamer damage is 0 on BLOCK, PERFECT and DODGE. If guard and a lean are both held: for JAB/COMBO the guard decides and the lean is ignored; for hooks and SUPER the lean decides (a right-way lean is a DODGE even with guard up; guard plus a wrong-way lean is a CHIP). A COMBO is PERFECT when the guard went up ≤400 ms before the first hit; `landsAt` is the first hit. Each COMBO hit is 7; if the guard isn't up for either hit, that hit lands for 7 and the combo gives **no counter** (so a guard dropped between hits costs 7 and the counter).
 
-One rule for viewers to read: **straight attacks (jab, combo) need the guard, swings (hooks) need a lean, and a super needs any lean.** Hooks are named from the boss's side, so "hook left" swings from the screen's left and you lean right. That matches the demo spike. Show an arrow on the telegraph so nobody has to think about it.
+One rule for viewers to read: **straight attacks (jab, combo) need the guard, swings (hooks) need a lean, and SUPER needs the three displayed guard/lean reads (§14).** Hooks are named from the boss's side, so "hook left" swings from the screen's left and you lean right. That matches the demo spike. Show an arrow on the telegraph so nobody has to think about it.
 
 **Counter:** a BLOCK, PERFECT or DODGE damages the boss straight away: BLOCK 8, PERFECT 11, DODGE 9.
 - It then opens a 700 ms counter window. Each punch in that window adds 1.5. Punches are throttled to one per 450 ms.
@@ -233,3 +233,14 @@ Measured ordinary R1 wins, 4,000 rounds per cell, seed 2026 (percent; viewers 0 
 | Expert | No-punch | 28.975 | 31.625 | 25.525 | 25.400 |
 
 All difficulty gates pass: win rates decrease in level order (2 percentage points tolerance), Easy casual ≤90%, Expert casual ≥15%, Medium no-punch ≥40%. The original four Hard matrices and fixture gates remain mandatory and unchanged. Expert no-punch has no 30% floor; that existing floor continues to apply to Hard.
+
+
+## 14. SUPER sequence
+
+Default Chat Golem SUPER reveals three seeded steps chosen from `guard`, `lean_left`, `lean_right` at draw, with no adjacent repeated step. Internal move ID remains SUPER. Custom/Forge moves retain their single-defence definitions, including a fifth slot; they never inherit this sequence.
+
+The first step lands after twice the move’s scaled telegraph (Hard 1600 ms). Remaining steps land at `round(600 × tempo)` intervals (Easy 900, Medium 750, Hard 600, Expert 488 ms). Damage is 8 / 8 / 9; missed lean with guard chips 3 / 3 / 4. Guard steps require held guard and cannot be PERFECT; lean steps require the matching player-side lean. Each clean lean contributes one scouting sample with its receive/capture reaction evidence. Aggregate severity is HIT > CHIP > BLOCK > DODGE. Only an entirely clean chain opens a counter: any guard step yields BLOCK (8 counter); an all-lean chain yields DODGE (9), with the existing brace multiplier when qualified.
+
+A full SUPER can cross a fixed beat boundary. An occupied boundary advances on the same grid without overwriting the active sequence; accepted votes are retained until the next available draw. It does not shift later beat deadlines. End guards reject a selected move whose full chain would reach/exceed the round deadline. The Forge plan-length guard reserves full SUPER duration, including both gaps; its conservative fixed prefix is replay-tested rather than claimed equivalent to arbitrary unscripted terminal autopilot picks.
+
+The unlock remains hype=100 and fewer than three supers used. Locked !s/!super votes stay dropped. The HUD shows LOCKED · HYPE n%, the full ordered chips, current highlight and tick/cross results (TILT seated). A fresh unlock shows SUPER READY: chat type !s for up to 3 s; rejected votes get a 1 s hint, at most once per beat. Hype’s visible legend explains that votes fill it and more voters fill it faster. The local bot queues one “HYPE is full! Type !s for the SUPER” notice per round through the existing 10 s / three-message bounded queue. Preview and new-match notice state reset explicitly; pause/resume does not permit a duplicate round announcement. Notification display timestamps use wall time outside the reducer, so preview hints expire while waiting for START.

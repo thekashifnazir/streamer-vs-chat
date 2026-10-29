@@ -1,3 +1,4 @@
+import {createSuperNotices} from '../../shared/src/super-notices';
 import {createBossImpactLedger} from '../../shared/src/boss-impact';
 import {chatCommand} from '../../shared/src/chat-commands';
 import {difficultyName, type Difficulty} from '../../shared/src/tempo';
@@ -22,6 +23,8 @@ let presentationSource=0;
 /** Owns the live clock and reducer. Waiting for explicit START avoids unattended live results. */
 export class GameSession {
   private current:GameState;
+  private superNoticeTracker=createSuperNotices();
+  get superNotices(){return this.superNoticeTracker.snapshot();}
   private impactLedger=createBossImpactLedger(`server-${++presentationSource}`);
   get bossImpacts(){return this.impactLedger.snapshot();}
   private armed=false;
@@ -71,6 +74,7 @@ export class GameSession {
     const wasOver=this.current.round.over;
     this.current=step(this.current,event,now);
     this.impactLedger.observe(previous,this.current);
+    if(this.superNoticeTracker.observe(previous,this.current,this.now(),event.kind==='restart')&&this.armed)this.results.enqueue('HYPE is full! Type !s for the SUPER',this.now());
     this.options.onState?.(previous,this.current);
     if(this.armed&&!wasOver&&this.current.round.over) {
       const result=this.current.log.rounds.at(-1)!;
@@ -105,6 +109,7 @@ export class GameSession {
     const vote=parseChatVote(message.text,message.user,now,message.simulated,this.current.bossDef);
     if(vote){
       this.apply({...vote,raider},now);
+      this.superNoticeTracker.denied(this.current,vote.move,this.now());
       if(this.armed&&!this.current.paused&&!this.current.round.over&&this.current.votes[message.user]===vote.move)return vote;
     }
     return null;

@@ -99,3 +99,241 @@ Forge neon-kraken.json: {"casual":[55.65,59.325,59.675,60.62499999999999],"nopun
 Forge tin-tactician.json: {"casual":[55.65,59.325,59.675,60.62499999999999],"nopunch":[42.525,44.95,44.1,45.175]} PASS
 Forge velvet-sentinel.json: {"casual":[55.65,59.325,59.675,60.62499999999999],"nopunch":[42.525,44.95,44.1,45.175]} PASS
 ```
+
+
+# Queue 13g-2 — SUPER sequence and FOCUS/FINISHER
+
+Resumed the existing uncommitted lanes after usage reset. Pulled twitchprep main again (current), and inspected mock-2-super.png / mock-3-ready.png for layout/colour intent. No deployment or physical webcam claim. Classifier math and thresholds remain unchanged.
+
+## Part C — sequence and unlock evidence
+
+The default SUPER uses explicit seeded RNG, three nonrepeating adjacent guard/lean steps, doubled scaled warning and scaled 600 ms gaps. Per-step damage, chip, mercy, attribution and scouting are authoritative; the clean aggregate uses HIT > CHIP > BLOCK > DODGE. Custom definitions remain single-defence. A sequence crossing a beat boundary is retained; only that occupied boundary is skipped on the unchanged grid, with votes carried to the next available draw. No active sequence is overwritten. The FINISHER window itself never shifts or skips a beat.
+
+Ordered HUD chips, step marks, seated TILT, a wrapping locked-HYPE row and visible hype explanation are implemented. Wall-time unlock/denial notices expire even before START. The bot announcement is limited to one per round through the existing rate-limited queue. Independent review caught an extra fourth aggregate SUPER hit sound and preview notice state surviving a paused START; both are fixed, with explicit restart reset and per-step-only damage sounds. Targeted reducer/golden/FX/notice tests pass; final combined verification follows below.
+
+### Changed SUPER vectors — exact old/new diff
+
+Only the following four SUPER-containing vectors changed. Every other vector JSON object remains byte-identical. Source fixtures are not disabled to make new mechanics pass.
+
+#### defence.json · def-super-row
+
+```diff
+--- old
+
++++ new
+
+@@ -3,3 +3,3 @@
+
+   "spec_ref": "\u00a72 row 5 (SUPER); \u00a72 note (guard + lean)",
+-  "description": "SUPER cells: guard -> CHIP 10; lean L -> DODGE; lean R -> DODGE; nothing -> HIT 25; guard + lean R -> DODGE. Moves are scripted, so the super gate and cap don't apply.",
++  "description": "Default SUPER is seeded guard/lean/guard then guard/lean-left/lean-right then lean-left/lean-right/guard. Guard alone chips the first chain; matched inputs clean the second; no inputs take 8/8/9 on the third. Occupied boundaries remain on the tempo grid and do not overwrite a sequence.",
+   "seed": 0,
+@@ -21,3 +21,13 @@
+
+     {
+-      "t_ms": 3500,
++      "t_ms": 9000,
++      "type": "lean",
++      "value": "L"
++    },
++    {
++      "t_ms": 9600,
++      "type": "lean",
++      "value": "R"
++    },
++    {
++      "t_ms": 10100,
+       "type": "guard",
+@@ -26,30 +36,5 @@
+
+     {
+-      "t_ms": 5000,
+-      "type": "lean",
+-      "value": "L"
+-    },
+-    {
+-      "t_ms": 5900,
++      "t_ms": 10100,
+       "type": "lean",
+       "value": null
+-    },
+-    {
+-      "t_ms": 7500,
+-      "type": "lean",
+-      "value": "R"
+-    },
+-    {
+-      "t_ms": 8300,
+-      "type": "lean",
+-      "value": null
+-    },
+-    {
+-      "t_ms": 12000,
+-      "type": "guard",
+-      "value": true
+-    },
+-    {
+-      "t_ms": 12000,
+-      "type": "lean",
+-      "value": "R"
+     }
+@@ -58,3 +43,3 @@
+
+     {
+-      "t_ms": 3200,
++      "t_ms": 5200,
+       "path": "log.resolved[0].outcome",
+@@ -63,29 +48,27 @@
+
+     {
+-      "t_ms": 3200,
++      "t_ms": 5200,
+       "path": "streamer.hp",
+-      "approx": 90
++      "approx": 97
+     },
+     {
+-      "t_ms": 5600,
++      "t_ms": 10000,
+       "path": "log.resolved[1].outcome",
+-      "equals": "DODGE"
++      "equals": "BLOCK"
+     },
+     {
+-      "t_ms": 5600,
++      "t_ms": 10000,
+       "path": "boss.hp",
+-      "approx": 126
++      "approx": 127
+     },
+     {
+-      "t_ms": 8000,
+-      "path": "log.resolved[2].outcome",
+-      "equals": "DODGE"
++      "t_ms": 10000,
++      "path": "scouting.dodges",
++      "equals": [
++        "L",
++        "R"
++      ]
+     },
+     {
+-      "t_ms": 8000,
+-      "path": "boss.hp",
+-      "approx": 117
+-    },
+-    {
+-      "t_ms": 10400,
+-      "path": "log.resolved[3].outcome",
++      "t_ms": 14800,
++      "path": "log.resolved[2].outcome",
+       "equals": "HIT"
+@@ -93,4 +76,4 @@
+
+     {
+-      "t_ms": 10400,
+-      "path": "log.resolved[3].dmg",
++      "t_ms": 14800,
++      "path": "log.resolved[2].dmg",
+       "approx": 25
+@@ -98,20 +81,10 @@
+
+     {
+-      "t_ms": 10400,
++      "t_ms": 14800,
+       "path": "streamer.hp",
+-      "approx": 65
++      "approx": 72
+     },
+     {
+-      "t_ms": 12800,
+-      "path": "log.resolved[4].outcome",
+-      "equals": "DODGE"
+-    },
+-    {
+-      "t_ms": 12800,
++      "t_ms": 14800,
+       "path": "boss.hp",
+-      "approx": 108
+-    },
+-    {
+-      "t_ms": 12800,
+-      "path": "streamer.hp",
+-      "approx": 65
++      "approx": 127
+     }
+```
+
+#### scouting.json · scout-live-12th-dodge
+
+```diff
+--- old
+
++++ new
+
+@@ -3,3 +3,3 @@
+
+   "spec_ref": "\u00a74 (habit = dodge leans on hooks and supers)",
+-  "description": "Log starts at 10 L. Lean L held: DODGE a HOOK_R (n=11, still no card), then DODGE a SUPER (n=12, 12/12) -> card L at 5600.",
++  "description": "Ten previous left dodges plus a HOOK_R dodge give eleven. Seeded SUPER guard/lean-left/guard contributes the twelfth sample at its lean step (7000), even though its two guard steps fail.",
+   "seed": 0,
+@@ -43,3 +43,3 @@
+
+     {
+-      "t_ms": 5599,
++      "t_ms": 6999,
+       "path": "scouting.card",
+@@ -48,3 +48,3 @@
+
+     {
+-      "t_ms": 5600,
++      "t_ms": 7000,
+       "path": "scouting.card",
+@@ -53,3 +53,3 @@
+
+     {
+-      "t_ms": 5600,
++      "t_ms": 7000,
+       "path": "scouting.n",
+```
+
+#### scouting.json · scout-exploit-move-left
+
+```diff
+--- old
+
++++ new
+
+@@ -3,3 +3,3 @@
+
+   "spec_ref": "\u00a74 (a left-leaner's card lights !hookl)",
+-  "description": "Card L: HOOK_R, JAB, COMBO and SUPER aren't the exploit; HOOK_L is.",
++  "description": "Card L: HOOK_R, JAB, COMBO and SUPER are not the exploit; HOOK_L is. The occupied SUPER boundary skips scripted slot four; HOOK_L draws at 14400.",
+   "seed": 0,
+@@ -26,2 +26,3 @@
+
+       "SUPER",
++      "JAB",
+       "HOOK_L"
+```
+
+#### votes.json · vote-super-gate-and-spend
+
+```diff
+--- old
+
++++ new
+
+@@ -3,3 +3,3 @@
+
+   "spec_ref": "\u00a71 SUPER and Hype; \u00a77 test 4",
+-  "description": "Hype 99.9 (< 100): A's !super is dropped from the tally (0 voters, autopilot). The beat's +6 caps hype at 100. Next beat A's !super counts, is the only vote, so SUPER fires: hype -> 0, supers_used -> 1, and 25 lands at 5600.",
++  "description": "Hype 99.9 (< 100): A's !super is dropped from the tally (0 voters, autopilot). The beat's +6 caps hype at 100. Next beat A's !super counts, is the only vote, so SUPER fires: hype -> 0, supers_used -> 1, and 8/8/9 land at 6400/7000/7600.",
+   "seed": 42,
+@@ -70,3 +70,3 @@
+
+     {
+-      "t_ms": 5600,
++      "t_ms": 7600,
+       "path": "streamer.hp",
+```

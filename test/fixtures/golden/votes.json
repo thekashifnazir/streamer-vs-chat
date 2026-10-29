@@ -356,7 +356,7 @@
     {
       "id": "vote-super-gate-and-spend",
       "spec_ref": "§1 SUPER and Hype; §7 test 4",
-      "description": "Hype 99.9 (< 100): A's !super is dropped from the tally (0 voters, autopilot). The beat's +6 caps hype at 100. Next beat A's !super counts, is the only vote, so SUPER fires: hype -> 0, supers_used -> 1, and 25 lands at 5600.",
+      "description": "Hype 99.9 (< 100): A's !super is dropped from the tally (0 voters, autopilot). The beat's +6 caps hype at 100. Next beat A's !super counts, is the only vote, so SUPER fires: hype -> 0, supers_used -> 1, and 8/8/9 land at 6400/7000/7600.",
       "seed": 42,
       "initial_state": {
         "hype": 99.9,
@@ -423,7 +423,7 @@
           "approx": 88
         },
         {
-          "t_ms": 5600,
+          "t_ms": 7600,
           "path": "streamer.hp",
           "approx": 63
         }

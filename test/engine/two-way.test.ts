@@ -32,8 +32,8 @@ it('braces only the previously visible matching card with defence held strictly 
  let fresh=pose(habit(['HOOK_L',...Array(7).fill('JAB'),...Array(4).fill('HOOK_L')]),100,true);fresh=vote(fresh,'v','JAB',100);fresh=advance(fresh,3200);expect(fresh.chatScouting.card).toBe('JAB');expect(fresh.log.resolved[0]?.braced).toBe(false);
 });
 it('applies all brace counter amounts once, including PERFECT/COMBO, while punches remain1.5',()=>{
- for(const [move,guard,lean,at,counter]of [['JAB',true,null,2100,10],['JAB',true,null,2300,10],['HOOK_L',false,'R',100,11.25],['HOOK_R',false,'L',100,11.25],['SUPER',false,'R',100,11.25],['COMBO',true,null,100,10]] as const){
-  let s=pose(habit(Array(12).fill(move)),at,guard,lean);s=vote(s,'v',move,at);if(move==='SUPER'){s.hype=100;s=vote(s,'v',move,at);}s=advance(s,move==='COMBO'?3500:3200);expect(s.log.resolved[0]).toMatchObject({counter_dmg:counter,braced:true});const hp=s.boss.hp;s=step(s,{kind:'punch',side:'L',at:s.now+100,source:'keyboard'},s.now+100);expect(hp-s.boss.hp).toBe(1.5);
+ for(const [move,guard,lean,at,counter]of [['JAB',true,null,2100,10],['JAB',true,null,2300,10],['HOOK_L',false,'R',100,11.25],['HOOK_R',false,'L',100,11.25],['COMBO',true,null,100,10]] as const){
+  let s=pose(habit(Array(12).fill(move)),at,guard,lean);s=vote(s,'v',move,at);s=advance(s,move==='COMBO'?3500:3200);expect(s.log.resolved[0]).toMatchObject({counter_dmg:counter,braced:true});const hp=s.boss.hp;s=step(s,{kind:'punch',side:'L',at:s.now+100,source:'keyboard'},s.now+100);expect(hp-s.boss.hp).toBe(1.5);
  }
  // A prior held JAB guard may be re-raised during the tell for PERFECT.
  let s=pose(habit(Array(12).fill('JAB')),100,true);s=vote(s,'v','JAB',100);s=pose(s,2600,false);s=pose(s,2900,true);s=advance(s,3200);expect(s.log.resolved[0]).toMatchObject({counter_dmg:13.75,braced:true});

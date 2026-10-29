@@ -328,3 +328,14 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .seated .boss-damage-numbers{bottom:205px;height:110px}.seated .boss-damage-number{font-size:70px}
 
 .boss-damage-label{position:absolute;top:100%;left:0;color:white;white-space:nowrap;font:400 36px/1 Anton,Impact,sans-serif}
+
+/* SUPER is a visible sequence, with an unlock line independent of vote-cell width. */
+.super-steps{display:flex;justify-content:center;gap:12px;margin-top:20px}.super-steps[hidden]{display:none}
+.super-step{flex:1;min-width:0;padding:18px 10px;border:4px solid #ffffff80;background:#08050ce8;color:#c8c2d5;font:400 44px/1 Anton,Impact,sans-serif;white-space:nowrap}
+.super-step.current{border-color:var(--yellow);color:var(--yellow)}.super-step.clean{border-color:var(--cyan);color:var(--cyan)}.super-step.miss{border-color:var(--pink);color:var(--pink)}
+.super-ready-banner,.super-denied-banner{position:absolute;left:485px;right:485px;top:150px;padding:12px;background:#08050cf2;border:4px solid var(--pink);color:var(--pink);font:400 44px/1 Anton,Impact,sans-serif;text-align:center;z-index:3}
+.super-denied-banner{top:150px;font-size:36px;color:var(--yellow);border-color:var(--yellow)}
+.super-lock{display:none}.vote-row.super-locked{height:auto;min-height:38px;display:block}.vote-row.super-locked>.vote-command,.vote-row.super-locked>.vote-track,.vote-row.super-locked>.vote-percent{display:none!important}
+.vote-row.super-locked>.super-lock{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font:400 36px/1 Anton,Impact,sans-serif;color:#c8c2d5}.super-lock>span{white-space:nowrap}
+
+.hype-vote-legend{position:relative;margin-top:10px;font:700 36px/1 Barlow,Arial,sans-serif;color:#c8c2d5;text-align:left;z-index:1}

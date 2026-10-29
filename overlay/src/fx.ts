@@ -59,9 +59,15 @@ export function createFxScheduler(options:{calm?:boolean;seed?:number}={}){
    if(active?.move==='COMBO'&&active.combo_hit){
     const key=`${active.round}:${active.beat}`,damage=active.damage??0;comboFirst.set(key,damage);if(damage>0)impact(`${key}:first`,'COMBO',active.lands_at);
    }
+   for(const step of state.log.superSteps.slice(previous.log.superSteps.length)){
+    const key=`${step.round}:${step.beat}:super:${step.index}`;
+    if(step.outcome==='HIT')impact(key,'SUPER',step.at);
+    else emit(key,step.outcome==='CHIP'?'chip':step.outcome==='BLOCK'?'block':'dodge','streamer',step.at,step.outcome==='CHIP'?0:FEEL.hitstop[step.outcome==='BLOCK'?'BLOCK':'DODGE'],0,'SUPER');
+   }
    const oldCount=previous.log.resolved.length;
    for(const result of state.log.resolved.slice(oldCount)){
     const key=`${result.round}:${result.beat}`;
+    if(result.super_steps){if(result.counter_dmg>0)emit(`${key}:counter`,'counter','boss',result.at,FEEL.hitstop.counter,FEEL.trauma.counter,result.move);continue;}
     if(result.outcome==='HIT'){
      if(result.move==='COMBO'){
       const attack=state.log.telegraphs.find(item=>item.round===result.round&&item.beat===result.beat);

@@ -126,3 +126,15 @@ it('retains individual presentation receipts for punches between routine HUD bro
  for(const time of [100,550]){at(time);game.input({kind:'punch',side:'L',source:'keyboard',at:time});}
  expect(game.bossImpacts.entries.map(item=>[item.kind,item.amount,item.at])).toEqual([['punch',1,100],['punch',1,550]]);game.close();
 });
+it('queues one SUPER unlock chat notice per round through the result rate limit',async()=>{
+ const {game,at,send}=rig();game.command({kind:'session',action:'start'});game.state.hype=99;game.twist({kind:'cheer',bits:1,simulated:true});await new Promise(resolve=>setTimeout(resolve,0));
+ expect(send.mock.calls.filter(call=>call[0]==='HYPE is full! Type !s for the SUPER')).toHaveLength(1);
+ game.state.hype=99;at(100);game.twist({kind:'cheer',bits:1,simulated:true});await new Promise(resolve=>setTimeout(resolve,0));expect(send).toHaveBeenCalledTimes(1);
+ game.queueNotice('second queued notice');await new Promise(resolve=>setTimeout(resolve,0));expect(send).toHaveBeenCalledTimes(1);
+ at(10000);game.advance();await new Promise(resolve=>setTimeout(resolve,0));expect(send.mock.calls[1]?.[0]).toBe('second queued notice');game.close();
+});
+it('keeps a locked !s dropped and exposes at most one hint per beat, clearing preview hints at START',()=>{
+ const {game,at}=rig();expect(game.chat({user:'A',text:'!s',simulated:true,role:'viewer'})).toBeNull();expect(game.state.tally.SUPER).toBe(0);const first=game.superNotices.deniedAt;
+ at(10);game.chat({user:'A',text:'!s',simulated:true,role:'viewer'});expect(game.superNotices.deniedAt).toBe(first);
+ game.command({kind:'session',action:'start'});expect(game.superNotices.deniedAt).toBeNull();game.chat({user:'A',text:'!s',simulated:true,role:'viewer'});expect(game.superNotices.deniedAt).toBe(10);game.close();
+});

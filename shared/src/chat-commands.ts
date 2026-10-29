@@ -10,7 +10,7 @@ export function chatCommand(move:Move,boss?:BossDef,compact=false):string{
 }
 export function chatCommandLegend(boss?:BossDef):string{
  if(boss&&!isDefaultBoss(boss))return boss.moves.map(move=>`${move.command} = ${move.label}`).join(' · ');
- return '!jab (!j) = guard · !left (!l) = hook from the left → LEAN → · !right (!r) = hook from the right → ← LEAN · !combo (!c) = guard · !super (!s) = either lean (full hype only)';
+ return '!jab (!j) = guard · !left (!l) = hook from the left → LEAN → · !right (!r) = hook from the right → ← LEAN · !combo (!c) = guard · !super (!s) = follow all 3 GUARD / LEAN steps (full hype only)';
 }
 /** Counts stay exact in accessible labels; compact thousands fit the narrow seated rail. */
 export function voteCountLabel(count:number):string{return count<1000?String(count):count<1_000_000?`${Math.round(count/1000)}k`:`${Math.round(count/1_000_000)}m`;}

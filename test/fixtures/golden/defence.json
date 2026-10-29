@@ -675,7 +675,7 @@
     {
       "id": "def-super-row",
       "spec_ref": "§2 row 5 (SUPER); §2 note (guard + lean)",
-      "description": "SUPER cells: guard -> CHIP 10; lean L -> DODGE; lean R -> DODGE; nothing -> HIT 25; guard + lean R -> DODGE. Moves are scripted, so the super gate and cap don't apply.",
+      "description": "Default SUPER is seeded guard/lean/guard then guard/lean-left/lean-right then lean-left/lean-right/guard. Guard alone chips the first chain; matched inputs clean the second; no inputs take 8/8/9 on the third. Occupied boundaries remain on the tempo grid and do not overwrite a sequence.",
       "seed": 0,
       "initial_state": {
         "moves": [
@@ -693,101 +693,74 @@
           "value": true
         },
         {
-          "t_ms": 3500,
-          "type": "guard",
-          "value": false
-        },
-        {
-          "t_ms": 5000,
+          "t_ms": 9000,
           "type": "lean",
           "value": "L"
         },
         {
-          "t_ms": 5900,
-          "type": "lean",
-          "value": null
-        },
-        {
-          "t_ms": 7500,
+          "t_ms": 9600,
           "type": "lean",
           "value": "R"
         },
         {
-          "t_ms": 8300,
-          "type": "lean",
-          "value": null
-        },
-        {
-          "t_ms": 12000,
+          "t_ms": 10100,
           "type": "guard",
-          "value": true
+          "value": false
         },
         {
-          "t_ms": 12000,
+          "t_ms": 10100,
           "type": "lean",
-          "value": "R"
+          "value": null
         }
       ],
       "expect": [
         {
-          "t_ms": 3200,
+          "t_ms": 5200,
           "path": "log.resolved[0].outcome",
           "equals": "CHIP"
         },
         {
-          "t_ms": 3200,
+          "t_ms": 5200,
           "path": "streamer.hp",
-          "approx": 90
+          "approx": 97
         },
         {
-          "t_ms": 5600,
+          "t_ms": 10000,
           "path": "log.resolved[1].outcome",
-          "equals": "DODGE"
+          "equals": "BLOCK"
         },
         {
-          "t_ms": 5600,
+          "t_ms": 10000,
           "path": "boss.hp",
-          "approx": 126
+          "approx": 127
         },
         {
-          "t_ms": 8000,
+          "t_ms": 10000,
+          "path": "scouting.dodges",
+          "equals": [
+            "L",
+            "R"
+          ]
+        },
+        {
+          "t_ms": 14800,
           "path": "log.resolved[2].outcome",
-          "equals": "DODGE"
-        },
-        {
-          "t_ms": 8000,
-          "path": "boss.hp",
-          "approx": 117
-        },
-        {
-          "t_ms": 10400,
-          "path": "log.resolved[3].outcome",
           "equals": "HIT"
         },
         {
-          "t_ms": 10400,
-          "path": "log.resolved[3].dmg",
+          "t_ms": 14800,
+          "path": "log.resolved[2].dmg",
           "approx": 25
         },
         {
-          "t_ms": 10400,
+          "t_ms": 14800,
           "path": "streamer.hp",
-          "approx": 65
+          "approx": 72
         },
         {
-          "t_ms": 12800,
-          "path": "log.resolved[4].outcome",
-          "equals": "DODGE"
-        },
-        {
-          "t_ms": 12800,
+          "t_ms": 14800,
           "path": "boss.hp",
-          "approx": 108
-        },
-        {
-          "t_ms": 12800,
-          "path": "streamer.hp",
-          "approx": 65
+          "approx": 127
         }
       ]
     },

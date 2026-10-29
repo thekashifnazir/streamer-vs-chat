@@ -1,3 +1,4 @@
+import {createSuperNotices} from '../../shared/src/super-notices';
 import {createBossImpactLedger} from '../../shared/src/boss-impact';
 import {chatCommandLegend} from '../../shared/src/chat-commands';
 import {tempoFor,type Difficulty} from '../../shared/src/tempo';
@@ -20,7 +21,8 @@ import { summarizeGame } from '../../shared/src/highlights';
 import {createDemoViewerMemory} from './viewer-memory';
 
 const impactLedger=createBossImpactLedger('browser');
-const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);return after;};
+const superNotices=createSuperNotices();
+const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);superNotices.observe(before,after,Date.now(),event.kind==='restart');if(event.kind==='vote')superNotices.denied(after,event.move,Date.now());return after;};
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const stage=el('stage');
 const host=el('game-hud');
@@ -98,7 +100,7 @@ function paint() {
   if(game&&coldOpenAt===null)viewerMemory?.observe(game);
   hud.setMemory(viewerMemory?.view()??null);
   document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef);
-  hud.setBossReceipts(impactLedger.snapshot());
+  hud.setBossReceipts(impactLedger.snapshot());hud.setSuperNotices(superNotices.snapshot());
   hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0,difficulty:difficulty.value as Difficulty}),!liveMode);
   hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   trackFight();trackLocalRound();
@@ -109,7 +111,7 @@ function paint() {
     el('restart').hidden=false;
     el('resume-input').hidden=!game.paused||showSessionSummary||(liveMode&&!hosted?.ready);
     crowdSize.disabled=!game.round.over;
-    el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':game.bossDef?`${game.bossDef.name} · Follow each move’s defence cue. K guard · A/D ${posture.value==='seated'?'tilt':'lean'}${noPunch.checked?'':' · J bonus'}`:`Straight attacks → K guard · HOOK LEFT → D ${posture.value==='seated'?'tilt':'lean'} · HOOK RIGHT → A ${posture.value==='seated'?'tilt':'lean'} · SUPER → either side${noPunch.checked?' · NO PUNCHES':''}`;
+    el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':game.bossDef?`${game.bossDef.name} · Follow each move’s defence cue. K guard · A/D ${posture.value==='seated'?'tilt':'lean'}${noPunch.checked?'':' · J bonus'}`:`Straight attacks → K guard · HOOK LEFT → D ${posture.value==='seated'?'tilt':'lean'} · HOOK RIGHT → A ${posture.value==='seated'?'tilt':'lean'} · SUPER → follow all three GUARD / LEAN steps${noPunch.checked?' · NO PUNCHES':''}`;
   }
 }
 function drawCrowd(at:number) {

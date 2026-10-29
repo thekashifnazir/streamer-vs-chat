@@ -1,3 +1,4 @@
+import {superSequencePresentation,renderSuperSteps,superNoticePresentation,type SuperNoticesView} from './super-ui';
 import type {BossImpactBatch} from '../../shared/src/boss-impact';
 import {FEEL} from '../../shared/src/feel';
 import {createBossFeedback,playBossImpactSounds,renderBossDamageNumbers,type BossImpact} from './boss-feedback';
@@ -79,12 +80,13 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <section class="status-card"><p class="eyebrow" data-id="phase">READY TO FIGHT</p><p data-id="status">GUARD STRAIGHTS.<br>LEAN FROM SWINGS.</p><small data-id="result"></small></section><section class="viewer-record" data-id="viewer-record" hidden><h2>YOUR RECORD <span>VS THIS CHAT</span></h2><div class="record-values"><p><b data-id="record-streams"></b><span>STREAMS</span></p><p><b data-id="record-kos"></b><span title="Bosses KO">BOSS KOs</span></p><p><b data-id="record-deaths"></b><span title="Times KO">TIMES KO</span></p></div></section><section class="memory-hall" data-id="memory-hall" hidden><h2>CHAT HALL OF FAME <span>ALL TIME</span></h2><ol data-id="memory-hall-list"></ol></section>
   <div class="blocked-stamp" data-id="blocked" hidden>BLOCKED!</div><footer><p class="simulated" data-id="simulated" hidden>● SIMULATED CHAT</p><p class="calm-badge" data-id="calm" hidden>CALM FX</p><p class="connection" data-id="connection" role="status">CONNECTING…</p><div class="hud-options"><button data-id="sound" type="button">SOUND OFF · M</button><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer></aside>
   <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b><b class="difficulty-tag" data-id="difficulty">HARD</b></span></div>
-  <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
+  <div class="super-ready-banner" data-id="super-ready" role="status" hidden>SUPER READY: chat type !s</div><div class="super-denied-banner" data-id="super-denied" role="status" hidden>!s needs 100% HYPE</div>
+  <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><div class="super-steps" data-id="super-steps" aria-label="SUPER defence sequence" hidden></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
   <div class="health-bar" data-id="boss-bar"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span data-id="super-command">→ !super/!s</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
   <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><section class="nemesis-card" data-id="nemesis" hidden><h2>YOUR NEMESIS IS VOTING</h2><p data-id="nemesis-name"></p><p data-id="nemesis-kos"></p></section><div class="vote-header"><strong data-id="voters">0</strong> VOTING <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
-  <div class="boss-damage-numbers" data-id="boss-damage" aria-live="polite"></div><canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section data-id="forge" hidden></section><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
+  <p class="hype-vote-legend">CHAT VOTES FILL HYPE<br>MORE VOTERS = FASTER</p><div class="boss-damage-numbers" data-id="boss-damage" aria-live="polite"></div><canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section data-id="forge" hidden></section><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
   const forgeView=createForgeView(el('forge'));let forge:ForgeSnapshot|null=null;let forgeVisible:boolean|undefined;
@@ -97,6 +99,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   const rows=commands.map(([move,command])=>{
     const row=document.createElement('div');row.className='vote-row';row.dataset.move=move;
     row.innerHTML=`<div class="vote-command"><span class="vote-name">${command}</span><small><span class="vote-count">0</span></small></div><div class="vote-track"><div class="vote-fill"></div></div><div class="vote-percent">0%</div>`;
+    if(move==='SUPER'){const lock=document.createElement('div');lock.className='super-lock';lock.innerHTML='<span>LOCKED</span><span data-super-hype></span>';row.append(lock);}
     el('votes').append(row);
     return {move,row,count:row.querySelector<HTMLElement>('.vote-count')!,fill:row.querySelector<HTMLElement>('.vote-fill')!,percent:row.querySelector<HTMLElement>('.vote-percent')!};
   });
@@ -129,6 +132,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   const muteKey=(event:KeyboardEvent)=>{if(event.code==='KeyM'&&!event.repeat&&!['INPUT','TEXTAREA','SELECT'].includes((event.target as HTMLElement)?.tagName)){void toggle();}};
   window.addEventListener('keydown',muteKey);
   let current:GameState|undefined;
+  let superNotices:SuperNoticesView|null=null;
   let currentSimulated=!!options.simulated;
   let modes:HudModes={seated:!!options.seated,noPunch:!!options.noPunch};
   const summaryView=createSummaryView(el('endcard'));
@@ -169,7 +173,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('voters').textContent=String(message.voters);el('simulated').hidden=!(message.simulated||memory?.simulated);el('simulated').textContent=memory?.simulated?'● SIMULATED':'● SIMULATED CHAT';
     for(const {move,row,count,fill,percent}of rows){const value=message.tally[move];const share=shares[move];const locked=move==='SUPER'&&!superReady;
       count.textContent=voteCountLabel(value);fill.style.width=`${share}%`;percent.textContent=locked?'LOCK':`${share}%`;
-      row.classList.toggle('locked',locked);row.classList.toggle('leader',highest>0&&weights[move]===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
+      row.classList.toggle('locked',locked);row.classList.toggle('super-locked',locked);if(move==='SUPER')row.querySelector('[data-super-hype]')!.textContent=`· HYPE ${Math.round(current?.hype??0)}%`;row.classList.toggle('leader',highest>0&&weights[move]===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
       row.setAttribute('aria-label',`${current?bossMove(current,move).label:names[move]} ${value} voters${locked?', locked':`, ${share} percent influence`}`);
       row.title=`${value} viewer vote${value===1?'':'s'} · ${share}% of attack draw influence`;
     }
@@ -182,7 +186,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     const cues=fx.observe(state,snapshotRealAt);
     const visual=fx.update(snapshotRealAt);
     el('calm').hidden=!visual.calm;stage.classList.toggle('calm',visual.calm);
-    for(const cue of cues)if(cue.kind==='hit'&&cue.move==='COMBO')once(`combo-sfx:${state.match.seed}:${cue.id}`,()=>sound.play('hit'));
+    for(const cue of cues)if(cue.kind==='hit'&&cue.move==='COMBO'||(cue.kind==='hit'||cue.kind==='chip')&&cue.move==='SUPER')once(`impact-sfx:${state.match.seed}:${cue.id}`,()=>sound.play('hit'));
     if(cues.some(cue=>cue.kind==='block'||cue.kind==='perfect')){lastStampUntil=visual.streamer.animationTime+500;el('blocked').hidden=false;el('blocked').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}
     const hp=(id:string,value:number,max:number)=>{el(id+'-hp').textContent=String(Math.max(0,Math.round(value/max*100)));el(id+'-bar').setAttribute('aria-label',`${id} HP ${Math.max(0,Math.round(value))} / ${max}`);el(id+'-bar').querySelector<HTMLElement>('span')!.style.width=`${Math.max(0,value/max*100)}%`;const trail=el(id+'-bar').querySelector<HTMLElement>('i')!;if(!previous||state.round.number!==previous.round.number||value>previous[id as 'streamer'|'boss'].hp){trail.style.transition='none';trail.style.width=`${Math.max(0,value/max*100)}%`;}};
     hp('streamer',state.streamer.hp,state.streamer.max_hp);hp('boss',state.boss.hp,state.boss.max_hp);
@@ -219,19 +223,22 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     if(raid.active){setText('raid-label',`PHASE 2 · RAID · ${raid.seconds}s`);el('raid-phase').title='Raider votes have 2× influence, capped at half the combined influence. Regular votes are needed; raiders alone have zero influence.';}
     setText('difficulty',difficultyName(state.difficulty).toUpperCase());
     el('beat').textContent=state.paused?'· PAUSED':`· NEXT IN ${nextBeatSeconds(state)}s`;
+    const sequence=superSequencePresentation(state,modes.seated);renderSuperSteps(el('super-steps'),sequence);
+    const notices=superNoticePresentation(state,superNotices,Date.now());el('super-ready').hidden=!notices.ready||notices.denied;el('super-denied').hidden=!notices.denied;
     const attack=state.activeAttack;
+    const activeDefence=sequence.visible&&attack?(attack as typeof attack&{super_steps?:import('../../shared/src/boss-def').BossDefence[]}).super_steps?.[sequence.current]??bossMove(state,attack.move).defence:attack?bossMove(state,attack.move).defence:'guard';
     const telegraph=!!attack&&!attack.vetoed&&(state.clock.paused_at??state.now)<attack.lands_at&&!state.round.over;
     const counter=state.counter.open&&!state.round.over;
-    el('telegraph').hidden=!(telegraph||counter);el('telegraph').classList.toggle('counter',counter&&!telegraph);
-    el('banner').textContent=telegraph?'HANDS UP!':'COUNTER HIT!';
+    el('telegraph').hidden=!(telegraph||sequence.visible||counter);el('telegraph').classList.toggle('super-sequence',sequence.visible);el('telegraph').classList.toggle('counter',counter&&!telegraph);
+    el('banner').textContent=sequence.visible?'SUPER!':telegraph?'HANDS UP!':'COUNTER HIT!';
     el('move').title=telegraph?moveName(attack!.move):'';
-    el('move').textContent=telegraph?moveName(attack!.move):modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=telegraph?bossDefenceCue(bossMove(state,attack!.move).defence,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
-    el('cue-icon').innerHTML=telegraph&&bossMove(state,attack!.move).defence==='guard'?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':telegraph?bossMove(state,attack!.move).defence==='lean_right'?'→':bossMove(state,attack!.move).defence==='lean_left'?'←':'↔':'';
+    el('move').textContent=sequence.visible?'SUPER':telegraph?moveName(attack!.move):modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=sequence.visible?sequence.current>=0?`STEP ${sequence.current+1} OF 3`:'SEQUENCE COMPLETE':telegraph?bossDefenceCue(activeDefence,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
+    el('cue-icon').innerHTML=(telegraph||sequence.visible)&&activeDefence==='guard'?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':(telegraph||sequence.visible)?activeDefence==='lean_right'?'→':activeDefence==='lean_left'?'←':'↔':'';
     const tellKey=telegraph?`${state.match.seed}:${attack!.round}:${attack!.beat}`:'';
     if(tellKey&&tellKey!==lastTelegraph){el('banner').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}lastTelegraph=tellKey;
     el('exploit-note').textContent=telegraph?exploitHabitNote(state):'';
-    el('left-arrow').hidden=!(telegraph&&['lean_left','lean_any'].includes(bossMove(state,attack!.move).defence));
-    el('right-arrow').hidden=!(telegraph&&['lean_right','lean_any'].includes(bossMove(state,attack!.move).defence));
+    el('left-arrow').hidden=!((telegraph||sequence.visible)&&['lean_left','lean_any'].includes(activeDefence));
+    el('right-arrow').hidden=!((telegraph||sequence.visible)&&['lean_right','lean_any'].includes(activeDefence));
     el('phase').textContent=state.paused?'PAUSED':state.round.over?'ROUND OVER':superReady?'SUPER READY':'DEFENCE FIRST';
     el('status').textContent=state.round.over?`${state.round.winner==='streamer'?'STREAMER':'CHAT'} WINS`:state.paused?'RESUME WHEN READY.':`GUARD STRAIGHTS.\n${modes.seated?'TILT':'LEAN'} FROM SWINGS.`;
     el('result').textContent=state.round.over?(state.match.winner?'MATCH COMPLETE':'NEXT ROUND WHEN READY'):'';
@@ -247,7 +254,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     if(last){once(`hit:${last.round}:${last.beat}`,()=>{
       if(last.outcome==='BLOCK'){sound.play('block');sound.play('blockedVoice',true);}
       else if(last.outcome==='PERFECT'){sound.play('perfect');sound.play('perfectVoice',true);}
-      else if(last.outcome==='DODGE')sound.play('dodge');else if(last.move!=='COMBO')sound.play('hit');
+      else if(last.outcome==='DODGE')sound.play('dodge');else if(last.move!=='COMBO'&&!last.super_steps)sound.play('hit');
       if(last.counter_dmg>0){sound.play('counter');sound.play('counterAccent');if(!scoutChanged)sound.play('counterVoice',true);}
 
     });}
@@ -279,10 +286,10 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     }
     el('read-it').hidden=frame.boss.animationTime>=readItUntil;el('read-it').style.opacity=String(Math.max(0,Math.min(1,(readItUntil-frame.boss.animationTime)/150)));
     el('blocked').hidden=frame.streamer.animationTime>=lastStampUntil;el('blocked').style.opacity=String(Math.max(0,Math.min(1,(lastStampUntil-frame.streamer.animationTime)/150)));
-    if(current){const key=`${clip}:${clipAt}`;if(key!==spriteAnchorKey){spriteAnchorKey=key;spriteAnchor=frame.boss.animationTime-Math.max(0,(current.clock.paused_at??current.now)-clipAt);}
+    if(current){const notices=superNoticePresentation(current,superNotices,Date.now());el('super-ready').hidden=!notices.ready||notices.denied;el('super-denied').hidden=!notices.denied;const key=`${clip}:${clipAt}`;if(key!==spriteAnchorKey){spriteAnchorKey=key;spriteAnchor=frame.boss.animationTime-Math.max(0,(current.clock.paused_at??current.now)-clipAt);}
       const age=Math.max(0,frame.boss.animationTime-spriteAnchor),transient=!['idle','victory','ko'].includes(clip)&&!clip.endsWith('_windup');sprite.draw(transient&&age>520?'idle':clip,transient&&age>520?current.round.elapsed_ms:age,bossHit.flash?.opacity??0);
       const attack=current.activeAttack;const viewNow=(current.clock.paused_at??current.now)+(current.paused?0:now-snapshotRealAt);el('banner').style.opacity=attack&&!attack.vetoed&&lastTelegraph?String(Math.min(1,Math.max(0,(attack.lands_at-viewNow)/120))):'1';
     }else sprite.draw('idle',now);frameId=requestAnimationFrame(animate);};
   frameId=requestAnimationFrame(animate);
-  return {render,renderTally,presentBossImpact(impact:BossImpact){bossFeedback.present(impact,performance.now());},setBossReceipts(batch:BossImpactBatch,prime=false){bossFeedback.setReceipts(batch,prime);},setModes,setMemory,setForge,setInputLocked(locked:boolean){el('input-lock').textContent=locked?'INPUTS LOCKED':'STREAMER';el('input-lock').classList.toggle('input-lock-active',locked);},setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
+  return {render,renderTally,setSuperNotices(value:SuperNoticesView){superNotices=value;},presentBossImpact(impact:BossImpact){bossFeedback.present(impact,performance.now());},setBossReceipts(batch:BossImpactBatch,prime=false){bossFeedback.setReceipts(batch,prime);},setModes,setMemory,setForge,setInputLocked(locked:boolean){el('input-lock').textContent=locked?'INPUTS LOCKED':'STREAMER';el('input-lock').classList.toggle('input-lock-active',locked);},setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
 }

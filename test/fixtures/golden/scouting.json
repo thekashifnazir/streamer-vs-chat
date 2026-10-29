@@ -171,7 +171,7 @@
     {
       "id": "scout-live-12th-dodge",
       "spec_ref": "§4 (habit = dodge leans on hooks and supers)",
-      "description": "Log starts at 10 L. Lean L held: DODGE a HOOK_R (n=11, still no card), then DODGE a SUPER (n=12, 12/12) -> card L at 5600.",
+      "description": "Ten previous left dodges plus a HOOK_R dodge give eleven. Seeded SUPER guard/lean-left/guard contributes the twelfth sample at its lean step (7000), even though its two guard steps fail.",
       "seed": 0,
       "initial_state": {
         "round.number": 2,
@@ -211,17 +211,17 @@
           "equals": null
         },
         {
-          "t_ms": 5599,
+          "t_ms": 6999,
           "path": "scouting.card",
           "equals": null
         },
         {
-          "t_ms": 5600,
+          "t_ms": 7000,
           "path": "scouting.card",
           "equals": "L"
         },
         {
-          "t_ms": 5600,
+          "t_ms": 7000,
           "path": "scouting.n",
           "equals": 12
         }
@@ -293,7 +293,7 @@
     {
       "id": "scout-exploit-move-left",
       "spec_ref": "§4 (a left-leaner's card lights !hookl)",
-      "description": "Card L: HOOK_R, JAB, COMBO and SUPER aren't the exploit; HOOK_L is.",
+      "description": "Card L: HOOK_R, JAB, COMBO and SUPER are not the exploit; HOOK_L is. The occupied SUPER boundary skips scripted slot four; HOOK_L draws at 14400.",
       "seed": 0,
       "initial_state": {
         "round.number": 2,
@@ -316,6 +316,7 @@
           "JAB",
           "COMBO",
           "SUPER",
+          "JAB",
           "HOOK_L"
         ]
       },

@@ -94,7 +94,7 @@ function messages(drain=false){
   const visible=game.summaryVisible||!!game.state.match.winner;
   const summary=visible?memorySession.publicSummary(game.summary()):undefined;
   const audit=telemetry?.snapshot(drain);
-  return [{...game.tally(),...(audit?{hardening:audit}:{})},{kind:'tick',state:projectState(game.state),bossImpacts:game.bossImpacts,simulated:mock,started:game.started,inputsStopped:captureInputs.stopped,modes:game.modes,transport,...(audit?{hardening:audit}:{})},
+  return [{...game.tally(),...(audit?{hardening:audit}:{})},{kind:'tick',state:projectState(game.state),bossImpacts:game.bossImpacts,superNotices:game.superNotices,simulated:mock,started:game.started,inputsStopped:captureInputs.stopped,modes:game.modes,transport,...(audit?{hardening:audit}:{})},
     {kind:'memory',memory:memorySession.view(summary)},
     {kind:'forge',forge:forge?.snapshot()},
     {kind:'highlights',...(summary?{summary}:{}),entries:entries(),visible}];

@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from 'vitest';
-const hud=vi.hoisted(()=>({setBossReceipts:vi.fn(),setInputLocked:vi.fn(),setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),setForge:vi.fn(),dispose:vi.fn()}));
+const hud=vi.hoisted(()=>({setBossReceipts:vi.fn(),setSuperNotices:vi.fn(),setInputLocked:vi.fn(),setConnection:vi.fn(),setModes:vi.fn(),render:vi.fn(),renderTally:vi.fn(),setEndcard:vi.fn(),setMemory:vi.fn(),setForge:vi.fn(),dispose:vi.fn()}));
 vi.mock('./hud',()=>({createRailsHud:()=>hud}));
 class Socket extends EventTarget {
  static instances:Socket[]=[];
@@ -54,4 +54,8 @@ it('primes boss receipts once on each connection and forwards subsequent batches
  tick(socket);expect(hud.setBossReceipts).toHaveBeenLastCalledWith(receipts,false);
  socket.close();await vi.advanceTimersByTimeAsync(1000);tick(Socket.instances[1]!);expect(hud.setBossReceipts).toHaveBeenLastCalledWith(receipts,true);
  window.dispatchEvent(new Event('beforeunload'));
+});
+
+it('forwards authoritative SUPER ready and denied notice timestamps',async()=>{
+ const window=await page(),socket=Socket.instances[0]!;const superNotices={readyAt:1000,deniedAt:null,round:1,beat:4};socket.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({kind:'tick',state:{},superNotices})}));expect(hud.setSuperNotices).toHaveBeenLastCalledWith(superNotices);window.dispatchEvent(new Event('beforeunload'));
 });
