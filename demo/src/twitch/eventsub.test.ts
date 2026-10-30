@@ -10,11 +10,11 @@ class Socket implements BrowserSocket{
  close(){this.closed=true;this.emit('close');}
  welcome(id='session',keepalive=10){this.message({metadata:{message_type:'session_welcome'},payload:{session:{id,keepalive_timeout_seconds:keepalive}}});}
 }
-function setup(){
+function setup(extra:Partial<Parameters<typeof createBrowserChat>[0]>={}){
  const sockets:Socket[]=[],vote=vi.fn(),chat=vi.fn(),control=vi.fn(),status=vi.fn(),viewers=vi.fn();
  const validate=vi.fn(async()=>({id:'me',login:'streamer',expiresIn:3600})),clear=vi.fn(),request=vi.fn(async(path:string,_init?:RequestInit)=>path.startsWith('/streams')?Response.json({data:[{viewer_count:17}]}):new Response(null,{status:202}));
  const auth={account:{id:'me',login:'streamer',expiresIn:3600},validate,request,clear} as unknown as BrowserAuth;
- const client=createBrowserChat({auth,onVote:vote,onChat:chat,onControl:control,onStatus:status,onViewers:viewers,socket:url=>{const value=new Socket(url);sockets.push(value);return value;}});
+ const client=createBrowserChat({...extra,auth,onVote:vote,onChat:chat,onControl:control,onStatus:status,onViewers:viewers,socket:url=>{const value=new Socket(url);sockets.push(value);return value;}});
  const notification=(id:string,text:string,user='viewer',channel='me',badges:unknown[]=[])=>({metadata:{message_type:'notification',message_id:id},payload:{subscription:{type:'channel.chat.message'},event:{broadcaster_user_id:channel,chatter_user_id:user,badges,message:{text}}}});
  return{client,sockets,vote,chat,control,status,viewers,validate,request,clear,notification};
 }
@@ -61,3 +61,5 @@ it('handles subscription401 without retrying an expired token',async()=>{
  const s=setup();s.request.mockImplementation(async path=>{if(path==='/eventsub/subscriptions')throw new TwitchAuthError();return Response.json({data:[]});});
  await s.client.start();s.sockets[0]!.welcome();await vi.advanceTimersByTimeAsync(0);expect(s.status).toHaveBeenLastCalledWith('login-required');expect(s.clear).toHaveBeenCalledOnce();expect(vi.getTimerCount()).toBe(0);
 });
+
+it('exposes transient role metadata for Forge and uses the current custom-boss parser',async()=>{const message=vi.fn(),parseVote=vi.fn(()=>null);const s=setup({onChatMessage:message,parseVote});await s.client.start();s.sockets[0]!.welcome();await vi.advanceTimersByTimeAsync(0);const packet=s.notification('forge-1','!forge Ice Dragon','mod','me',[{set_id:'moderator'}]);Object.assign(packet.payload.event,{chatter_user_name:'RecentViewer'});s.sockets[0]!.message(packet);expect(message).toHaveBeenCalledExactlyOnceWith({userId:'mod',displayName:'RecentViewer',text:'!forge Ice Dragon',isBroadcaster:false,isMod:true});expect(s.chat).toHaveBeenCalledExactlyOnceWith('mod');expect(parseVote).toHaveBeenCalledWith('!forge Ice Dragon','mod',0);expect(s.vote).not.toHaveBeenCalled();s.sockets[0]!.message(s.notification('forge-2','!veto','me'));expect(message).toHaveBeenLastCalledWith({userId:'me',displayName:'me',text:'!veto',isBroadcaster:true,isMod:false});expect(s.control).toHaveBeenCalledWith({kind:'control',action:'veto',by:'me'});s.client.stop();});

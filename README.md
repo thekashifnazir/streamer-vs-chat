@@ -59,7 +59,7 @@ Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simul
 3. Tick **Green background**, then add an OBS **Chroma Key** filter and crop the capture to the game.
 4. Keep your webcam as a normal OBS camera source below the game. After connecting, setup collapses to a one-line bar; **Expand** brings the controls back.
 
-`/play` can post structured round results through the hosted bot and make confirmed clips when their hosted flags are enabled. Boss Forge and live viewer memory still use the [local-server path](docs/DEVELOPMENT.md). Five minutes is the setup guide, not a measured completion time.
+`/play` can post structured round results through the hosted bot and make confirmed clips when their hosted flags are enabled. Hosted Boss Forge is also available when its flag is enabled; live viewer memory still uses the [local-server path](docs/DEVELOPMENT.md). Five minutes is the setup guide, not a measured completion time.
 
 ## Why it's different
 
@@ -99,7 +99,7 @@ The Worker serves `/api` and keeps a separate Durable Object result queue per au
 |---|---|
 | Bot round results and HYPE notices | Implemented, flag off pending deployment/live check |
 | Clips | Implemented, flag off pending deployment/live check |
-| Boss Forge | Local server and prebaked demo; hosted stage pending |
+| Boss Forge | Implemented, flag off pending deployment/live check |
 | Viewer memory | Local server and simulated demo; hosted opt-in stage pending |
 
 ## Results
@@ -150,7 +150,7 @@ GitHub Actions runs all four plus a two-minute local soak on every push.
 
 ## Boss Forge
 
-In the no-login demo, open **Boss Forge**, pick one of four prebaked bosses—Neon Kraken, Tin Tactician, Velvet Sentinel or **Nak Muay** (Muay Thai)—or edit its JSON, then **Validate & balance**. It runs locally with no key. On a live channel, chat sends `!forge <idea>`; the server asks OpenAI (`gpt-6-luna`, one repair turn) with `OPENAI_API_KEY` from `.env`, then validation, moderation and the balance gate decide whether the boss can fight. Ideas never reach the announcer's voice. Details: [docs/boss-forge-review.md](docs/boss-forge-review.md).
+In the no-login demo, open **Boss Forge**, pick one of four prebaked bosses—Neon Kraken, Tin Tactician, Velvet Sentinel or **Nak Muay** (Muay Thai)—or edit its JSON, then **Validate & balance**. It runs locally with no key. On a live channel, chat sends `!forge <idea>`; the server asks OpenAI (`gpt-6-luna`, one repair turn) with `OPENAI_API_KEY` from `.env`, then validation, moderation and the balance gate decide whether the boss can fight. With hosted Forge enabled, `/play` runs the same service, uses the Worker's capped OpenAI proxy, and runs the gate/tuner in a browser Web Worker. Chat proposes ideas and endorses with `!forge +1`; a moderator or broadcaster sends plain `!forge` between rounds to generate, or `!veto` to cancel. The Worker allows 5 generations and 200 moderation calls per channel per UTC day, plus 100 generations globally; one verified repair belongs to its original generation. When the budget is reached, the Forge card says ‘daily cap reached’. Ideas never reach the announcer's voice. Details: [docs/boss-forge-review.md](docs/boss-forge-review.md).
 
 ## How Codex built this
 
@@ -178,9 +178,9 @@ What the live tests and reviews caught, each fixed in the thread:
 
 - **Punches are optional bonus damage.** Punch detection is less reliable on unseen bodies than guard and lean; no-punch mode keeps automatic defence counters.
 - **Camera needs Chrome**, not the OBS Browser Source, and decent light; lost tracking releases held pose inputs.
-- **Hosted features are flagged off by default.** `/play` reads chat; its optional Worker bot posts formatted results when enabled. Viewer memory and Boss Forge still need the local server; hosted clips are optional behind their own flag.
+- **Hosted features are flagged off by default.** `/play` reads chat; its optional Worker bot posts formatted results when enabled. Live viewer memory still needs the local server; hosted clips and Boss Forge are optional behind their own flags.
 - **Clips need a live stream at least 60 seconds old**; otherwise the session card shows stats (or a local replay in local server mode).
-- **Boss Forge's real-model path needs your own OpenAI key**; the tests use injected fake clients.
+- **Boss Forge needs a configured OpenAI key on the local server or hosted Worker**; it never asks a viewer for a key. Tests use injected fake clients.
 
 ## More
 

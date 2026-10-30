@@ -9,6 +9,7 @@ import '../../overlay/src/style.css';
 import './style.css';
 import { createRailsHud } from '../../overlay/src/hud';
 import { createGame, step as engineStep, type GameState } from '../../shared/src/engine';
+import {parseChatVote} from '@svc/shared';
 import type { PoseState, StreamerInput } from '@svc/shared';
 import { createKeyboard } from '../../capture/src/keyboard';
 import { PoseCamera } from '../../capture/src/camera';
@@ -101,6 +102,7 @@ function updateModes() {
 function resize(){host.style.transform=`scale(${stage.clientWidth/1920})`;}
 new ResizeObserver(resize).observe(stage);resize();
 function paint() {
+  hosted?.observePhase();
   forgePanel?.update();
   hud.setForge(forgeSnapshot,!game||game.round.over);
   if(game&&coldOpenAt===null)viewerMemory?.observe(game);
@@ -131,11 +133,13 @@ function drawCrowd(at:number) {
   for(const vote of votes)playtest.vote(vote.user,game.votes[vote.user]===vote.move);
 }
 function startFight() {
+  if(hosted?.forgeBusy){el('tutorial-status').textContent='Boss Forge is generating between rounds. Wait or type !veto.';return;}
   if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Connect Twitch and wait for LIVE before starting.';return;}
   if(!clearSpace.checked){el('tutorial-status').textContent='Confirm your clear space below before starting.';return;}
   hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
   const at=performance.now();
-  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,difficulty:difficulty.value as Difficulty,...(previewConfig?{scoutingConfig:previewConfig}:{}),...(!liveMode&&pendingBoss?{bossDef:pendingBoss}:{})});
+  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,difficulty:difficulty.value as Difficulty,...(previewConfig?{scoutingConfig:previewConfig}:{}),...(pendingBoss?{bossDef:pendingBoss}:{})});
+  hosted?.observePhase(true);
   // Live chat and the offline crowd both feed the shared reducer; no server import.
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+100,liveTokenLoaded:hosted?.hasToken??false});
   trackLocalRound();crowdBeat='';drawCrowd(at);
@@ -245,9 +249,10 @@ el('resume-input').addEventListener('click',()=>{
 });
 el('restart').addEventListener('click',startFight);
 el('next-round').addEventListener('click',()=>{
-  if(!game||showSessionSummary||(liveMode&&!hosted?.ready))return;
+  if(!game||showSessionSummary||hosted?.forgeBusy||(liveMode&&!hosted?.ready))return;
   const at=performance.now();
-  game=step(game,{kind:'next-round',...(!liveMode?{bossDef:pendingBoss}:{})},at);
+  game=step(game,{kind:'next-round',...(!liveMode||pendingBoss?{bossDef:pendingBoss}:{})},at);
+  if(liveMode)pendingBoss=null;
   game=step(game,{kind:'viewers',count:liveMode?liveViewers:Number(crowdSize.value)},at);
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+game.round.number,liveTokenLoaded:hosted?.hasToken??false});
   trackLocalRound();crowdBeat='';drawCrowd(at);paint();
@@ -287,7 +292,7 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=()=>{if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}};
-  hosted=mountHostedPlay({onHighlightsChange:()=>paint(),onConnected:()=>streamLayout.collapse(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  hosted=mountHostedPlay({betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>streamLayout.collapse(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;

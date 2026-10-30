@@ -39,7 +39,7 @@ Clone and `npm ci` need network access to download the repository and packages. 
 
 - Punches are optional bonus damage; no-punch mode keeps automatic defence counters.
 - The webcam needs Chrome and reasonable light.
-- `/play` reads chat; optional Worker bot results require the deployed bot flag and a `channel:bot` grant. Optional hosted clips require the deployed clips flag, a `clips:edit` grant and a live stream at least 60 seconds old. Only confirmed clips appear on the session card. Persistent live viewer memory and live AI Boss Forge still need the local server.
+- `/play` reads chat; optional Worker bot results require the deployed bot flag and a `channel:bot` grant. Optional hosted clips require the deployed clips flag, a `clips:edit` grant and a live stream at least 60 seconds old. Only confirmed clips appear on the session card. When hosted Forge is enabled, chat can propose with `!forge <idea>` and endorse with `!forge +1`; a broadcaster/mod generates with plain `!forge` between rounds. Its gate runs in the browser, and daily caps apply. Persistent live viewer memory still needs the local server.
 - The loaded no-login demo runs without network requests; reloading offline is not supported because there is no service worker. For a fully local copy, run `npm run demo`.
 - Esc / **STOP** freezes play; **Resume** continues after clear-space confirmation. Sound starts off.
 - The local `/capture` page starts **INPUTS LOCKED**: tick **My space is clear** and press **Resume inputs** before **START MATCH**. Webcam input additionally requires valid calibration and a fresh framed pose.

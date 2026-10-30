@@ -7,8 +7,9 @@ const round={kind:'round',number:1,winner:'streamer',streamerHp:87.5,bossHp:0,bo
 const response=(userId='123',clientId='client',expires=3600)=>Response.json({client_id:clientId,user_id:userId,expires_in:expires,scopes:['user:read:chat','channel:bot']});
 function setup(){
  let now=0;const fetcher=vi.fn(async()=>response()),enqueue=vi.fn(async()=>{}),enqueueClip=vi.fn(async(_channel:string,_id:string)=>true),status=vi.fn(async()=>({dropReason:'forbidden',pending:2})),idFromName=vi.fn((name:string)=>name),assets=vi.fn(async()=>new Response('asset'));
- const env:RoutingEnv<string>={TWITCH_CLIENT_ID:'client',HOSTED_BOT:'on',HOSTED_CLIPS:'off',HOSTED_FORGE:'off',HOSTED_MEMORY:'off',ASSETS:{fetch:assets},CHANNEL:{idFromName,get:()=>({enqueue,enqueueClip,status})}};
- return {env,fetcher,enqueue,enqueueClip,status,idFromName,assets,route:createWorkerRouter({fetch:fetcher,now:()=>now}),setTime:(value:number)=>{now=value;}};
+ const forgeModerate=vi.fn(async(_channel:string,_input:string[])=>({ok:true as const,value:{results:[{flagged:false}]}}));const forgeRespond=vi.fn(async(_channel:string,_body:unknown):Promise<import('./forge-service').ForgeReply<import('../../shared/src/forge-client').ForgeResponse>>=>({ok:true,value:{output_text:'{}'}}));
+ const env:RoutingEnv<string>={TWITCH_CLIENT_ID:'client',HOSTED_BOT:'on',HOSTED_CLIPS:'off',HOSTED_FORGE:'off',HOSTED_MEMORY:'off',ASSETS:{fetch:assets},CHANNEL:{idFromName,get:()=>({enqueue,enqueueClip,status,forgeModerate,forgeRespond})}};
+ return {env,fetcher,enqueue,enqueueClip,forgeModerate,forgeRespond,status,idFromName,assets,route:createWorkerRouter({fetch:fetcher,now:()=>now}),setTime:(value:number)=>{now=value;}};
 }
 const post=(body:unknown,authorization='Bearer private-test-token')=>new Request('https://demo.test/api/results',{method:'POST',headers:{Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(body)});
 describe('structured hosted results',()=>{
@@ -67,4 +68,22 @@ it('bounds token-validation requests and sanitizes an abort',async()=>{
  });
  const validate=createUserValidator({clientId:'client',fetch:fetcher,now:()=>0});
  await expect(validate('Bearer private')).rejects.toEqual(new ApiAuthError(503));
+});
+
+const forgePost=(operation:string,body:unknown,authorization='Bearer owner')=>new Request(`https://demo.test/api/forge/${operation}`,{method:'POST',headers:{Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(body)});
+it('Forge is independent of bot flags and routes only a validated identity',async()=>{
+ const s=setup();s.env.HOSTED_BOT='off';s.env.HOSTED_FORGE='on';
+ expect((await s.route(forgePost('respond',{idea:'fiction'}),s.env)).status).toBe(200);expect(s.forgeRespond).toHaveBeenCalledWith('123',{idea:'fiction'});expect(s.idFromName).toHaveBeenCalledWith('123');
+ expect((await s.route(forgePost('moderate',{input:['fiction']}),s.env)).status).toBe(200);expect(s.forgeModerate).toHaveBeenCalledWith('123',['fiction']);
+ expect((await s.route(forgePost('respond',{idea:'fiction',broadcaster_id:'999'}),s.env)).status).toBe(400);
+ expect((await s.route(forgePost('respond',{idea:'fiction'},''),s.env)).status).toBe(401);
+});
+it('Forge flags and daily caps return safe statuses without exposing upstream text',async()=>{
+ const s=setup();expect((await s.route(forgePost('respond',{idea:'fiction'}),s.env)).status).toBe(503);expect(s.forgeRespond).not.toHaveBeenCalled();s.env.HOSTED_FORGE='on';
+ for(const [reason,status]of [['daily-cap',429],['invalid-repair',400],['generation-busy',409],['unavailable',503]] as const){s.forgeRespond.mockResolvedValueOnce({ok:false,reason});const response=await s.route(forgePost('respond',{idea:'fiction'}),s.env);expect(response.status).toBe(status);expect(await response.json()).toEqual({reason});}
+});
+it('Forge accepts maximum escaped bounded bodies while refusing model/prompt/schema overrides',async()=>{
+ const s=setup();s.env.HOSTED_FORGE='on';const body={idea:'fiction',repair:{previous:'\u0000'.repeat(32768),errors:Array(20).fill('\u0000'.repeat(200))}};
+ expect((await s.route(forgePost('respond',body),s.env)).status).toBe(200);expect(s.forgeRespond).toHaveBeenCalledWith('123',body);
+ for(const body of [{idea:'fiction',model:'other'},{idea:'fiction',prompt:'override'},{idea:'fiction',schema:{}},{idea:'fiction',repair:{previous:'x',errors:['x'],system:'override'}}])expect((await s.route(forgePost('respond',body),s.env)).status).toBe(400);
 });

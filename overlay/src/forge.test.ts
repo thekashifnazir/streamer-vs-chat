@@ -1,7 +1,8 @@
-import {expect,it} from 'vitest';
+import {expect,it,vi} from 'vitest';
+import {JSDOM} from 'jsdom';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import {DEFAULT_BOSS} from '../../shared/src/boss-def';
-import {forgePresentation} from './forge';
+import {forgePresentation,createForgeView} from './forge';
 import {bossDefenceCue} from './hud';
 const gate={pass:true,viewers:[0,3,50,500],table:{casual:[51.25,52,53,54],nopunch:[48,49,50,51]},rounds:4000,seed:2026};
 const snapshot=():ForgeSnapshot=>({betweenRounds:true,status:'accepted',idea:'<img src=x>',ideas:[],boss:DEFAULT_BOSS,errors:[],before:gate,after:gate,factor:.53,ai:{model:'gpt-6-luna',latencyMs:1234,inputTokens:20,outputTokens:30,costUsd:null,repair:false}});
@@ -14,4 +15,12 @@ it('shows rejection and unknown measurements honestly',()=>{
 });
 it('uses configured defence rather than legacy slot semantics for custom tells',()=>{
  expect(bossDefenceCue('guard')).toBe('GUARD');expect(bossDefenceCue('lean_left')).toBe('← LEAN');expect(bossDefenceCue('lean_right',true)).toBe('TILT →');expect(bossDefenceCue('lean_any',true)).toBe('TILT ANY WAY');
+});
+
+it('shows a daily-cap error on the actual Forge card even before any idea was admitted',()=>{
+ const dom=new JSDOM('<section id="forge"></section>');vi.stubGlobal('document',dom.window.document);
+ try{const host=document.getElementById('forge')!,view=createForgeView(host),raw={...snapshot(),status:'idle' as const,boss:null,idea:null,ideas:[],errors:['daily cap reached'],before:null,after:null,ai:null};
+ view.render(raw,true);expect(host.hidden).toBe(false);expect(host.textContent).toContain('daily cap reached');
+ view.render({...raw,errors:[]},true);expect(host.hidden).toBe(true);
+ }finally{vi.unstubAllGlobals();dom.window.close();}
 });

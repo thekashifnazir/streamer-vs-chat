@@ -2,7 +2,8 @@ import {parseChatVote,type ChatVote,type Control} from '../../../shared/src/inde
 import {TwitchAuthError,type BrowserAuth} from './auth';
 export type ChatConnectionStatus='connecting'|'connected'|'reconnecting'|'login-required'|'disconnected';
 export type BrowserSocket={addEventListener:(type:string,callback:(event:{data?:unknown})=>void)=>void;close:()=>void};
-export type BrowserChatOptions={auth:BrowserAuth;onChat?:(userId:string)=>void;onVote?:(vote:ChatVote)=>void;onControl?:(control:Control)=>void;onStatus?:(status:ChatConnectionStatus)=>void;onViewers?:(count:number)=>void;socket?:(url:string)=>BrowserSocket;now?:()=>number;setTimeout?:(callback:()=>void,ms:number)=>ReturnType<typeof setTimeout>;clearTimeout?:(timer:ReturnType<typeof setTimeout>)=>void};
+export type HostedChatMessage={userId:string;displayName:string;text:string;isBroadcaster:boolean;isMod:boolean};
+export type BrowserChatOptions={auth:BrowserAuth;onChat?:(userId:string)=>void;onChatMessage?:(message:HostedChatMessage)=>void;onVote?:(vote:ChatVote)=>void;onControl?:(control:Control)=>void;onStatus?:(status:ChatConnectionStatus)=>void;onViewers?:(count:number)=>void;parseVote?:(text:string,user:string,at:number)=>ChatVote|null;socket?:(url:string)=>BrowserSocket;now?:()=>number;setTimeout?:(callback:()=>void,ms:number)=>ReturnType<typeof setTimeout>;clearTimeout?:(timer:ReturnType<typeof setTimeout>)=>void};
 const SOCKET_URL='wss://eventsub.wss.twitch.tv/ws';
 type Connection={socket:BrowserSocket;welcomed:boolean;retired:boolean;watch?:ReturnType<typeof setTimeout>;handoff:boolean};
 /** Read-only installed-client transport. Never sends chat or optional monetization events. */
@@ -64,9 +65,10 @@ export function createBrowserChat(options:BrowserChatOptions){
    const user=chat.chatter_user_id,text=chat.message.text;
    options.onChat?.(user);
    const words=text.trim().toLowerCase(),isBroadcaster=user===me,isMod=Array.isArray(chat.badges)&&chat.badges.some((badge:any)=>badge?.set_id==='moderator');
+   options.onChatMessage?.({userId:user,displayName:typeof chat.chatter_user_name==='string'?chat.chatter_user_name:user,text,isBroadcaster,isMod});
    const command=words.split(/\s+/,1)[0],action=words==='stop'&&isBroadcaster?'stop':(isBroadcaster||isMod)?command==='!pause'?'pause':command==='!resume'?'resume':command==='!veto'?'veto':null:null;
    if(action){options.onControl?.({kind:'control',action,by:user});return;}
-   const vote=parseChatVote(text,user,now(),false);if(vote)options.onVote?.(vote);
+   const vote=options.parseVote?options.parseVote(text,user,now()):parseChatVote(text,user,now(),false);if(vote)options.onVote?.(vote);
   });
   const lost=()=>{if(running&&generation===epoch&&!connection.retired)fail(new Error('Twitch connection lost'));};
   connection.socket.addEventListener('close',lost);connection.socket.addEventListener('error',lost);
