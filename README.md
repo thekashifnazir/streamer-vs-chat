@@ -21,7 +21,7 @@
   <a href="#how-it-works"><img src="https://img.shields.io/badge/Twitch-EventSub%20%C2%B7%20Helix%20%C2%B7%20Clips-9146FF?style=for-the-badge&logo=twitch&logoColor=white" alt="Twitch EventSub, Helix and Clips"></a>
   <a href="#how-it-works"><img src="https://img.shields.io/badge/MediaPipe-Pose-0097A7?style=for-the-badge" alt="MediaPipe Pose"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/Node-22%20%C2%B7%20TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Node 22 and TypeScript"></a>
-  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-649%20offline-5C5850?style=for-the-badge" alt="649 offline tests"></a>
+  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-651%20offline-5C5850?style=for-the-badge" alt="651 offline tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-5C5850?style=for-the-badge" alt="Licence: MIT"></a>
 </p>
 
@@ -37,7 +37,7 @@ Most chat games ask chat to spam and the streamer to watch. Here chat runs the b
 | Hard casual / no-punch win rates, four ordinary/coordinated R1/R2 matrices · **INFERRED** player models | **54.7–70.0% / 39.7–57.4%** |
 | Real live Twitch chat to server · **MEASURED** on Kash's Mac | **p95 291 ms** ([measurement](docs/prompts/day0-kickoff.txt)) |
 | Simulated load, 1,000 chatters: ingest to HUD · **MEASURED** | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
-| Offline tests (unit, golden vectors, recorded pose clips, transports) | **649**, no Twitch or external network |
+| Offline tests (unit, golden vectors, recorded pose clips, transports) | **651**, no Twitch or external network |
 
 ## How to play
 
@@ -152,7 +152,7 @@ Evidence snapshot: **29 October 2026, 23:43 UTC**, before this 13h change. Count
 | Main Codex thread (submit this ID) | `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` |
 | Root turns started / completed | **52 / 51**, including the active 13h turn; **29** completed turns issued tools, while **22** completed without tools (including usage-limit retries) |
 | Commits on `main` through `0be805d` | **38** |
-| Tests over the build | 19 on day 1 → **649** passing in [13h verification](docs/queue13h-review.md); **642** at the `0be805d` snapshot |
+| Tests over the build | 19 on day 1 → **651** passing in [13h verification](docs/queue13h-review.md); **642** at the `0be805d` snapshot |
 | Scratch resume probe, temporary directory | `01a17fb6-76f6-78f2-9c20-e7926e5aba23` · `/private/tmp/cx-resume-test`; no entry code |
 | Scratch resume probe, Mac directory | `01a17fb7-0a50-70b1-af8e-edcee261d14d` · `/Users/kash/cx-resume-test`; ONE/TWO/THREE replies tested resume, no entry code |
 

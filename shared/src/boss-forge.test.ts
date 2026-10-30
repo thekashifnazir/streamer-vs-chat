@@ -74,7 +74,7 @@ it('compiled focus/finisher/SUPER arithmetic matches production HP and winner fo
   state=step(state,{kind:'advance'},75000);const fast=evaluateForgePlan(def,plan,difficulty);
   expect(fast.hp,`${difficulty} ${def.name} p${player} s${sample}`).toBeCloseTo(state.streamer.hp,8);expect(fast.bossHp,`${difficulty} ${def.name} p${player} s${sample}`).toBeCloseTo(state.boss.hp,8);expect(fast.winner).toBe(state.round.winner);
  }
-},30000);
+},120000);
 it('scales Forge telegraphs and hit gaps through difficulty timing',()=>{
  const def=fixture();def.moves[0]={...def.moves[0]!,telegraph_ms:1000,hits:2};
  const state=step(createGame({bossDef:def,difficulty:'medium',moves:['JAB']}),{kind:'advance'},3000);

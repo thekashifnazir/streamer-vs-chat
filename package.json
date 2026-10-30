@@ -24,8 +24,10 @@
     "test:recovery": "tsx scripts/test-recovery.ts --mock --hardening"
   },
   "devDependencies": {
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.5.0",
+    "jsdom": "^26.1.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "vite": "^7.1.0",

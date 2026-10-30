@@ -58,3 +58,27 @@ Fresh empty clone and npm cache at `/private/tmp/queue13h-fresh-50ocnq6m`, Node 
 The full sim stdout is **byte-for-byte identical** to the final pre-13h output from 0be805d. Both SHA-256 values: `b1fac984b5bad9b5ceea6c5fb1bd9680fbff80d87a56a0ef88708891b3d64527`. All four production matrices, both scouting-coverage gates, the difficulty matrix and all five Forge gates remain identical. `scripts/sim.ts` is unchanged. All eight golden JSON files (59 vectors) are byte-identical to 0be805d; no golden changed.
 
 The independent final review cleared preview isolation, unchanged defaults, compact controls, initialized Collapse/accessibility state, hook help and evidence prose. The full SCOUT PREVIEW · SIMULATED toolbar label resolves the seated truncation finding. Current README counts show 649, while the historical 642/38-commit/root-turn snapshot remains explicitly tied to 0be805d and 29 October 23:43 UTC. No deployment, real Twitch traffic or physical webcam test was performed.
+
+## 13h follow-up — compact rails, 30 October 2026
+
+Claude's rendered fresh-build check exposed a gap in the earlier arithmetic layout test: the page-main selectors also matched nested `main.rails-hud`. That hid the rails and overwrote the HUD height/flex layout. Both compact selectors now use `.stream-compact>main`, limiting them to the body's direct page main. All viewport-budget dimensions and game rules remain unchanged.
+
+Added a jsdom regression using both real demo HTML pages, the actual static HUD template, and the production overlay/demo styles. It checks both rails and every ancestor for computed display, standing/seated modes and expand/collapse cycles, positive declared rail width and stretched CSS height, plus the HUD's unchanged 1920×1080 declaration. jsdom does not render geometry; the test does not pretend it has real bounding boxes. Existing 1080p/720p frame-fit tests remain. Before the fix both DOM cases failed with the streamer rail computed to `display:none`; after it both pass.
+
+Only the compiled Forge parity test's explicit timeout changes from 30,000 to 120,000 ms, per the measured loaded-Mac report. Its cases and assertions are byte-for-byte unchanged. jsdom and its types are dev-only; independent review caught jsdom 30's incompatible Node floor, so the test uses jsdom 26 (Node >=18) and compatible types, retaining this project's Node >=22.12 support. No production dependency, reducer, timing, damage, sim model or golden changed. The original default npm cache was not writable; installation used a temporary task-specific npm cache without modifying the user's cache ownership.
+
+Independent review cleared selector scoping and the regression's real nesting/ancestor checks, contingent on the compatible dependency correction. Final full checks and matching sim hash follow below. No deployment or live Twitch traffic.
+
+### Follow-up final checks — PASS
+
+Fresh clone and empty npm cache: `/private/tmp/queue13h-rails-fresh-9e41rax9`, Node 22.23.4. The exact candidate was copied onto 1ef5156 before npm ci; final non-documentation files match that tested clone byte-for-byte.
+
+| Check | Result | Wall seconds |
+|---|---|---:|
+| npm ci | PASS | 6.88 |
+| npm test — 651/651, 91 files | PASS | 35.50 |
+| npx tsc --noEmit | PASS | 3.31 |
+| npm run build:demo | PASS | 2.90 |
+| npm run sim — all gates | PASS | 808.29 |
+
+Full sim stdout is byte-identical to the 0be805d baseline: SHA-256 `b1fac984b5bad9b5ceea6c5fb1bd9680fbff80d87a56a0ef88708891b3d64527`. All eight golden JSON files remain byte-identical (59 vectors). An additional byte comparison confirms the Forge test file differs only in its explicit 30,000 → 120,000 ms timeout; every case and assertion is unchanged. Independent review cleared the fix, DOM regression, unchanged fit test and Node-compatible test dependency. No deployment.
