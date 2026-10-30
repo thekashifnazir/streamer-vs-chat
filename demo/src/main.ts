@@ -1,3 +1,5 @@
+import {mountFightSetup} from './setup-ui';
+import {createCalibrationProfiles} from '../../capture/src/calibration-profile';
 import {scoutPreviewConfig,SCOUT_PREVIEW_BADGE} from './scout-preview';
 import {createSuperNotices} from '../../shared/src/super-notices';
 import {createBossImpactLedger} from '../../shared/src/boss-impact';
@@ -51,6 +53,7 @@ let crowd:ReturnType<typeof createSimulationSource>|null=null;
 let crowdBeat='';
 let cameraRunning=false;
 let lastFrameAt=-Infinity;
+let poseFramed=false;
 let lastPose:PoseState={kind:'pose',guard:false,lean:null,source:'pose',at:0};
 let seed=20261027;
 let hosted:ReturnType<typeof import('./play').mountHostedPlay>|null=null;
@@ -93,8 +96,7 @@ function updateModes() {
   el('guide-lean').textContent=seated?'tilt':'lean';
   el('tutorial-defence').textContent=seated?'Tilt':'Lean';
   el('tutorial-lean-label').textContent=seated?'Tilt left':'Lean left';
-  el<HTMLInputElement>('start-no-punch').checked=noPunch.checked;
-  for(const choice of Array.from(document.querySelectorAll<HTMLInputElement>('[name="judge-posture"]')))choice.checked=choice.value===posture.value;
+  setup.sync();setup.commands(game?game.bossDef:pendingBoss);
   updateTutorial();
 }
 
@@ -105,6 +107,7 @@ function paint() {
   hosted?.observePhase();
   forgePanel?.update();
   hud.setForge(forgeSnapshot,!game||game.round.over);
+  setup.commands(game?game.bossDef:pendingBoss);
   if(game&&coldOpenAt===null)viewerMemory?.observe(game);
   hud.setMemory(hosted?.memoryView()??viewerMemory?.view()??null);
   document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef)+' · FINISHER READY: hold K (guard) for 1 s; no punches required.';
@@ -136,6 +139,7 @@ function startFight() {
   if(hosted?.forgeBusy){el('tutorial-status').textContent='Boss Forge is generating between rounds. Wait or type !veto.';return;}
   if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Connect Twitch and wait for LIVE before starting.';return;}
   if(!clearSpace.checked){el('tutorial-status').textContent='Confirm your clear space below before starting.';return;}
+  if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before starting.';setup.open();return;}
   hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
   const at=performance.now();
   game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,difficulty:difficulty.value as Difficulty,...(previewConfig?{scoutingConfig:previewConfig}:{}),...(pendingBoss?{bossDef:pendingBoss}:{})});
@@ -151,6 +155,7 @@ function startFight() {
   paint();
 }
 function input(event:StreamerInput) {
+  if(event.kind==='control'&&event.action==='resume'&&source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before resuming.';return;}
   if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||coldOpenAt!==null||(liveMode&&!hosted?.ready)))return;
   const at=performance.now();
   if(event.kind!=='control'&&!clearSpace.checked) {
@@ -158,6 +163,7 @@ function input(event:StreamerInput) {
     return;
   }
   if(!game) {
+    if(source.value==='pose')return;
     if(tutorial.input(event))startFight();
     updateTutorial();
     return;
@@ -175,11 +181,16 @@ const keyboard=createKeyboard({emit:input,label:label=>{
   avatar.classList.toggle('guard',label.guard);avatar.classList.toggle('lean-L',label.lean==='L');avatar.classList.toggle('lean-R',label.lean==='R');
 }});
 keyboard.setEnabled(true);
+const profiles=createCalibrationProfiles(()=>window.localStorage);
+const setup=mountFightSetup(document,{onStart:()=>{if(game){startFight();return;}el('tutorial').hidden=false;updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
 const calibration=createCalibration({onChange(snapshot){
   el('calibration-status').textContent=snapshot.message;
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
-  el<HTMLButtonElement>('play-webcam').disabled=!snapshot.ready;
+  setup.calibration(snapshot);
 }});
+function restoreCalibration(){const mode=posture.value==='seated'?'seated':'standing',saved=profiles.load(mode);if(saved&&calibration.restore(saved,mode)){classifier.setCalibration(saved);setup.restored(true);}}
+setup.calibration(calibration.snapshot);
+restoreCalibration();
 const camera=new PoseCamera(video,sample=>{
   lastFrameAt=performance.now();
   const before=calibration.snapshot;
@@ -188,7 +199,8 @@ const camera=new PoseCamera(video,sample=>{
   const result=classifier.update(sample.landmarks,sample.at);
   const framed=[0,11,12,15,16].every(index=>{const p=sample.landmarks[index];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});
   const seatedTooClose=posture.value==='seated'&&result.metrics&&result.metrics.shoulderWidth>.20;
-  const ready=calibrated.ready&&framed&&!seatedTooClose&&clearSpace.checked;
+  poseFramed=framed&&!seatedTooClose;setup.frame(sample.landmarks,poseFramed);
+  const ready=calibrated.ready&&poseFramed&&clearSpace.checked;
   lastPose=ready?result.state:{kind:'pose',guard:false,lean:null,source:'pose',at:sample.at};
   el('camera-status').textContent=!framed?'Keep head, shoulders and both wrists in frame.':seatedTooClose?'Move further back; seated shoulders must span ≤20% of the frame.':`Camera local · ${sample.fps.toFixed(0)} FPS · ${sample.inferenceMs.toFixed(0)} ms inference`;
   if(source.value==='pose') {
@@ -196,7 +208,7 @@ const camera=new PoseCamera(video,sample=>{
     if(ready)for(const punch of result.punches)input(punch);
   }
 },message=>{
-  cameraRunning=false;lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};
+  cameraRunning=false;poseFramed=false;setup.camera(false);lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};
   if(source.value==='pose')input(lastPose);
   el('camera-status').textContent=message;
 },{wasmLoaderPath:'/assets/pose/vision_wasm_internal.js',wasmBinaryPath:'/assets/pose/vision_wasm_internal.wasm',modelAssetPath:'/assets/pose/pose_landmarker_lite.task'});
@@ -207,36 +219,31 @@ el('start-camera').addEventListener('click',async()=>{
   el('camera-status').textContent='Opening camera and loading the local lite model…';
   try {
     cameraRunning=await camera.start();
-    video.hidden=!cameraRunning;avatar.hidden=cameraRunning;
+    setup.camera(cameraRunning);video.hidden=!cameraRunning;avatar.hidden=cameraRunning;
+    if(cameraRunning&&!calibration.snapshot.ready)calibration.start(posture.value==='seated'?'seated':'standing',performance.now());
     el<HTMLButtonElement>('stop-camera').disabled=!cameraRunning;
     el<HTMLButtonElement>('start-calibration').disabled=!cameraRunning;
   } catch(error){el('camera-status').textContent=`Camera unavailable: ${error instanceof Error?error.message:'permission denied'}. Keyboard still works.`;}
   finally{el<HTMLButtonElement>('start-camera').disabled=false;}
 });
 el('stop-camera').addEventListener('click',()=>{
-  camera.stop();cameraRunning=false;video.hidden=true;avatar.hidden=false;calibration.reset();classifier.reset();
+  camera.stop();cameraRunning=false;poseFramed=false;setup.camera(false);video.hidden=true;avatar.hidden=false;calibration.reset();classifier.reset();setup.restored(false);
   el<HTMLButtonElement>('stop-camera').disabled=true;el<HTMLButtonElement>('start-calibration').disabled=true;
-  source.value='keyboard';keyboard.setEnabled(true);el('camera-status').textContent='Camera off. Keyboard selected.';
+  source.value='keyboard';keyboard.setEnabled(true);setup.sync();el('camera-status').textContent='Camera off. Keyboard selected.';
 });
 el('start-calibration').addEventListener('click',()=>{
   if(!cameraRunning||!clearSpace.checked)return;
-  classifier.reset();calibration.start(posture.value==='seated'?'seated':'standing',performance.now());
+  setup.restored(false);classifier.reset();calibration.start(posture.value==='seated'?'seated':'standing',performance.now());
 });
-el('play-webcam').addEventListener('click',()=>{
-  if(!calibration.snapshot.ready||!clearSpace.checked)return;
-  source.value='pose';startFight();el<HTMLDetailsElement>('webcam-settings').open=false;
-});
-posture.addEventListener('change',()=>{calibration.reset();classifier.reset();lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};if(game&&source.value==='pose')input(lastPose);updateModes();posture.blur();});
-for(const choice of Array.from(document.querySelectorAll<HTMLInputElement>('[name="judge-posture"]')))choice.addEventListener('change',()=>{if(choice.checked){posture.value=choice.value;posture.dispatchEvent(new Event('change'));choice.blur();}});
+posture.addEventListener('change',()=>{setup.restored(false);poseFramed=false;calibration.reset();classifier.reset();lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};if(game&&source.value==='pose')input(lastPose);restoreCalibration();updateModes();posture.blur();});
 source.addEventListener('change',()=>{
   if(game)input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});
   keyboard.setEnabled(!game||source.value==='keyboard');
-  if(source.value==='pose')el<HTMLDetailsElement>('webcam-settings').open=true;
+  if(source.value==='pose')restoreCalibration();setup.sync();
   source.blur();
 });
 clearSpace.addEventListener('change',()=>{
   keyboard.release();
-  el<HTMLInputElement>('start-clear-space').checked=clearSpace.checked;
   if(!clearSpace.checked) {
     if(game){const at=performance.now();game=step(game,{kind:'pose',guard:false,lean:null,source:source.value==='pose'?'pose':'keyboard',at},at);}
     input({kind:'control',action:'stop',by:'capture'});
@@ -260,14 +267,13 @@ el('next-round').addEventListener('click',()=>{
 });
 crowdSize.addEventListener('change',()=>{paint();crowdSize.blur();});
 noPunch.addEventListener('change',()=>{updateModes();noPunch.blur();});
-el('start-no-punch').addEventListener('change',()=>{noPunch.checked=el<HTMLInputElement>('start-no-punch').checked;noPunch.dispatchEvent(new Event('change'));el('start-no-punch').blur();});
-el('start-clear-space').addEventListener('change',()=>{clearSpace.checked=el<HTMLInputElement>('start-clear-space').checked;clearSpace.dispatchEvent(new Event('change'));el('start-clear-space').blur();});
 const timer=window.setInterval(()=>{
-  if(!game)return;
   const at=performance.now();
+  if(cameraRunning&&at-lastFrameAt>=500){poseFramed=false;setup.frame([],false);}
+  if(!game)return;
   game=step(game,{kind:'advance'},at);
   if(source.value==='keyboard')game=step(game,{kind:'pose',...keyboard.physical,source:'keyboard',at},at);
-  else if(!cameraRunning||at-lastFrameAt>=500)game=step(game,{kind:'pose',guard:false,lean:null,source:'pose',at},at);
+  else if(!cameraRunning||at-lastFrameAt>=500){poseFramed=false;setup.frame([],false);game=step(game,{kind:'pose',guard:false,lean:null,source:'pose',at},at);}
   if(coldOpenAt!==null){
     const age=at-coldOpenAt,phase=coldOpenStage(game,age);
     // A one-attack rehearsal deliberately pauses after the actual outcome.
@@ -293,7 +299,7 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=()=>{if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}};
-  hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>streamLayout.collapse(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
@@ -301,8 +307,7 @@ if(liveMode){
   crowdSize.closest('label')!.hidden=true;
   document.querySelector('.demo-tag')!.textContent='LIVE · YOUR TWITCH CHAT';
   document.title='Streamer vs Chat · Try it on your channel';
-  el('tutorial').insertAdjacentHTML('beforeend','<button id="start-live">Start live fight</button>');
-  el('start-live').addEventListener('click',startFight);
+
   el('demo-status').textContent='Connect your own Twitch channel. Keyboard and webcam use the same rules.';
 }
 updateModes();paint();input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});

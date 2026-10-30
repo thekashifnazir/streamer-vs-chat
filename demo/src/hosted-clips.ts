@@ -18,19 +18,21 @@ export function browserClipTransport(auth:ClipAuth,userId:string):ClipTransport 
 /** Hosted-only observer; no token storage, local replay, or gameplay control. */
 export function createHostedClips(options:{auth:ClipAuth;fetch?:typeof fetch;onStatus:(message:string)=>void;onChange?:()=>void;onConfirmed?:(clipId:string)=>void;now?:()=>number}){
  const request=options.fetch??globalThis.fetch.bind(globalThis);
- let disposed=false,available=false,coordinator:ServerHighlightCoordinator|null=null,accountId:string|null=null,observed:GameState|null=null,epoch=0;
+ let desired=true,disposed=false,available=false,coordinator:ServerHighlightCoordinator|null=null,accountId:string|null=null,observed:GameState|null=null,epoch=0;
  const announced=new Set<string>();
+ let confirmed:HighlightEntry[]=[],historyOwner:string|null=null;
  const capable=()=>available&&options.auth.authenticated&&!!options.auth.account?.scopes.includes('clips:edit');
  const report=(message:string)=>{if(!disposed)options.onStatus(message);};
- const entries=():HighlightEntry[]=>coordinator?.snapshot()??[];
+ const entries=():HighlightEntry[]=>{const current=coordinator?.snapshot()??[];return [...confirmed.filter(old=>!current.some(entry=>entry.clipId===old.clipId)),...current];};
  function changed(){if(disposed)return;const snapshot=entries();const retained=new Set(snapshot.flatMap(entry=>entry.clipId?[entry.clipId]:[]));for(const id of announced)if(!retained.has(id))announced.delete(id);for(const entry of snapshot)if(entry.status==='confirmed'&&entry.clipId&&!announced.has(entry.clipId)){announced.add(entry.clipId);options.onConfirmed?.(entry.clipId);report('Clip confirmed · available on the session card.');}options.onChange?.();}
- function close(){coordinator?.close();coordinator=null;accountId=null;}
- function open(id:string){accountId=id;coordinator=new ServerHighlightCoordinator({transport:browserClipTransport(options.auth,id),now:options.now,onChange:changed});}
+ function close(){confirmed=entries().filter(entry=>entry.status==='confirmed'&&entry.clipId).sort((a,b)=>b.highlight.priority-a.highlight.priority||a.highlight.at-b.highlight.at).slice(0,3);coordinator?.close();coordinator=null;accountId=null;}
+ function open(id:string){if(historyOwner!==id){confirmed=[];announced.clear();historyOwner=id;}accountId=id;coordinator=new ServerHighlightCoordinator({transport:browserClipTransport(options.auth,id),now:options.now,onChange:changed});}
  return {
-  get enabled(){return capable()&&coordinator!==null;},
-  async initialize(){try{const response=await request('/api/health',{cache:'no-store'});available=response.ok&&(await response.json()).clips===true;}catch{available=false;}if(disposed)return;if(!capable()){close();report(available?'Reconnect to enable clips (clips:edit).':'Hosted clips are disabled on this host.');return;}const id=options.auth.account!.id;if(accountId===id&&coordinator)return;close();open(id);report('Hosted clips enabled · confirmed clips only.');},
-  observeGame(state:GameState,reset=false){const before=observed;observed=state;if(reset||before&&before.match.seed!==state.match.seed)epoch++;if(!before||reset||before.match.seed!==state.match.seed||!capable()||accountId!==options.auth.account?.id)return;for(const moment of highlightCandidates(before,state))coordinator?.enqueue({...moment,id:`m${epoch}:${moment.id}`});},
-  snapshot():EndcardClip[]{return entries().filter(entry=>entry.status==='confirmed'&&entry.clipId&&entry.url).sort((a,b)=>b.highlight.priority-a.highlight.priority||a.highlight.at-b.highlight.at).slice(0,3).map(entry=>({id:entry.clipId!,url:entry.url!,label:entry.highlight.kind.toUpperCase(),status:'confirmed'}));},
+  get enabled(){return desired&&capable()&&coordinator!==null;},get available(){return available;},get capable(){return capable();},
+  setEnabled(value:boolean){desired=value;if(value&&!disposed&&capable()&&!coordinator)open(options.auth.account!.id);return desired&&capable()&&coordinator!==null;},
+  async initialize(){try{const response=await request('/api/health',{cache:'no-store'});available=response.ok&&(await response.json()).clips===true;}catch{available=false;}if(disposed)return;if(!capable()){close();report(!desired?'Hosted clips off.':available?'Reconnect to enable clips (clips:edit).':'Hosted clips are disabled on this host.');return;}if(!desired){report('Hosted clips off.');return;}const id=options.auth.account!.id;if(accountId===id&&coordinator)return;close();open(id);report('Hosted clips enabled · confirmed clips only.');},
+  observeGame(state:GameState,reset=false){const before=observed;observed=state;if(reset||before&&before.match.seed!==state.match.seed)epoch++;if(!before||reset||before.match.seed!==state.match.seed||!desired||!capable()||accountId!==options.auth.account?.id)return;for(const moment of highlightCandidates(before,state))coordinator?.enqueue({...moment,id:`m${epoch}:${moment.id}`});},
+  snapshot():EndcardClip[]{if(!options.auth.authenticated||historyOwner!==options.auth.account?.id)return [];return entries().filter(entry=>entry.status==='confirmed'&&entry.clipId&&entry.url).sort((a,b)=>b.highlight.priority-a.highlight.priority||a.highlight.at-b.highlight.at).slice(0,3).map(entry=>({id:entry.clipId!,url:entry.url!,label:entry.highlight.kind.toUpperCase(),status:'confirmed'}));},
   entries,
   async idle(){await coordinator?.idle();},
   dispose(){disposed=true;close();},

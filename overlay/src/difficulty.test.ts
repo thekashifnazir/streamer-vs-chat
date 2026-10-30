@@ -1,5 +1,6 @@
 import {readFileSync} from 'node:fs';
 import {expect,it} from 'vitest';
+import {JSDOM} from 'jsdom';
 import {createGame,step} from '../../shared/src/engine';
 import {TEMPO,type Difficulty} from '../../shared/src/tempo';
 import {nextBeatSeconds} from './hud';
@@ -18,12 +19,15 @@ it('keeps the difficulty tag beside the round number at the HUD font floor',()=>
 it('both offline and hosted screens keep Medium-selected difficulty controls available after the tutorial',()=>{
  for(const path of ['../../demo/index.html','../../demo/play/index.html']){
   const html=readFileSync(new URL(path,import.meta.url),'utf8');
-  const tutorial=html.split('<section id="tutorial"')[1]!.split('</section>')[0]!;
-  const controls=html.split('<section class="demo-controls"')[1]!.split('</section>')[0]!;
-  expect(tutorial).not.toContain('id="start-difficulty"');
-  expect(controls).toContain('Difficulty <select id="start-difficulty">');
-  expect(html.match(/id="start-difficulty"/g)).toHaveLength(1);
-  expect(html).toContain('<option value="medium" selected>Medium</option>');
-  for(const value of ['easy','hard','expert'])expect(html).toContain(`<option value="${value}">`);
+  const dom=new JSDOM(html);
+  try{
+   const doc=dom.window.document,select=doc.querySelector<HTMLSelectElement>('#start-difficulty')!;
+   expect(doc.querySelector('#tutorial #start-difficulty')).toBeNull();
+   expect(doc.querySelector('#fight-setup #start-difficulty')).toBe(select);
+   expect(doc.querySelectorAll('#start-difficulty')).toHaveLength(1);
+   expect(select.value).toBe('medium');
+   expect([...select.options].map(option=>option.value)).toEqual(['easy','medium','hard','expert']);
+   expect(doc.querySelectorAll('[data-option-for="start-difficulty"]')).toHaveLength(4);
+  }finally{dom.window.close();}
  }
 });

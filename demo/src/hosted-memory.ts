@@ -50,7 +50,7 @@ export function createHostedMemory(options:{auth:Pick<BrowserAuth,'authenticated
  }
  async function finalize(){if(!active()||finalized||!combat)return;finalized=true;enqueue({kind:'finalize',sessionId,mvpId:mvp()?.user??null});await flush();}
  return {
-  get capable(){return available&&options.auth.authenticated&&!!options.auth.account?.id;},get enabled(){return active();},
+  get available(){return available;},get capable(){return available&&options.auth.authenticated&&!!options.auth.account?.id;},get enabled(){return active();},
   async initialize(){try{const response=await request('/api/health',{cache:'no-store'});available=response.ok&&(await response.json()).memory===true;}catch{available=false;}if(disposed)return;if(!available)report('Viewer memory is disabled on this host.');},
   setEnabled,observeGame,snapshot,flush,finalize,
   onChat(message:HostedChatMessage){if(!active())return;const userId=message.userId;if(message.text.trim().split(/\s+/,1)[0]?.toLowerCase()==='!forgetme'){optOut.add(userId);names.delete(userId);credit.delete(userId);view=null;enqueue({kind:'forget',sessionId,userId});options.onChange?.();return;}if(optOut.has(userId))return;const event:MemoryEvent={kind:'chat-seen',sessionId,userId,displayName:message.displayName};if(!validateMemoryEvent(event))return;names.set(userId,message.displayName);while(names.size>5000)names.delete(names.keys().next().value!);enqueue(event);},

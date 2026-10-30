@@ -33,14 +33,16 @@ export function createHostedForgeBalance(makeWorker:()=>ForgeWorker=()=>new Work
 /** The hosted Forge holds names/ideas only in this page session, never metrics or storage. */
 export function createHostedForge(options:{auth:Auth;fetch?:typeof fetch;betweenRounds:()=>boolean;onAccepted:(boss:BossDef|null)=>void;onSnapshot:(view:ForgeSnapshot|null)=>void;onStatus:(message:string)=>void;balance?:ReturnType<typeof createHostedForgeBalance>}){
  const request=options.fetch??globalThis.fetch.bind(globalThis),balance=options.balance??createHostedForgeBalance();
- let disposed=false,available=false,service:BossForge|null=null,owner:string|null=null;
+ let desired=true,disposed=false,available=false,service:BossForge|null=null,owner:string|null=null;
  const names=new Map<string,string>();
  const report=(message:string)=>{if(!disposed)options.onStatus(message);};
  const close=()=>{service?.veto();balance.cancel();service=null;owner=null;options.onAccepted(null);};
- function ready(){return !disposed&&available&&options.auth.authenticated&&owner===options.auth.account?.id;}
+ function ready(){return !disposed&&desired&&available&&options.auth.authenticated&&owner===options.auth.account?.id;}
  return {
+  get enabled(){return ready()&&service!==null;},get available(){return available;},get capable(){return available&&options.auth.authenticated;},
+  setEnabled(value:boolean){desired=value;if(!value)close();else if(!disposed)void this.initialize();return desired&&available&&options.auth.authenticated;},
   get busy(){return !!service&&['generating','validating','tuning'].includes(service.snapshot().status);},
-  async initialize(){try{const response=await request('/api/health',{cache:'no-store'});available=response.ok&&(await response.json()).forge===true;}catch{available=false;}if(disposed)return;if(!available||!options.auth.authenticated){close();report('Hosted Boss Forge is disabled or unavailable.');return;}const account=options.auth.account!;if(service&&owner===account.id)return;close();owner=account.id;names.clear();names.set(account.id,account.login.slice(0,40));
+  async initialize(){try{const response=await request('/api/health',{cache:'no-store'});available=response.ok&&(await response.json()).forge===true;}catch{available=false;}if(disposed)return;if(!desired||!available||!options.auth.authenticated){close();report('Hosted Boss Forge is disabled or unavailable.');return;}const account=options.auth.account!;if(service&&owner===account.id)return;close();owner=account.id;names.clear();names.set(account.id,account.login.slice(0,40));
    service=new BossForge({client:createHostedForgeClient(options.auth,()=>{report('Boss Forge daily cap reached. Try again tomorrow.');}),protectedNames:()=>[...names.values()],isBetweenRounds:()=>ready()&&options.betweenRounds(),gate:balance.gate,tune:balance.tune,onAccepted:boss=>{if(ready()&&options.betweenRounds())options.onAccepted(boss);},onChange:view=>{if(!disposed){options.onSnapshot(view);}}});report('Boss Forge enabled · chat: !forge <idea>, !forge +1; mods: !forge between rounds.');},
   observePhase(reset=false){if(reset){balance.cancel();options.onAccepted(null);service?.resetBout();}service?.observePhase();if(service&&!options.betweenRounds())balance.cancel();},
   onChat(message:HostedChatMessage){if(!ready()||!service||message.userId.length>64)return;names.delete(message.userId);names.set(message.userId,message.displayName.slice(0,40));while(names.size>101){const key=names.keys().next().value!;if(key===owner){const value=names.get(key)!;names.delete(key);names.set(key,value);}else names.delete(key);}
