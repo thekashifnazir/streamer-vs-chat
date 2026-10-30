@@ -73,11 +73,14 @@ export class GameSound {
     try{void Promise.all([context.resume(),ready]).then(activate).catch(()=>{});}catch{}
     await ready;return activate();
   }
-  async toggle():Promise<boolean>{
+  async setRequested(enabled:boolean,activate=true):Promise<boolean>{
     if(this.dead)return false;
-    if(this.requested){this.requested=false;this.enabled=false;this.master?.gain.setValueAtTime(0,this.context!.currentTime);this.options.onChange?.();return false;}
-    this.requested=true;return this.unlock();
+    this.requested=enabled;
+    if(!enabled){this.enabled=false;this.master?.gain.setValueAtTime(0,this.context!.currentTime);}
+    this.options.onChange?.();
+    return enabled&&activate?this.unlock():this.enabled;
   }
+  async toggle():Promise<boolean>{return this.setRequested(!this.requested);}
   play(name:Sound,voice=false,priority=false):void {
     const context=this.context,buffer=this.buffers.get(name);
     if(!this.enabled||!context||!buffer||this.dead)return;

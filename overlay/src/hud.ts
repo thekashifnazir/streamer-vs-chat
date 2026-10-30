@@ -72,7 +72,7 @@ export function exploitHabitNote(state:GameState):string {
 }
 
 /** The same view consumes server ticks and local demo reducer states; it owns no game rules. */
-export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean;seated?:boolean;noPunch?:boolean;soundDefault?:boolean}={}) {
+export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean;seated?:boolean;noPunch?:boolean;soundDefault?:boolean;deferSoundUntilStart?:boolean}={}) {
   host.classList.add('rails-host');
   host.innerHTML=`<main class="rails-hud" aria-label="Streamer vs Chat">
   <aside class="rail streamer"><header><p class="eyebrow" data-id="input-lock" role="status">STREAMER</p><h1>KASH</h1></header>
@@ -112,10 +112,10 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   const floatingNodes=new Map<string,HTMLElement>();
   el('boss-damage').style.setProperty('--damage-number-box',`${options.seated?FEEL.bossHit.seatedNumberBoxPx:FEEL.bossHit.numberBoxPx}px`);
   const sprite=new BossSprite(el<HTMLCanvasElement>('boss-sprite'));
-  let soundBusy=false,disposed=false;
+  let disposed=false,soundStarted=!options.deferSoundUntilStart;
   const sound=new GameSound({defaultEnabled:options.soundDefault??options.simulated===undefined,onChange:()=>soundLabel()});
-  const soundLabel=()=>{if(disposed)return;el('sound').textContent=sound.enabled?'SOUND ON · M':sound.requested?'SOUND ON · ACTIVATE · M':'SOUND OFF · M';};
-  soundLabel();void sound.prepare();if(sound.requested)void sound.unlock().then(soundLabel);
+  const soundLabel=()=>{if(disposed)return;el('sound').textContent=sound.enabled?'SOUND ON · M':sound.requested?(soundStarted?'SOUND ON · ACTIVATE · M':'SOUND ON · M'):'SOUND OFF · M';host.dispatchEvent(new CustomEvent('rails-sound-change'));};
+  soundLabel();void sound.prepare();if(sound.requested&&soundStarted)void sound.unlock().then(soundLabel);
   const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
   const forcedCalm=new URL(location.href).searchParams.get('fx')==='calm';
   const fx=createFxScheduler({calm:forcedCalm||options.simulated!==undefined&&motion.matches});
@@ -123,14 +123,15 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   motion.addEventListener('change',motionChange);
   let lastStampUntil=0,lastTelegraph='',readItUntil=0,snapshotRealAt=performance.now();
   let spriteAnchorKey='',spriteAnchor=0;
+  const setSoundRequested=(enabled:boolean)=>sound.setRequested(enabled,soundStarted);
+  const activateSound=()=>{soundStarted=true;return sound.unlock();};
   const toggle=async(activate=false)=>{
-    if(soundBusy||disposed)return;soundBusy=true;el<HTMLButtonElement>('sound').disabled=true;
-    el('sound').textContent=sound.enabled?'MUTING…':'LOADING SOUND…';
-    try{await (activate&&sound.requested&&!sound.enabled?sound.unlock():sound.toggle());if(!disposed)soundLabel();}catch{if(!disposed)el('sound').textContent='SOUND UNAVAILABLE';}
-    finally{soundBusy=false;if(!disposed)el<HTMLButtonElement>('sound').disabled=false;}
+    if(disposed)return;
+    try{await (activate&&soundStarted&&sound.requested&&!sound.enabled?sound.unlock():setSoundRequested(!sound.requested));}
+    catch{if(!disposed)el('sound').textContent='SOUND UNAVAILABLE';}
   };
   el('sound').addEventListener('click',()=>{void toggle(true);});
-  const unlockOnGesture=(event:Event)=>{if(event.target instanceof Element&&event.target.closest('[data-id="sound"]'))return;if(sound.requested&&!sound.enabled)void sound.unlock().then(soundLabel);};
+  const unlockOnGesture=(event:Event)=>{if(event.target instanceof Element&&event.target.closest('[data-id="sound"]'))return;if(soundStarted&&sound.requested&&!sound.enabled)void sound.unlock().then(soundLabel);};
   window.addEventListener('pointerdown',unlockOnGesture);window.addEventListener('keydown',unlockOnGesture);
   el('plain').addEventListener('change',()=>stage.classList.toggle('plain',el<HTMLInputElement>('plain').checked));
   const muteKey=(event:KeyboardEvent)=>{if(event.code==='KeyM'&&!event.repeat&&!['INPUT','TEXTAREA','SELECT'].includes((event.target as HTMLElement)?.tagName)){void toggle();}};
@@ -299,5 +300,5 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       const attack=current.activeAttack;const viewNow=(current.clock.paused_at??current.now)+(current.paused?0:now-snapshotRealAt);el('banner').style.opacity=attack&&!attack.vetoed&&lastTelegraph?String(Math.min(1,Math.max(0,(attack.lands_at-viewNow)/120))):'1';
     }else sprite.draw('idle',now);frameId=requestAnimationFrame(animate);};
   frameId=requestAnimationFrame(animate);
-  return {render,renderTally,setSuperNotices(value:SuperNoticesView){superNotices=value;},presentBossImpact(impact:BossImpact){bossFeedback.present(impact,performance.now());},setBossReceipts(batch:BossImpactBatch,prime=false){bossFeedback.setReceipts(batch,prime);},setModes,setMemory,setForge,setInputLocked(locked:boolean){el('input-lock').textContent=locked?'INPUTS LOCKED':'STREAMER';el('input-lock').classList.toggle('input-lock-active',locked);},setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
+  return {soundRequested:()=>sound.requested,setSoundRequested,activateSound,render,renderTally,setSuperNotices(value:SuperNoticesView){superNotices=value;},presentBossImpact(impact:BossImpact){bossFeedback.present(impact,performance.now());},setBossReceipts(batch:BossImpactBatch,prime=false){bossFeedback.setReceipts(batch,prime);},setModes,setMemory,setForge,setInputLocked(locked:boolean){el('input-lock').textContent=locked?'INPUTS LOCKED':'STREAMER';el('input-lock').classList.toggle('input-lock-active',locked);},setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
 }

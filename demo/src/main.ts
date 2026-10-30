@@ -43,7 +43,14 @@ const avatar=el('keyboard-avatar');
 const liveMode=location.pathname==='/play'||location.pathname.startsWith('/play/');
 const previewConfig=scoutPreviewConfig(location,{liveMode,liveTokenLoaded:false});
 if(previewConfig)document.querySelector('.demo-tag')!.textContent=SCOUT_PREVIEW_BADGE;
-const hud=createRailsHud(host,{simulated:!liveMode});
+const hud=createRailsHud(host,{simulated:!liveMode,soundDefault:liveMode,deferSoundUntilStart:liveMode});
+const streamSound=document.getElementById('stream-sound') as HTMLInputElement|null;
+if(streamSound){
+  const syncSound=()=>{streamSound.checked=hud.soundRequested();};
+  host.addEventListener('rails-sound-change',syncSound);
+  streamSound.addEventListener('change',()=>{void hud.setSoundRequested(streamSound.checked);});
+  syncSound();
+}
 const tutorial=new InputTutorial();
 const classifier=new PoseClassifier({guardThreshold:0});
 let pendingBoss:BossDef|null=null;
@@ -187,7 +194,7 @@ const keyboard=createKeyboard({emit:input,label:label=>{
 }});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
-const setup=mountFightSetup(document,{onStart:()=>{if(game){startFight();return;}tutorialStarted=true;el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
+const setup=mountFightSetup(document,{onStart:()=>{void hud.activateSound();if(game){startFight();return;}tutorialStarted=true;el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamStart:()=>{void hud.activateSound();source.value='pose';keyboard.setEnabled(false);startFight();}});
 const calibration=createCalibration({onChange(snapshot){
   el('calibration-status').textContent=snapshot.message;
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
@@ -309,7 +316,7 @@ if(liveMode){
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
-  },onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!clearSpace.checked)return;input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{showSessionSummary=true;freeze();}});
+  },onRaid:event=>{if(game){game=step(game,event,performance.now());paint();}},onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!clearSpace.checked)return;input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{showSessionSummary=true;freeze();}});
   crowdSize.closest('label')!.hidden=true;
   document.title='Streamer vs Chat · Try it on your channel';
 
