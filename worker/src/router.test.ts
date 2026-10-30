@@ -8,8 +8,10 @@ const response=(userId='123',clientId='client',expires=3600)=>Response.json({cli
 function setup(){
  let now=0;const fetcher=vi.fn(async()=>response()),enqueue=vi.fn(async()=>{}),enqueueClip=vi.fn(async(_channel:string,_id:string)=>true),status=vi.fn(async()=>({dropReason:'forbidden',pending:2})),idFromName=vi.fn((name:string)=>name),assets=vi.fn(async()=>new Response('asset'));
  const forgeModerate=vi.fn(async(_channel:string,_input:string[])=>({ok:true as const,value:{results:[{flagged:false}]}}));const forgeRespond=vi.fn(async(_channel:string,_body:unknown):Promise<import('./forge-service').ForgeReply<import('../../shared/src/forge-client').ForgeResponse>>=>({ok:true,value:{output_text:'{}'}}));
- const env:RoutingEnv<string>={TWITCH_CLIENT_ID:'client',HOSTED_BOT:'on',HOSTED_CLIPS:'off',HOSTED_FORGE:'off',HOSTED_MEMORY:'off',ASSETS:{fetch:assets},CHANNEL:{idFromName,get:()=>({enqueue,enqueueClip,status,forgeModerate,forgeRespond})}};
- return {env,fetcher,enqueue,enqueueClip,forgeModerate,forgeRespond,status,idFromName,assets,route:createWorkerRouter({fetch:fetcher,now:()=>now}),setTime:(value:number)=>{now=value;}};
+ const snapshot={view:{simulated:false,record:{streams:0,bossesKo:0,timesKo:0},hallOfFame:[],nemesis:null,mvpStreak:0},optOut:[],forgotten:[]};
+ const memoryEvents=vi.fn(async(_channel:string,_events:unknown)=>snapshot),memorySnapshot=vi.fn(async(_channel:string,_session?:string,_mvp?:string|null)=>snapshot);
+ const env:RoutingEnv<string>={TWITCH_CLIENT_ID:'client',HOSTED_BOT:'on',HOSTED_CLIPS:'off',HOSTED_FORGE:'off',HOSTED_MEMORY:'off',ASSETS:{fetch:assets},CHANNEL:{idFromName,get:()=>({enqueue,enqueueClip,status,forgeModerate,forgeRespond,memoryEvents,memorySnapshot})}};
+ return {env,fetcher,memoryEvents,memorySnapshot,enqueue,enqueueClip,forgeModerate,forgeRespond,status,idFromName,assets,route:createWorkerRouter({fetch:fetcher,now:()=>now}),setTime:(value:number)=>{now=value;}};
 }
 const post=(body:unknown,authorization='Bearer private-test-token')=>new Request('https://demo.test/api/results',{method:'POST',headers:{Authorization:authorization,'Content-Type':'application/json'},body:JSON.stringify(body)});
 describe('structured hosted results',()=>{
@@ -86,4 +88,17 @@ it('Forge accepts maximum escaped bounded bodies while refusing model/prompt/sch
  const s=setup();s.env.HOSTED_FORGE='on';const body={idea:'fiction',repair:{previous:'\u0000'.repeat(32768),errors:Array(20).fill('\u0000'.repeat(200))}};
  expect((await s.route(forgePost('respond',body),s.env)).status).toBe(200);expect(s.forgeRespond).toHaveBeenCalledWith('123',body);
  for(const body of [{idea:'fiction',model:'other'},{idea:'fiction',prompt:'override'},{idea:'fiction',schema:{}},{idea:'fiction',repair:{previous:'x',errors:['x'],system:'override'}}])expect((await s.route(forgePost('respond',body),s.env)).status).toBe(400);
+});
+
+const memoryPost=(body:unknown,query='')=>new Request(`https://demo.test/api/memory/events${query}`,{method:'POST',headers:{Authorization:'Bearer memory-owner','Content-Type':'application/json'},body:JSON.stringify(body)});
+it('memory authenticates channel ownership, gates off, and validates strict typed batches/query bounds',async()=>{
+ const s=setup(),event={kind:'vote',sessionId:'s1',beatId:'b1',userId:'456',displayName:'Viewer',move:'JAB'};
+ expect((await s.route(memoryPost({events:[event]}),s.env)).status).toBe(503);expect(s.memoryEvents).not.toHaveBeenCalled();s.env.HOSTED_MEMORY='on';s.env.HOSTED_BOT='off';
+ expect((await s.route(memoryPost({events:[event]}),s.env)).status).toBe(200);expect(s.memoryEvents).toHaveBeenCalledWith('123',[event]);expect(s.idFromName).toHaveBeenLastCalledWith('123');
+ for(const extra of [{channel:'999'},{source:'sim'},{source:'booth'},{text:'secret'},{userId:'not-twitch'}])expect((await s.route(memoryPost({events:[{...event,...extra}]}),s.env)).status).toBe(400);
+ expect((await s.route(memoryPost({events:[event]},'?channel=999'),s.env)).status).toBe(400);
+ const get=(query:string)=>new Request(`https://demo.test/api/memory/snapshot${query}`,{headers:{Authorization:'Bearer memory-owner'}});
+ expect((await s.route(get('?sessionId=s1&mvpId=456'),s.env)).status).toBe(200);expect(s.memorySnapshot).toHaveBeenCalledWith('123','s1','456');
+ for(const query of ['?channel=999','?source=sim','?sessionId=a&sessionId=b','?mvpId=bad','?sessionId='+ 'x'.repeat(101)])expect((await s.route(get(query),s.env)).status).toBe(400);
+ expect((await s.route(new Request('https://demo.test/api/memory/snapshot'),s.env)).status).toBe(401);
 });

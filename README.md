@@ -59,7 +59,7 @@ Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simul
 3. Tick **Green background**, then add an OBS **Chroma Key** filter and crop the capture to the game.
 4. Keep your webcam as a normal OBS camera source below the game. After connecting, setup collapses to a one-line bar; **Expand** brings the controls back.
 
-`/play` can post structured round results through the hosted bot and make confirmed clips when their hosted flags are enabled. Hosted Boss Forge is also available when its flag is enabled; live viewer memory still uses the [local-server path](docs/DEVELOPMENT.md). Five minutes is the setup guide, not a measured completion time.
+`/play` can post structured round results through the hosted bot and make confirmed clips when their hosted flags are enabled. Hosted Boss Forge and opt-in viewer memory are also available when their flags are enabled; the [local-server path](docs/DEVELOPMENT.md) remains supported. Five minutes is the setup guide, not a measured completion time.
 
 ## Why it's different
 
@@ -93,14 +93,16 @@ In the local Node/OBS flow, the server owns all game state; the HUD is a view an
 
 ### Hosted backend
 
-The Worker serves `/api` and keeps a separate Durable Object result queue per authenticated channel. `/play` never posts chat with the streamer's token: the bot sends only server-formatted round results, HYPE notices and verified clip links, at most once per 10 seconds. “Post results in chat (as streamervschatbot)” defaults on only when the deployed bot flag and `channel:bot` grant are present. Delivery failures show a status line and leave play running. All hosted flags are committed off; Claude configures public app/bot IDs and the Worker secret before deploying. Older chat-only tokens keep working and can reconnect to enable results or clips. Hosted clips use the browser’s in-memory user token, require `clips:edit` and a stream at least 60 seconds old, and appear only after Get Clips confirmation within 15 seconds. Stale/unconfirmed moments stay stats-only; hosted mode has no local replay. The bot independently verifies each clip belongs to the authenticated channel before posting its link.
+The Worker serves `/api` and keeps a separate Durable Object result queue per authenticated channel. `/play` never posts chat with the streamer's token: the bot sends only server-formatted round results, HYPE notices, verified clip links and fixed forget acknowledgements, at most once per 10 seconds. “Post results in chat (as streamervschatbot)” defaults on only when the deployed bot flag and `channel:bot` grant are present. Delivery failures show a status line and leave play running. All hosted flags are committed off; Claude configures public app/bot IDs and the Worker secret before deploying. Older chat-only tokens keep working and can reconnect to enable results or clips. Hosted clips use the browser’s in-memory user token, require `clips:edit` and a stream at least 60 seconds old, and appear only after Get Clips confirmation within 15 seconds. Stale/unconfirmed moments stay stats-only; hosted mode has no local replay. The bot independently verifies each clip belongs to the authenticated channel before posting its link.
+
+Hosted viewer memory is **unchecked by default**. When enabled on the host, “Remember my viewers” stores Twitch IDs, latest display names and vote counts per channel, with 90-day retention applied when loaded. It never stores chat text. Viewers can type `!forgetme`; deletion is durable before acknowledgement, and a permanent per-channel opt-out prevents later recording. Unchecking stops memory requests; the separate counts-only results export does not include these records. The no-login demo uses only its fictional, SIMULATED memory and never calls these APIs.
 
 | Hosted roadmap stage | Status |
 |---|---|
 | Bot round results and HYPE notices | Implemented, flag off pending deployment/live check |
 | Clips | Implemented, flag off pending deployment/live check |
 | Boss Forge | Implemented, flag off pending deployment/live check |
-| Viewer memory | Local server and simulated demo; hosted opt-in stage pending |
+| Viewer memory | Local server, simulated demo and optional hosted opt-in |
 
 ## Results
 
@@ -178,7 +180,7 @@ What the live tests and reviews caught, each fixed in the thread:
 
 - **Punches are optional bonus damage.** Punch detection is less reliable on unseen bodies than guard and lean; no-punch mode keeps automatic defence counters.
 - **Camera needs Chrome**, not the OBS Browser Source, and decent light; lost tracking releases held pose inputs.
-- **Hosted features are flagged off by default.** `/play` reads chat; its optional Worker bot posts formatted results when enabled. Live viewer memory still needs the local server; hosted clips and Boss Forge are optional behind their own flags.
+- **Hosted features are flagged off by default.** `/play` reads chat; its optional Worker bot posts formatted results when enabled. Hosted clips, Boss Forge and opt-in viewer memory are optional behind their own flags.
 - **Clips need a live stream at least 60 seconds old**; otherwise the session card shows stats (or a local replay in local server mode).
 - **Boss Forge needs a configured OpenAI key on the local server or hosted Worker**; it never asks a viewer for a key. Tests use injected fake clients.
 
