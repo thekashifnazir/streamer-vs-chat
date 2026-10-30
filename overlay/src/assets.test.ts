@@ -122,9 +122,10 @@ it('keeps atlas artwork at a fixed approximately420px scale and invariant anchor
   expect(draw.y-frame.spriteSourceSize.y+frame.sourceSize.h*frame.anchor.y).toBeCloseTo(468);
  }
 });
-it('enforces36px for every HUD font declaration,38px vote counts and40px scouting n',()=>{
+it('enforces36px gameplay labels with the explicit26px wrapping connection exception',()=>{
  const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
- const sizes=[...css.matchAll(/font-size:\s*([\d.]+)px/g),...css.matchAll(/font:[^;{}]*?\s([\d.]+)px/g)].map(match=>Number(match[1]));
+ const gameplayCss=css.replace(/\.rails-hud \.streamer footer>\.connection\{[^}]*\}/g,'');
+ const sizes=[...gameplayCss.matchAll(/font-size:\s*([\d.]+)px/g),...gameplayCss.matchAll(/font:[^;{}]*?\s([\d.]+)px/g)].map(match=>Number(match[1]));
  expect(sizes.length).toBeGreaterThan(40);expect(sizes.every(size=>size>=36)).toBe(true);
  expect(css).toContain('.vote-command small .vote-count{font-size:38px}');expect(css).toContain('[data-id="habit-n"]{font-size:40px}');
 });

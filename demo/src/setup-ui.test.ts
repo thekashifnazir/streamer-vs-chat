@@ -18,7 +18,7 @@ function mount(page='index.html'){
 it.each(['index.html','play/index.html'])('%s has one safety source gating START FIGHT, no tutorial duplicates',page=>{
  const {doc,byId,change,onStart}=mount(page);const start=byId<HTMLButtonElement>('start-fight');
  expect(doc.querySelectorAll('#clear-space')).toHaveLength(1);expect(doc.querySelectorAll('#start-clear-space,#start-no-punch,[name="judge-posture"]')).toHaveLength(0);
- expect(start.disabled).toBe(true);start.click();expect(onStart).not.toHaveBeenCalled();change('clear-space',true);start.click();expect(onStart).toHaveBeenCalledOnce();expect(byId('safety-card').classList.contains('confirmed')).toBe(true);change('clear-space',false);expect(start.disabled).toBe(true);
+ expect(start.disabled).toBe(true);expect(start.textContent).toBe('Tick “my space is clear” to start');start.click();expect(onStart).not.toHaveBeenCalled();change('clear-space',true);expect(start.textContent).toBe('START FIGHT');start.click();expect(onStart).toHaveBeenCalledOnce();expect(byId('safety-card').classList.contains('confirmed')).toBe(true);change('clear-space',false);expect(start.disabled).toBe(true);
 });
 it('difficulty, posture and defence-only read their existing controls everywhere',()=>{
  const {doc,byId,click,change,ui}=mount();click('[data-option-for="start-difficulty"][data-value="expert"]');expect(byId<HTMLSelectElement>('start-difficulty').value).toBe('expert');
@@ -40,8 +40,12 @@ it('checklist and progress display calibration stages and exact help messages',(
  ui.calibration({...snapshot,stage:'resting',progress:.6,message:'Rest hands at your waist.'});expect(byId('webcam-step-label').textContent).toBe('STEP 3 OF 5');expect(byId<HTMLProgressElement>('calibration-progress').value).toBe(.6);expect(byId('calibration-status').textContent).toBe('Rest hands at your waist.');expect(doc.querySelectorAll('.webcam-step.done')).toHaveLength(2);expect(doc.querySelector('.webcam-step.active')?.getAttribute('data-calibration-step')).toBe('2');
  expect(byId('calibration-saved').hidden).toBe(true);ui.restored(true);expect(byId('calibration-saved').hidden).toBe(false);
 });
-it('attack rows match reducer defences and custom bosses use their own commands',()=>{
- const {ui,byId}=mount();const rows=()=>[...byId('attack-rows').children].map(row=>row.textContent);
- expect(rows()[1]).toContain('!left (!l)Hook from your left→D→ Lean right');expect(rows()[2]).toContain('!right (!r)Hook from your right→A← Lean left');expect(rows()[4]).toContain('Follow the 3 steps');
- ui.commands({...DEFAULT_BOSS,name:'Custom',moves:DEFAULT_BOSS.moves.slice(0,3).map((move,i)=>({...move,command:['!teep','!elbowl','!elbowr'][i]!}))});expect(rows()).toHaveLength(3);expect(rows()[1]).toContain('!elbowl');expect(byId('attack-rows').textContent).not.toContain('!left');
+it('three defence cards match reducer mappings and custom bosses keep their own chips',()=>{
+ const {ui,byId,doc,change}=mount();const card=(defence:string)=>doc.querySelector(`[data-defence="${defence}"]`)!;
+ expect(byId('attack-rows').children).toHaveLength(3);expect(card('guard').textContent).toContain('!jab (!j)!combo (!c)');expect(card('lean_left').textContent).toContain('!right (!r)');expect(card('lean_left').querySelector('kbd')!.textContent).toBe('A');expect(card('lean_right').textContent).toContain('!left (!l)');expect(card('lean_right').querySelector('kbd')!.textContent).toBe('D');expect(byId('bonus-super').textContent).toContain('3 hits');
+ change('input-source','pose');expect(byId('start-fight').hidden).toBe(true);expect(byId('open-webcam').hidden).toBe(false);expect(card('guard').querySelector('.pose-cue')!.textContent).toBe('Both fists up');change('input-source','keyboard');expect(byId('start-fight').hidden).toBe(false);expect(byId('open-webcam').hidden).toBe(true);
+ ui.commands({...DEFAULT_BOSS,name:'Custom',moves:DEFAULT_BOSS.moves.slice(0,3).map((move,i)=>({...move,command:['!teep','!elbowl','!elbowr'][i]!}))});expect(card('guard').textContent).toContain('!teep');expect(card('lean_right').textContent).toContain('!elbowl');expect(card('lean_left').textContent).toContain('!elbowr');expect(byId('attack-rows').textContent).not.toContain('!left');expect(byId('bonus-super').hidden).toBe(true);
+});
+it('only hosted setup is step three; fight bar starts hidden and follows the preview',()=>{
+ for(const page of ['index.html','play/index.html']){const {doc}=mount(page);expect(doc.querySelectorAll('.setup-step-number')).toHaveLength(page==='index.html'?0:1);expect(doc.querySelector<HTMLElement>('.demo-controls')!.hidden).toBe(true);const sections=[...doc.querySelector('main')!.children];expect(sections.indexOf(doc.getElementById('stage')!)).toBeLessThan(sections.indexOf(doc.getElementById('how-to-play')!));expect(doc.getElementById('tutorial-status')!.textContent).toBe('Press START FIGHT above to begin.');}
 });

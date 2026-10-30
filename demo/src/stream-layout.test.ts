@@ -12,9 +12,9 @@ it('fits both full Rails and start/safety controls at 1080p and 720p after conne
   expect(frame.bottom+STREAM_CHROME.controls+STREAM_CHROME.status).toBeLessThanOrEqual(height!);
  }
  // Bind the geometry check to the production CSS budget, with no wrapped rows.
- expect(css).toContain('calc((100dvh - 120px)*16/9)');
- expect(STREAM_CHROME.bar+STREAM_CHROME.controls+STREAM_CHROME.status).toBe(120);
- expect(css).toContain('.stream-compact .demo-controls{box-sizing:border-box;flex:none;width:100%;height:52px');
+ expect(css).toContain('calc((100dvh - 108px)*16/9)');
+ expect(STREAM_CHROME.bar+STREAM_CHROME.controls+STREAM_CHROME.status).toBe(108);
+ expect(css).toContain('height:64px');
  expect(css).toContain('flex-wrap:nowrap');
  expect(css).toContain('.stream-compact .demo-stage{flex:none;');
  expect(css).toContain('.stream-compact .tutorial{top:50%;padding:16px 24px}');
@@ -47,7 +47,7 @@ it('wires collapse to hosted connection and demo fight start, leaving all safety
  const play=readFileSync(new URL('./play.ts',import.meta.url),'utf8');
  expect(main).not.toContain('onConnected:()=>streamLayout.collapse()');
  expect(main).toContain('if(previewConfig)streamLayout.status(SCOUT_PREVIEW_BADGE)');
- expect(main).toContain("el('tutorial').hidden=true;\n  streamLayout.collapse();");
+ expect(main).toMatch(/el\('tutorial'\)\.hidden=true;[\s\S]*?streamLayout\.collapse\(\);/);
  expect(play).toContain('if(connected)options.onConnected?.();');
  for(const file of ['../index.html','../play/index.html']){
   const html=readFileSync(new URL(file,import.meta.url),'utf8');

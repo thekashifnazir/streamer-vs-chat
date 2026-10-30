@@ -1,3 +1,4 @@
+import {mountShareTools} from './share-tools';
 import {mountFightSetup} from './setup-ui';
 import {createCalibrationProfiles} from '../../capture/src/calibration-profile';
 import {scoutPreviewConfig,SCOUT_PREVIEW_BADGE} from './scout-preview';
@@ -64,7 +65,9 @@ let coldOpenAt:number|null=null;
 const streamLayout=mountStreamLayout({live:liveMode,onEnd:()=>{if(liveMode){el<HTMLButtonElement>('show-results').click();return;}showSessionSummary=true;if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}}});
 if(previewConfig)streamLayout.status(SCOUT_PREVIEW_BADGE);
 const playtest=new LocalPlaytestStats();
+if(!liveMode)mountShareTools(document);
 let playtestRound:string|null=null;
+let tutorialStarted=false;
 const viewerMemory=liveMode?null:createDemoViewerMemory({offline:true,factory:globalThis.indexedDB,onChange:()=>paint()});
 function trackLocalRound(){
  if(!game||liveMode||coldOpenAt!==null)return;
@@ -83,7 +86,7 @@ function updateTutorial() {
   tutorial.setNoPunch(noPunch.checked);
   el('tutorial-last-key').textContent=tutorial.keys[2];
   el('tutorial-last-label').textContent=noPunch.checked?`Try the other ${posture.value==='seated'?'tilt':'lean'}`:'Try a bonus punch';
-  el('tutorial-status').textContent=`Step ${Math.min(3,tutorial.step+1)} of 3 · Press ${tutorial.keys[Math.min(2,tutorial.step)]}`;
+  el('tutorial-status').textContent=tutorialStarted?`Step ${Math.min(3,tutorial.step+1)} of 3 · Press ${tutorial.keys[Math.min(2,tutorial.step)]}`:'Press START FIGHT above to begin.';
   for(const [index,item]of Array.from(document.querySelectorAll('[data-step]')).entries()) {
     item.classList.toggle('done',index<tutorial.step);item.classList.toggle('active',index===tutorial.step);
   }
@@ -138,7 +141,7 @@ function drawCrowd(at:number) {
 function startFight() {
   if(hosted?.forgeBusy){el('tutorial-status').textContent='Boss Forge is generating between rounds. Wait or type !veto.';return;}
   if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Connect Twitch and wait for LIVE before starting.';return;}
-  if(!clearSpace.checked){el('tutorial-status').textContent='Confirm your clear space below before starting.';return;}
+  if(!clearSpace.checked){el('tutorial-status').textContent='Tick “my space is clear” above before starting.';return;}
   if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before starting.';setup.open();return;}
   hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
   const at=performance.now();
@@ -149,7 +152,9 @@ function startFight() {
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+100,liveTokenLoaded:hosted?.hasToken??false});
   trackLocalRound();crowdBeat='';drawCrowd(at);
   el('tutorial').hidden=true;
+  document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;
   streamLayout.collapse();
+  stage.scrollIntoView?.({block:'start',behavior:'smooth'});
   keyboard.setEnabled(source.value==='keyboard');
   game=step(game,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);
   paint();
@@ -182,7 +187,7 @@ const keyboard=createKeyboard({emit:input,label:label=>{
 }});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
-const setup=mountFightSetup(document,{onStart:()=>{if(game){startFight();return;}el('tutorial').hidden=false;updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
+const setup=mountFightSetup(document,{onStart:()=>{if(game){startFight();return;}tutorialStarted=true;el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
 const calibration=createCalibration({onChange(snapshot){
   el('calibration-status').textContent=snapshot.message;
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
@@ -286,15 +291,16 @@ const timer=window.setInterval(()=>{
 window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();playtest.dispose();void viewerMemory?.close();});
 el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
+el('back-to-setup').addEventListener('click',()=>{if(game)input({kind:'control',action:'stop',by:'capture'});streamLayout.expand();el('fight-setup').scrollIntoView?.({block:'start',behavior:'smooth'});});
 el('cold-open').addEventListener('click',()=>{
  if(liveMode)return;
  if(!clearSpace.checked){el('cold-open-status').textContent='Confirm clear space first.';return;}
  if(source.value==='pose'&&(!calibration.snapshot.ready||!cameraRunning)){el('cold-open-status').textContent='Start and calibrate the camera first, or choose Keyboard.';return;}
  playtest.endRound();const at=performance.now();coldOpenAt=at;crowd=null;showSessionSummary=false;
  game=startColdOpen(at,seed++,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose);
- el('tutorial').hidden=true;stage.classList.remove('cold-open-tally');paint();
+ el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();stage.scrollIntoView?.({block:'start',behavior:'smooth'});stage.classList.remove('cold-open-tally');paint();
 });
-if(!liveMode){const {mountDemoForge}=await import('./forge');const panel=document.createElement('section');el('friend-tools').after(panel);forgePanel=mountDemoForge(panel,{betweenRounds:()=>!game||game.round.over,onAccepted:boss=>{pendingBoss=boss;},onSnapshot:snapshot=>{forgeSnapshot=snapshot;hud.setForge(snapshot,!game||game.round.over);}});}
+if(!liveMode){const {mountDemoForge}=await import('./forge');const panel=el('demo-forge-host');forgePanel=mountDemoForge(panel,{betweenRounds:()=>!game||game.round.over,onAccepted:boss=>{pendingBoss=boss;},onSnapshot:snapshot=>{forgeSnapshot=snapshot;hud.setForge(snapshot,!game||game.round.over);}});}
 if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
@@ -305,7 +311,6 @@ if(liveMode){
     return game.votes[vote.user]===vote.move;
   },onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!clearSpace.checked)return;input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{showSessionSummary=true;freeze();}});
   crowdSize.closest('label')!.hidden=true;
-  document.querySelector('.demo-tag')!.textContent='LIVE · YOUR TWITCH CHAT';
   document.title='Streamer vs Chat · Try it on your channel';
 
   el('demo-status').textContent='Connect your own Twitch channel. Keyboard and webcam use the same rules.';

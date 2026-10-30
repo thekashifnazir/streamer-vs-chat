@@ -68,3 +68,19 @@ it('keeps every floating number box below vote rows and inside the boss rail at1
  expect(css).toContain('overflow:hidden;pointer-events:none;z-index:3');
  expect(css).toContain('.boss-damage-number{position:absolute;left:50%;top:72px;');
 });
+
+it('wraps full connection and sound labels instead of ellipsising in standing and seated Rails',()=>{
+ const rule=css.split('.rails-hud .streamer footer>.connection{')[1]!.split('}')[0]!;
+ expect(rule).toContain('font-size:26px');expect(rule).toContain('white-space:normal');expect(rule).toContain('overflow:visible');expect(rule).toContain('text-overflow:clip');
+ const sound=css.split('.rails-hud .rail.streamer footer .hud-options button{')[1]!.split('}')[0]!;
+ expect(sound).toContain('max-width:none');expect(sound).toContain('flex:none');expect(sound).toContain('text-overflow:clip');
+ const markup=readFileSync(new URL('./hud.ts',import.meta.url),'utf8');expect(markup).toContain('SOUND OFF · M');
+});
+
+import {JSDOM} from 'jsdom';
+it('keeps sound button intrinsically sized in standing, seated and memory footers',()=>{
+ for(const mode of ['', 'seated', 'memory-on', 'seated memory-on']){
+  const dom=new JSDOM(`<style>${css}</style><main class="rails-hud ${mode}"><aside class="rail streamer"><footer><p class="connection">LIVE MODE · CONNECT TWITCH</p><div class="hud-options"><button>SOUND OFF · M</button><label>PLAIN</label></div></footer></aside></main>`);
+  try{const computed=dom.window.getComputedStyle;const button=computed(dom.window.document.querySelector('button')!);expect(button.maxWidth,mode).toBe('none');expect(button.whiteSpace,mode).toBe('nowrap');expect(button.overflow,mode).toBe('visible');const connection=computed(dom.window.document.querySelector('.connection')!);expect(connection.fontSize,mode).toBe('26px');expect(connection.whiteSpace,mode).toBe('normal');}finally{dom.window.close();}
+ }
+});
