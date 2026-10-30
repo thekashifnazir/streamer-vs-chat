@@ -133,3 +133,5 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 /* Page cards stay separate from the absolutely positioned in-stage Forge HUD. */
 #more-to-try .more-cards>.more-card{padding:26px;background:#120d1a;border:1px solid #2a2238;border-top:4px solid #2ef2ff;border-radius:16px}
 #more-to-try .more-cards .primary{background:#2ef2ff;border-color:#2ef2ff;color:#0c0912}
+
+#more-to-try .demo-forge .forge-round-hint{font-size:15px;color:#c2bdcd}
