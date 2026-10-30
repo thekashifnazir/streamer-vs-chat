@@ -27,3 +27,16 @@ kbd{display:inline-grid;place-items:center;min-width:23px;height:25px;padding:0 
 
 .playtest-panel{max-width:1100px;margin:1rem auto;padding:1rem;border:1px solid #44516a}.playtest-panel button{padding:.6rem;margin:.3rem}.playtest-panel pre{white-space:pre-wrap}.cold-open-tally .votes{outline:5px solid #2ef2ff;outline-offset:8px}.cold-open-tally .telegraph{visibility:hidden}
 .demo-forge{max-width:1100px;margin:1rem auto;padding:1rem;border:1px solid #2ef2ff;background:#17101f}.demo-forge p{line-height:1.5}.demo-forge button,.demo-forge select{padding:.65rem;margin:.4rem;font:inherit}.demo-forge textarea{box-sizing:border-box;width:100%;min-height:280px;margin:.8rem 0;background:#0c0912;color:#fff;font:14px/1.5 monospace;padding:12px}.demo-forge button:disabled{opacity:.5}.demo-forge summary{cursor:pointer}
+
+/* A connected stream is a bounded 16:9 frame, with safety controls always visible.
+   Expand restores all setup, webcam, results, Forge and local export controls. */
+.stream-bar{display:none;box-sizing:border-box;align-items:center;justify-content:center;gap:20px;height:44px;padding:4px 12px;background:#171c27;color:#fff;font-size:14px}
+.stream-bar label{flex-shrink:0;display:flex;align-items:center;gap:6px;white-space:nowrap}.stream-bar button{flex-shrink:0;height:34px;padding:4px 12px;border:1px solid #746080;border-radius:5px;background:#2c2137;color:#fff;cursor:pointer;font:inherit}.stream-status{min-width:0;max-width:640px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stream-compact{margin:0;min-height:0;height:100dvh;overflow:hidden}.stream-compact>.demo-header,.stream-compact>footer{display:none}
+.stream-compact main{height:100dvh;display:flex;flex-direction:column;align-items:center;overflow:hidden}.stream-compact main>:not(.stream-bar):not(.demo-stage):not(.demo-controls):not(#demo-status){display:none!important}
+.stream-compact .stream-bar{display:flex;flex:none;width:100%;height:44px}.stream-compact .demo-stage{flex:none;width:min(100%,calc((100dvh - 120px)*16/9));min-height:0;aspect-ratio:16/9;margin:0 auto}
+.stream-compact .demo-controls{box-sizing:border-box;flex:none;width:100%;height:52px;min-height:0;padding:6px 12px;gap:12px;flex-wrap:nowrap;margin:0;overflow:hidden}.stream-compact .demo-controls>label,.stream-compact .chat-command-help{display:none}.stream-compact .control-guide{width:auto;margin:0;white-space:nowrap}.stream-compact .demo-controls button{flex:none;min-height:36px}.stream-compact #demo-status{box-sizing:border-box;flex:none;height:24px;min-height:0;max-width:100%;margin:0;padding:2px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The compact bar remains available after expanding setup. */
+body:not(.stream-compact) .stream-bar{display:flex;max-width:1100px;margin:0 auto}
+/* Keep the pre-fight tutorial and its Start button readable inside the 720p frame. */
+.stream-compact .tutorial{top:50%;padding:16px 24px}.stream-compact .tutorial h1{font-size:clamp(24px,3vw,32px)}.stream-compact .tutorial p:not(.tutorial-eyebrow){margin:8px 0;line-height:1.35}.stream-compact .tutorial .tutorial-eyebrow{margin-bottom:6px}.stream-compact .tutorial ol{margin:10px 0}.stream-compact .tutorial li{padding:8px 4px;gap:6px}.stream-compact .tutorial li kbd{width:32px;height:32px;font-size:20px}

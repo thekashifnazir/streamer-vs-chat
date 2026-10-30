@@ -21,11 +21,11 @@
   <a href="#how-it-works"><img src="https://img.shields.io/badge/Twitch-EventSub%20%C2%B7%20Helix%20%C2%B7%20Clips-9146FF?style=for-the-badge&logo=twitch&logoColor=white" alt="Twitch EventSub, Helix and Clips"></a>
   <a href="#how-it-works"><img src="https://img.shields.io/badge/MediaPipe-Pose-0097A7?style=for-the-badge" alt="MediaPipe Pose"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/Node-22%20%C2%B7%20TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Node 22 and TypeScript"></a>
-  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-642%20offline-5C5850?style=for-the-badge" alt="642 offline tests"></a>
+  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-649%20offline-5C5850?style=for-the-badge" alt="649 offline tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-5C5850?style=for-the-badge" alt="Licence: MIT"></a>
 </p>
 
-**Codex × TwitchCon Hackathon** · built solo in one Codex thread, October 2026 · Codex session ID `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`
+**Codex × TwitchCon Hackathon** · entry code written in one main Codex thread, October 2026 · Codex session ID `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`
 
 **Built with** OpenAI Codex · Twitch EventSub, Helix and Clips (Twurple) · MediaPipe Pose Landmarker · Node 22 + TypeScript · OBS · Cloudflare Workers
 
@@ -33,23 +33,33 @@ Most chat games ask chat to spam and the streamer to watch. Here chat runs the b
 
 | Headline result | |
 |---|---|
-| Hard casual player win rate, 0 to 500 viewers (4,000 rounds per cell, gate is 30–70%) | **54.7–70.0%** |
-| Hard no-punch player win rate (gate is at least 30%) | **39.7–57.4%** |
-| 1,000 simulated chatters: chat to HUD | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
-| Offline tests (unit, golden vectors, recorded pose clips, transports) | **642**, no Twitch or external network |
+| Medium casual / no-punch win rates, ordinary round 1, 0 to 500 viewers · **INFERRED** player models | **66.1–70.1% / 50.4–54.6%** |
+| Hard casual / no-punch win rates, four ordinary/coordinated R1/R2 matrices · **INFERRED** player models | **54.7–70.0% / 39.7–57.4%** |
+| Real live Twitch chat to server · **MEASURED** on Kash's Mac | **p95 291 ms** ([measurement](docs/prompts/day0-kickoff.txt)) |
+| Simulated load, 1,000 chatters: ingest to HUD · **MEASURED** | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
+| Offline tests (unit, golden vectors, recorded pose clips, transports) | **649**, no Twitch or external network |
 
 ## How to play
 
-Chat Golem commands (first word, case-insensitive): **!jab (!j)** = guard; **!left (!l)** = hook from the left → **LEAN →**; **!right (!r)** = hook from the right → **← LEAN**; **!combo (!c)** = guard; **!super (!s)** = follow all three displayed GUARD / LEAN steps, only at full hype. Custom Forge bosses use exactly their displayed commands. Keyboard K / A / D / J controls the streamer.
+Chat Golem commands (first word, case-insensitive): **!jab (!j)** = guard; **!left (!l)** = hook from the left → **you lean right**; **!right (!r)** = hook from the right → **you lean left**; **!combo (!c)** = guard; **!super (!s)** = follow all three displayed GUARD / LEAN steps, only at full hype. Custom Forge bosses use exactly their displayed commands. Keyboard K / A / D / J controls the streamer.
 
 ### Try it in 60 seconds
 
-1. Open **[streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com)**. No account, no install; it keeps working offline once loaded.
+1. Open **[streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com)**. No account, no install. A loaded demo keeps running offline; reloading offline is not supported because there is no service worker.
 2. Choose **Standing** or **Seated**, optionally **No punches**, and tick **My space is clear and I can move comfortably.** Follow the tutorial: **K → A → J** (or **K → A → D** with no punches). Difficulty starts at **Medium**; the control below the game offers Easy / Medium / Hard / Expert. Webcam is optional.
 3. Simulated chat (badged **SIMULATED**) plays the boss. When **HANDS UP!** appears you have 1.0 s on Medium: guard a JAB or COMBO, lean right for HOOK L, left for HOOK R. SUPER has a longer warning and three highlighted guard/lean steps. Hard retains the original 0.8 s warning. Clean defences fill **FOCUS**. At **FINISHER READY**, hold **K** (guard) continuously for **1 s** in a gap between attacks: the FINISHER deals **4 damage**, then gives **3 s** of double-damage bonus punches. It works with no punches too; attacks keep their normal schedule.
-4. In round 2, **scouting cards** appear when there is enough consistent evidence: your lean habit on the left rail for chat, chat's repeated move on the right rail for you.
+4. **[See the scouting card in one round](https://streamervschat.kashifnazir.com/?scout=fast)** with the demo-only **SCOUT PREVIEW · SIMULATED** preset and repeated successful same-side dodges. Normal play keeps the full evidence threshold from round 2: your lean habit on the left rail for chat, chat's repeated move on the right rail for you.
 
 Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simulated, and the known limits.
+
+### Stream it on your channel in 5 minutes
+
+1. Open **[/play in Chrome](https://streamervschat.kashifnazir.com/play)** and press **Connect with Twitch**. It requests read-only chat access for your channel.
+2. In OBS, add **Window Capture** of that Chrome window.
+3. Tick **Green background**, then add an OBS **Chroma Key** filter and crop the capture to the game.
+4. Keep your webcam as a normal OBS camera source below the game. After connecting, setup collapses to a one-line bar; **Expand** brings the controls back.
+
+`/play` has no bot posts, clips or Boss Forge. Use the [local-server path](docs/DEVELOPMENT.md) for those. Five minutes is the setup guide, not a measured completion time.
 
 ## Why it's different
 
@@ -83,17 +93,26 @@ In the local Node/OBS flow, the server owns all game state; the HUD is a view an
 
 ## Results
 
-Hard balance was rerun for this ship pass. Load and soak figures are recomputed from the saved 28 October local measurements, not fresh physical measurements. [Difficulty results](SPEC.md#13-difficulty-levels) cover all four levels.
+Balance below is from the final 13g-2 `npm run sim` at `0be805d` (4,000 rounds per cell). Every balance row is **INFERRED**, using assumed player models, not measured human win rates. Viewer columns in the first four rows are **0 / 3 / 50 / 500**. Load and soak figures come from saved 28 October local measurements. [Difficulty results](SPEC.md#13-difficulty-levels) cover all four levels.
 
 | What | Result |
 |---|---|
-| Hard casual win rate across 0/3/50/500 viewers, ordinary and coordinated chat, rounds 1 and 2 | **54.7–70.0%** |
-| Hard no-punch win rate, same matrices | **39.7–57.4%** |
+| Medium casual, ordinary round 1 · **INFERRED** | **70.1 / 69.3 / 67.7 / 66.1%** |
+| Medium no-punch, ordinary round 1 · **INFERRED** | **53.8 / 54.6 / 50.4 / 52.2%** |
+| Hard casual, ordinary round 1 · **INFERRED** | **56.8 / 57.0 / 55.8 / 54.7%** |
+| Hard no-punch, ordinary round 1 · **INFERRED** | **43.5 / 44.0 / 40.3 / 39.7%** |
+| Hard casual, all four ordinary/coordinated R1/R2 matrices · **INFERRED** | **54.7–70.0%** |
+| Hard no-punch, same four matrices · **INFERRED** | **39.7–57.4%** |
+| Real live Twitch chat to server · **MEASURED**, Kash's Mac | **p50 218 ms / p95 291 ms** ([measurement](docs/prompts/day0-kickoff.txt)) |
 | Golden vectors through the shared reducer | **59** |
-| 1,000-chatter load: ingest to HUD p95 / worst beat drift / dropped votes | **104 ms / 12 ms / 0** |
+| Simulated 1,000-chatter local load · **MEASURED** ingest-to-HUD p95 / worst beat drift / dropped votes | **104 ms / 12 ms / 0** |
 | 30-minute soak: server heap growth after warm-up | **+6.3182%** (gate under 20%) (measured 28 October; recomputed from the saved heap samples) |
 
 How each number is produced, and the command that reruns it: [Tests and balance](#tests-and-balance), [LOAD.md](docs/LOAD.md), [Ship review](docs/queue13e-review.md).
+
+## Real playtests
+
+To be filled by Kash from real sessions only: **[players]**, **[real chat votes]**, **[quote + Twitch name with permission]**. Simulated crowds, balance rounds and load-test votes do not fill these fields.
 
 ## Run it locally
 
@@ -124,19 +143,25 @@ In the no-login demo, open **Boss Forge**, pick one of four prebaked bosses—Ne
 
 ## How Codex built this
 
+One main Codex thread wrote all entry code, using subagent lanes for focused work. Claude Code on Kash's Mac queued each task into that thread with `codex exec resume`. Devin wrote task prompts and reviewed results; Kash performed the camera, Twitch and physical playtests. Reviews were **independent subagent passes before each commit**.
+
+Evidence snapshot: **29 October 2026, 23:43 UTC**, before this 13h change. Counts come from the real root rollout and git; [definitions and reproduction](docs/codex-evidence.md).
+
 | | |
 |---|---|
 | Main Codex thread (submit this ID) | `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` |
-| Commits on `main`, all written in that thread | **31** at the pre-ship snapshot `4b20fb2` |
-| Tests over the build | 19 on day 1 → **642** at ship |
-| How the work was split | One root thread with subagent lanes for the engine, Twitch/server and HUD, plus an independent subagent review before each commit |
+| Root turns started / completed | **52 / 51**, including the active 13h turn; **29** completed turns issued tools, while **22** completed without tools (including usage-limit retries) |
+| Commits on `main` through `0be805d` | **38** |
+| Tests over the build | 19 on day 1 → **649** passing in [13h verification](docs/queue13h-review.md); **642** at the `0be805d` snapshot |
+| Scratch resume probe, temporary directory | `01a17fb6-76f6-78f2-9c20-e7926e5aba23` · `/private/tmp/cx-resume-test`; no entry code |
+| Scratch resume probe, Mac directory | `01a17fb7-0a50-70b1-af8e-edcee261d14d` · `/Users/kash/cx-resume-test`; ONE/TWO/THREE replies tested resume, no entry code |
 
 What the live tests and reviews caught, each fixed in the thread:
 1. **Guard flickered while leaning**: on stream every lean would have dropped the block. Fixed with a lean-invariant guard and hysteresis (`0c75cd7`, `3c7a268`).
 2. **Hands resting at the waist read as guard**: a streamer at rest would have blocked everything. Fixed with an anatomical wrist/elbow/torso gate (`0f7707f`).
 3. **CHAT SYNC failed the balance gate in both tuning attempts**, so it was removed rather than loosening the gate ([review](docs/queue11a-review.md)).
 
-`AGENTS.md` holds the rules Codex followed (server owns state, no real Twitch in tests, pose changes need a recorded-clip test). Findings and checks are in the linked day and queue review documents.
+`AGENTS.md` holds the rules Codex followed (the local server owns state in server mode; browser modes use the same shared reducer; no real Twitch in tests; pose changes need a recorded-clip test). Findings and checks are in the linked day and queue review documents.
 
 ## Known limits
 

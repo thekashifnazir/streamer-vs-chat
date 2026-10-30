@@ -1,3 +1,4 @@
+import {DEFAULT_SCOUTING_CONFIG,type ScoutingConfig} from './scouting-config.js';
 import {TEMPO,tempoFor,scaleTelegraph,isDifficulty,type Difficulty} from './tempo.js';
 import {hitDamage,counterDamage} from './combat.js';
 import { DEFAULT_BOSS,isDefaultBoss,validateBoss, type BossDef, type BossMoveDef } from './boss-def.js';
@@ -35,7 +36,7 @@ export type GameState={
   clock:{started_at:number;ends_at:number;next_beat:number;beat:number;paused_at:number|null};
   activeAttack:Attack|null;
   log:{telegraphs:Attack[];resolved:Resolution[];rounds:RoundResult[];inputs:DefenceInput[];fixes:ScoutingFix[];damage:DamageCredit[];superSteps:SuperStepResult[];finishers:Finisher[];bossDamage:BossDamage[]};
-  rng:number;moves?:Move[];bossDef?:BossDef;
+  rng:number;moves?:Move[];bossDef?:BossDef;scoutingConfig?:Readonly<ScoutingConfig>;
 };
 export type EngineVote=ChatVote&{raider?:boolean};
 export type EngineEvent=EngineVote|(PoseState&{capture_at?:number})|PunchEvent|(Control&{authorized?:boolean})|
@@ -90,7 +91,7 @@ export function wilsonLower(k:number,n:number):number{
   if(!n)return 0;const p=k/n,z=1.645,z2=z*z;
   return (p+z2/(2*n)-z*Math.sqrt(p*(1-p)/n+z2/(4*n*n)))/(1+z2/n);
 }
-export function createGame(options:{seed?:number;roundSeed?:number;viewers?:number;now?:number;roundNumber?:number;moves?:Move[];bossDef?:BossDef;difficulty?:Difficulty}={}):GameState{
+export function createGame(options:{seed?:number;roundSeed?:number;viewers?:number;now?:number;roundNumber?:number;moves?:Move[];bossDef?:BossDef;difficulty?:Difficulty;scoutingConfig?:Readonly<ScoutingConfig>}={}):GameState{
   const now=options.now??0,number=options.roundNumber??1,seed=options.seed??0;
   const difficulty=options.difficulty??'hard';if(!isDifficulty(difficulty))throw new Error('Invalid difficulty');
   const timing=tempoFor(difficulty);
@@ -105,6 +106,7 @@ export function createGame(options:{seed?:number;roundSeed?:number;viewers?:numb
     input:{guard:false,lean:null,guard_at:-Infinity,lean_at:-Infinity,last_punch_at:-Infinity,guard_capture_at:null,lean_capture_at:null,guard_source:'keyboard',lean_source:'keyboard',guard_received_at:null,lean_received_at:null},
     clock:{started_at:now,ends_at:now+75000,next_beat:now+timing.beat,beat:0,paused_at:null},activeAttack:null,
     log:{telegraphs:[],resolved:[],rounds:[],inputs:[],fixes:[],damage:[],superSteps:[],finishers:[],bossDamage:[]},rng:(options.roundSeed??(seed+number))>>>0,
+    ...(options.scoutingConfig?{scoutingConfig:{...options.scoutingConfig}}:{}),
     ...(options.moves===undefined?{}:{moves:[...options.moves]}),...(bossDef?{bossDef:structuredClone(bossDef)}:{}),
   };
 }
@@ -129,10 +131,11 @@ function scout(s:GameState,newDodge=false,at=s.now){
     }
     return;
   }
-  if(s.round.number<2||observed.length<12)return;
+  const config=s.scoutingConfig??DEFAULT_SCOUTING_CONFIG;
+  if(s.round.number<config.minRound||observed.length<config.minSamples)return;
   const left=observed.filter(side=>side==='L').length;
   const side=left>=observed.length-left?'L':'R',k=side==='L'?left:observed.length-left;
-  if(k/observed.length>=.65&&wilsonLower(k,observed.length)>=.60)s.scouting.card=side;
+  if(k/observed.length>=config.minShare&&wilsonLower(k,observed.length)>=config.minWilsonLower)s.scouting.card=side;
 }
 function scoutChat(s:GameState){
   const evidence=s.chatScouting,n=evidence.history.length; evidence.n=n;
@@ -331,10 +334,10 @@ function acceptVote(s:GameState,event:EngineVote){
 /** Pure server/demo/simulation reducer. Inputs at now run after all due engine events. */
 export function step(state:GameState,event:EngineEvent,now:number):GameState{
   if(!Number.isFinite(now)||now<state.now)throw new Error('Engine time must be finite and monotonic');
-  if(event.kind==='restart')return createGame({seed:event.seed??state.match.seed,viewers:state.viewers,now,difficulty:event.difficulty??state.difficulty,bossDef:event.bossDef===null?undefined:event.bossDef??state.bossDef});
+  if(event.kind==='restart')return createGame({seed:event.seed??state.match.seed,viewers:state.viewers,now,difficulty:event.difficulty??state.difficulty,scoutingConfig:state.scoutingConfig,bossDef:event.bossDef===null?undefined:event.bossDef??state.bossDef});
   if(event.kind==='next-round'){
     if(!state.round.over||state.match.winner||state.paused)return state;
-    const next=createGame({seed:state.match.seed,viewers:state.viewers,now,roundNumber:state.round.number+1,difficulty:state.difficulty,bossDef:event.bossDef===null?undefined:event.bossDef??state.bossDef});
+    const next=createGame({seed:state.match.seed,viewers:state.viewers,now,roundNumber:state.round.number+1,difficulty:state.difficulty,scoutingConfig:state.scoutingConfig,bossDef:event.bossDef===null?undefined:event.bossDef??state.bossDef});
     next.match={...state.match,round_wins:{...state.match.round_wins}};
     if(JSON.stringify(next.bossDef)!==JSON.stringify(state.bossDef)){next.chatScouting={...next.chatScouting};}
     else next.chatScouting={...state.chatScouting,history:[...state.chatScouting.history],openingPending:true};scoutChat(next);

@@ -1,3 +1,4 @@
+import {scoutPreviewConfig,SCOUT_PREVIEW_BADGE} from './scout-preview';
 import {createSuperNotices} from '../../shared/src/super-notices';
 import {createBossImpactLedger} from '../../shared/src/boss-impact';
 import {chatCommandLegend} from '../../shared/src/chat-commands';
@@ -16,6 +17,7 @@ import { createCalibration } from '../../capture/src/calibration';
 import { createSimulationSource } from './source';
 import { InputTutorial } from './tutorial';
 import {startColdOpen,coldOpenStage} from './cold-open';
+import {mountStreamLayout} from './stream-layout';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {createDemoViewerMemory} from './viewer-memory';
@@ -35,6 +37,8 @@ const clearSpace=el<HTMLInputElement>('clear-space');
 const noPunch=el<HTMLInputElement>('no-punch');
 const avatar=el('keyboard-avatar');
 const liveMode=location.pathname==='/play'||location.pathname.startsWith('/play/');
+const previewConfig=scoutPreviewConfig(location,{liveMode,liveTokenLoaded:false});
+if(previewConfig)document.querySelector('.demo-tag')!.textContent=SCOUT_PREVIEW_BADGE;
 const hud=createRailsHud(host,{simulated:!liveMode});
 const tutorial=new InputTutorial();
 const classifier=new PoseClassifier({guardThreshold:0});
@@ -53,6 +57,8 @@ let metricsRound:string|null=null;
 let liveViewers=0;
 let showSessionSummary=false;
 let coldOpenAt:number|null=null;
+const streamLayout=mountStreamLayout({live:liveMode,onEnd:()=>{if(liveMode){el<HTMLButtonElement>('show-results').click();return;}showSessionSummary=true;if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}}});
+if(previewConfig)streamLayout.status(SCOUT_PREVIEW_BADGE);
 const playtest=new LocalPlaytestStats();
 let playtestRound:string|null=null;
 const viewerMemory=liveMode?null:createDemoViewerMemory({offline:true,factory:globalThis.indexedDB,onChange:()=>paint()});
@@ -101,8 +107,8 @@ function paint() {
   hud.setMemory(viewerMemory?.view()??null);
   document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef)+' · FINISHER READY: hold K (guard) for 1 s; no punches required.';
   hud.setBossReceipts(impactLedger.snapshot());hud.setSuperNotices(superNotices.snapshot());
-  hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0,difficulty:difficulty.value as Difficulty}),!liveMode);
-  hud.setConnection(liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
+  hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0,difficulty:difficulty.value as Difficulty,...(previewConfig?{scoutingConfig:previewConfig}:{})}),!liveMode);
+  hud.setConnection(previewConfig?SCOUT_PREVIEW_BADGE:liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   trackFight();trackLocalRound();
   const summary=game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null;
   hud.setEndcard(summary&&viewerMemory?{...summary,chatMvp:viewerMemory.summaryMvp()}:summary);
@@ -129,11 +135,12 @@ function startFight() {
   if(!clearSpace.checked){el('tutorial-status').textContent='Confirm your clear space below before starting.';return;}
   hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
   const at=performance.now();
-  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,difficulty:difficulty.value as Difficulty,...(!liveMode&&pendingBoss?{bossDef:pendingBoss}:{})});
+  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,difficulty:difficulty.value as Difficulty,...(previewConfig?{scoutingConfig:previewConfig}:{}),...(!liveMode&&pendingBoss?{bossDef:pendingBoss}:{})});
   // Live chat and the offline crowd both feed the shared reducer; no server import.
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+100,liveTokenLoaded:hosted?.hasToken??false});
   trackLocalRound();crowdBeat='';drawCrowd(at);
   el('tutorial').hidden=true;
+  streamLayout.collapse();
   keyboard.setEnabled(source.value==='keyboard');
   game=step(game,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);
   paint();
@@ -280,7 +287,7 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=()=>{if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}};
-  hosted=mountHostedPlay({onVote:vote=>{
+  hosted=mountHostedPlay({onConnected:()=>streamLayout.collapse(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;

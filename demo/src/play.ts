@@ -2,7 +2,7 @@ import {getBrowserAuth} from './twitch/auth';
 import {createBrowserChat} from './twitch/eventsub';
 import {PlayMetrics} from './metrics';
 import type {ChatVote,StreamerInput} from '@svc/shared';
-export function mountHostedPlay(options:{onVote:(vote:ChatVote)=>boolean;onControl:(event:StreamerInput)=>void;onViewers:(count:number)=>void;onDisconnect:()=>void;onSummary:()=>void}){
+export function mountHostedPlay(options:{onConnected?:()=>void;onStatus?:(message:string)=>void;onGreen?:(checked:boolean)=>void;onVote:(vote:ChatVote)=>boolean;onControl:(event:StreamerInput)=>void;onViewers:(count:number)=>void;onDisconnect:()=>void;onSummary:()=>void}){
  const auth=getBrowserAuth(),metrics=new PlayMetrics();
  let connected=false;
  const panel=document.createElement('section');panel.className='hosted-panel';
@@ -10,10 +10,10 @@ export function mountHostedPlay(options:{onVote:(vote:ChatVote)=>boolean;onContr
  document.querySelector('main')!.prepend(panel);
  const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
  const status=el('twitch-status'),connect=el<HTMLButtonElement>('twitch-connect');
- const report=(message:string)=>{status.textContent=message;};
+ const report=(message:string)=>{status.textContent=message;options.onStatus?.(message);};
  const chat=createBrowserChat({auth,now:()=>performance.now(),onChat:user=>{void metrics.observeChat(user);},onVote:vote=>{if(options.onVote(vote))void metrics.acceptedVote(vote.user);},onControl:options.onControl,onViewers:options.onViewers,onStatus:message=>{
   report(message==='connected'?'LIVE · Twitch chat connected':message==='login-required'?'Reconnect: Twitch authorization expired':`Twitch: ${message}`);connected=auth.authenticated&&message==='connected';
-  if(!connected)options.onDisconnect();
+  if(connected)options.onConnected?.();else options.onDisconnect();
   // Explicit transport readiness, rather than a loaded token, gates fights.
   if(!auth.authenticated){connect.hidden=false;connect.textContent='Reconnect';}
  }});
@@ -23,7 +23,7 @@ export function mountHostedPlay(options:{onVote:(vote:ChatVote)=>boolean;onContr
  }
  connect.addEventListener('click',()=>{if(!['https://streamervschat.kashifnazir.com','http://localhost:5173'].includes(location.origin)){report('For Twitch login open https://streamervschat.kashifnazir.com/play or http://localhost:5173/play (the registered redirect origins).');return;}try{location.assign(auth.loginUrl());}catch{report('This build needs VITE_TWITCH_CLIENT_ID. Ask the channel owner to configure the public Twitch client ID and rebuild.');}});
  el('twitch-disconnect').addEventListener('click',()=>{chat.stop();auth.clear();connected=false;connect.hidden=false;connect.textContent='Connect with Twitch';el('twitch-disconnect').hidden=true;report('Disconnected. Connect Twitch to play live, or open the no-login demo.');options.onDisconnect();});
- el<HTMLInputElement>('green-background').addEventListener('change',event=>document.getElementById('stage')!.classList.toggle('chroma-green',(event.target as HTMLInputElement).checked));
+ el<HTMLInputElement>('green-background').addEventListener('change',event=>{document.getElementById('stage')!.classList.toggle('chroma-green',(event.target as HTMLInputElement).checked);options.onGreen?.((event.target as HTMLInputElement).checked);});
  const show=async()=>{options.onSummary();metrics.endFight();const json=JSON.stringify(await metrics.exportSnapshot(),null,2);el('play-results').textContent=json;el('play-results').hidden=false;el('copy-results').hidden=false;return json;};
  el('show-results').addEventListener('click',()=>{void show();});
  el('copy-results').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(await show());report('Counts-only results copied.');}catch{report('Copy unavailable. Select the JSON results shown below.');}});
