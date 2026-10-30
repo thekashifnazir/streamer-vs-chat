@@ -48,3 +48,11 @@ DOM/computed-style and CSS-bound geometry checks cover 1920×1080 and 1280×720.
 - Eyeball the seated + memory + Calm FX footer with full sound text; tests cover computed wrapping/non-truncation, not physical glyph containment.
 - Standing/seated real webcam walkthrough remains a physical check. No classifier or calibration-maths change is claimed or made.
 - Claude deploys. Committed hosted flags stay off.
+
+## Follow-up
+
+- The pre-start input path now uses the same tutorial status renderer as the page: “Press START FIGHT above to begin.” Started K/A/J (or defence-only K/A/D) step messages stay unchanged; both page markups and prompts have regressions.
+- Forge and Share use the same page-scoped card box: #120d1a fill, 1px #2a2238 border, 4px cyan top, 16px radius and 26px padding, in the existing equal-height grid. Removed the stray Prebaked text before the Boss label. No HUD `.forge-card` class is applied.
+- Copy link and Test this boss use the same explicit cyan primary style. Production-CSS tests check both card boxes, the uncluttered label and both buttons’ foreground/background colours.
+- Independent read-only review by `polish_style`: no blockers; mappings, rules and responsive stacking/wrapping unchanged. Physical narrow-width inspection remains the existing Mac check.
+- Checks on Node 22.23.4: `npm test` 906/906 (112 files), `npx tsc --noEmit`, `npm run build:demo` and `npx wrangler deploy --dry-run` all exit 0; all hosted flags remain off. Focused tutorial/Forge regressions: 10/10 passed. `npm run sim` exits 0: all production, difficulty and Forge gates pass; all 3,652 output bytes match the 0be805d reference (SHA-256 `b1fac984b5bad9b5ceea6c5fb1bd9680fbff80d87a56a0ef88708891b3d64527`). No golden, engine, classifier, timing, damage or balance changes. `git diff --check` passes. No deployment.

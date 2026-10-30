@@ -1,3 +1,5 @@
+import {readFileSync} from 'node:fs';
+import {JSDOM} from 'jsdom';
 import { expect, test } from 'vitest';
 import { InputTutorial } from './tutorial';
 import {setLiveCredentials} from './credentials';
@@ -61,4 +63,20 @@ test('actual hosted credentials prevent simulation even when a caller passes fal
     expect(()=>createSimulationSource({viewers:3,seed:1,liveTokenLoaded:false})).toThrow(/refuses/);
     expect(()=>createSimulationSource({viewers:3,seed:1,liveTokenLoaded:false,mock:true})).not.toThrow();
   }finally{setLiveCredentials(false);}
+});
+
+
+test.each(['../index.html','../play/index.html'])('keeps pre-start copy above the stage and preserves tutorial key prompts in %s',file=>{
+ const dom=new JSDOM(readFileSync(new URL(file,import.meta.url),'utf8'));
+ try{
+  const status=dom.window.document.getElementById('tutorial-status')!,tutorial=new InputTutorial();
+  expect(status.textContent).toBe(tutorial.status(false));
+  // An unsolicited pre-start input must render through the same status path.
+  status.textContent=tutorial.status(false);expect(status.textContent).toBe('Press START FIGHT above to begin.');
+  status.textContent=tutorial.status(true);expect(status.textContent).toBe('Step 1 of 3 · Press K');
+  tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:0});status.textContent=tutorial.status(true);expect(status.textContent).toBe('Step 2 of 3 · Press A');
+  tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});status.textContent=tutorial.status(true);expect(status.textContent).toBe('Step 3 of 3 · Press J');
+  tutorial.setNoPunch(true);status.textContent=tutorial.status(true);expect(status.textContent).toBe('Step 3 of 3 · Press D');
+  const main=readFileSync(new URL('./main.ts',import.meta.url),'utf8');expect(main).toContain('if(!game)updateTutorial();');expect(main).toContain("el('tutorial-status').textContent=tutorial.status(tutorialStarted)");expect(main).not.toContain('Check “My space is clear” below');
+ }finally{dom.window.close();}
 });

@@ -18,7 +18,7 @@ it('shows plain accepted/rejected copy without changing admission or snapshots',
 });
 
 it('keeps the page Forge card in the More to try grid, outside HUD Forge positioning',()=>{
- const dom=new JSDOM('<main><section id="more-to-try"><div class="more-cards"><section id="demo-forge-host"></section></div></section></main>');
+ const dom=new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8'));
  const doc=dom.window.document;vi.stubGlobal('document',doc);
  const style=doc.createElement('style');style.textContent=readFileSync(new URL('../../overlay/src/style.css',import.meta.url),'utf8')+'\n'+readFileSync(new URL('./style.css',import.meta.url),'utf8');doc.head.append(style);
  const host=doc.getElementById('demo-forge-host')!,ui=mountDemoForge(host,{betweenRounds:()=>true,onAccepted:()=>{},onSnapshot:()=>{}});
@@ -26,5 +26,12 @@ it('keeps the page Forge card in the More to try grid, outside HUD Forge positio
   expect(host.classList.contains('forge-card')).toBe(false);
   expect(dom.window.getComputedStyle(host).position).not.toBe('absolute');
   expect(dom.window.getComputedStyle(host.parentElement!).display).toBe('grid');
+  expect(dom.window.getComputedStyle(host.parentElement!).alignItems).toBe('stretch');
+  const share=doc.getElementById('friend-tools')!,computed=dom.window.getComputedStyle;
+  for(const card of [host,share]){
+   const box=computed(card);expect(box.backgroundColor).toBe('rgb(18, 13, 26)');expect(box.borderLeftWidth).toBe('1px');expect(box.borderLeftColor).toBe('rgb(42, 34, 56)');expect(box.borderTopWidth).toBe('4px');expect(box.borderTopColor).toBe('rgb(46, 242, 255)');expect(box.borderRadius).toBe('16px');expect(box.padding).toBe('26px');
+  }
+  expect(host.querySelector('.forge-preset-badge')).toBeNull();expect(host.querySelector('.source-label')!.firstChild!.textContent).toBe('Boss ');
+  for(const button of [host.querySelector('[data-action="test"]')!,doc.getElementById('copy-demo-link')!]){const appearance=computed(button);expect(appearance.backgroundColor).toBe('rgb(46, 242, 255)');expect(appearance.color).toBe('rgb(12, 9, 18)');}
  }finally{ui.dispose();dom.window.close();}
 });

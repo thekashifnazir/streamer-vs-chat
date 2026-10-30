@@ -86,7 +86,7 @@ function updateTutorial() {
   tutorial.setNoPunch(noPunch.checked);
   el('tutorial-last-key').textContent=tutorial.keys[2];
   el('tutorial-last-label').textContent=noPunch.checked?`Try the other ${posture.value==='seated'?'tilt':'lean'}`:'Try a bonus punch';
-  el('tutorial-status').textContent=tutorialStarted?`Step ${Math.min(3,tutorial.step+1)} of 3 · Press ${tutorial.keys[Math.min(2,tutorial.step)]}`:'Press START FIGHT above to begin.';
+  el('tutorial-status').textContent=tutorial.status(tutorialStarted);
   for(const [index,item]of Array.from(document.querySelectorAll('[data-step]')).entries()) {
     item.classList.toggle('done',index<tutorial.step);item.classList.toggle('active',index===tutorial.step);
   }
@@ -164,7 +164,7 @@ function input(event:StreamerInput) {
   if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||coldOpenAt!==null||(liveMode&&!hosted?.ready)))return;
   const at=performance.now();
   if(event.kind!=='control'&&!clearSpace.checked) {
-    if(!game)el('tutorial-status').textContent='Check “My space is clear” below, then press K.';
+    if(!game)updateTutorial();
     return;
   }
   if(!game) {
