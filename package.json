@@ -21,9 +21,11 @@
     "test:mock-events": "tsx scripts/test-mock-events.ts",
     "load": "tsx scripts/load.ts --mock --hardening",
     "soak": "tsx scripts/soak.ts --mock --hardening",
-    "test:recovery": "tsx scripts/test-recovery.ts --mock --hardening"
+    "test:recovery": "tsx scripts/test-recovery.ts --mock --hardening",
+    "types:worker": "tsx scripts/worker-types.ts"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261030.1",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.5.0",

@@ -16,3 +16,6 @@ highlights.json.tmp
 
 data/viewers.json
 data/viewers.json.*
+
+.dev.vars
+.dev.vars.*

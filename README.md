@@ -54,12 +54,12 @@ Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simul
 
 ### Stream it on your channel in 5 minutes
 
-1. Open **[/play in Chrome](https://streamervschat.kashifnazir.com/play)** and press **Connect with Twitch**. It requests read-only chat access for your channel.
+1. Open **[/play in Chrome](https://streamervschat.kashifnazir.com/play)** and press **Connect with Twitch**. It requests chat-read access, `channel:bot` for optional bot results, and `clips:edit` for the upcoming hosted clips stage.
 2. In OBS, add **Window Capture** of that Chrome window.
 3. Tick **Green background**, then add an OBS **Chroma Key** filter and crop the capture to the game.
 4. Keep your webcam as a normal OBS camera source below the game. After connecting, setup collapses to a one-line bar; **Expand** brings the controls back.
 
-`/play` has no bot posts, clips or Boss Forge. Use the [local-server path](docs/DEVELOPMENT.md) for those. Five minutes is the setup guide, not a measured completion time.
+`/play` can post structured round results through the hosted bot when enabled; clips and Boss Forge still need the local server. Use the [local-server path](docs/DEVELOPMENT.md) for those. Five minutes is the setup guide, not a measured completion time.
 
 ## Why it's different
 
@@ -88,8 +88,19 @@ In the local Node/OBS flow, the server owns all game state; the HUD is a view an
 | Mode | Chat | Needs |
 |---|---|---|
 | No-login demo | Simulated, badged | A browser |
-| [Try it on your channel](https://streamervschat.kashifnazir.com/play) | Your real Twitch chat (read only) | A Twitch login |
+| [Try it on your channel](https://streamervschat.kashifnazir.com/play) | Your real Twitch chat; optional hosted bot results | A Twitch login |
 | Local live + OBS | Real chat, bot posts results, clips, viewer memory, Boss Forge | Node 22, a Twitch app, two accounts; optional OpenAI key for generated bosses |
+
+### Hosted backend
+
+The Worker serves `/api` and keeps a separate Durable Object result queue per authenticated channel. `/play` never posts with the streamer's token: the bot sends only server-formatted round results and HYPE notices, at most once per 10 seconds. “Post results in chat (as streamervschatbot)” defaults on only when the deployed bot flag and `channel:bot` grant are present. Delivery failures show a status line and leave play running. All hosted flags are committed off; Claude configures public app/bot IDs and the Worker secret before deploying. Older chat-only tokens keep working and can reconnect to enable results.
+
+| Hosted roadmap stage | Status |
+|---|---|
+| Bot round results and HYPE notices | Implemented, flag off pending deployment/live check |
+| Clips | Local server only; hosted stage next |
+| Boss Forge | Local server and prebaked demo; hosted stage pending |
+| Viewer memory | Local server and simulated demo; hosted opt-in stage pending |
 
 ## Results
 
@@ -167,7 +178,7 @@ What the live tests and reviews caught, each fixed in the thread:
 
 - **Punches are optional bonus damage.** Punch detection is less reliable on unseen bodies than guard and lean; no-punch mode keeps automatic defence counters.
 - **Camera needs Chrome**, not the OBS Browser Source, and decent light; lost tracking releases held pose inputs.
-- **`/play` only reads chat.** Posting results, clips, viewer memory and Boss Forge need the local server.
+- **Hosted features are flagged off by default.** `/play` reads chat; its optional Worker bot posts formatted results when enabled. Clips, viewer memory and Boss Forge still need the local server.
 - **Clips need a live stream at least 60 seconds old**; otherwise the session card shows stats or a local replay.
 - **Boss Forge's real-model path needs your own OpenAI key**; the tests use injected fake clients.
 

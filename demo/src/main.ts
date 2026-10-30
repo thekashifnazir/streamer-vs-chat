@@ -24,7 +24,7 @@ import {createDemoViewerMemory} from './viewer-memory';
 
 const impactLedger=createBossImpactLedger('browser');
 const superNotices=createSuperNotices();
-const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);superNotices.observe(before,after,Date.now(),event.kind==='restart');if(event.kind==='vote')superNotices.denied(after,event.move,Date.now());return after;};
+const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);const hypeFull=superNotices.observe(before,after,Date.now(),event.kind==='restart');hosted?.observeGame(after,hypeFull);if(event.kind==='vote')superNotices.denied(after,event.move,Date.now());return after;};
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const stage=el('stage');
 const host=el('game-hud');

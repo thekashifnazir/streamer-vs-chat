@@ -50,9 +50,9 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 
 ## Hosted channel mode
 - /play is the authorised no-server exception: the browser owns this mode's state and calls the same shared reducer. The no-login landing remains offline and simulated; local Node/OBS Browser Source paths remain supported.
-- OAuth implicit uses only user:read:chat. Keep tokens in memory, strip callback hashes immediately, validate at start/hourly, check random state; sessionStorage may retain only the CSRF nonce. No client secret, persisted token or analytics service.
+- OAuth implicit requests user:read:chat, channel:bot and clips:edit; validation still requires only user:read:chat for older grants. Keep tokens in memory, strip callback hashes immediately, validate at start/hourly, check random state; sessionStorage may retain only the CSRF nonce. No client secret, persisted token or analytics service.
 - Build/dev read only explicit public VITE_TWITCH_CLIENT_ID, never .env/server tokens. Redirect origins are primarydomain root and localhost:5173 root; other previews direct users to a registered origin. No deployment by agents.
-- Live credential state must gate simulated source creation even if a caller incorrectly passes false. LIVE transport loss freezes play until connected and explicitly resumed. Hosted mode never sends chat.
+- Live credential state must gate simulated source creation even if a caller incorrectly passes false. LIVE transport loss freezes play until connected and explicitly resumed. /play never sends chat with the streamer's token; only the Worker's bot sends server-formatted results.
 - Metrics export only counts/rates. Salted SHA-256 identities and fresh session salt stay in memory, never persisted/exported; never retain/export chat text or usernames. Baseline is up to10 observed minutes before the first round; each round is a fight.
 
 ## Presentation feel and proof
@@ -91,3 +91,9 @@ Twitch chat is the boss's brain; the streamer's body is the defence (guard block
 - `validateBoss` is pure and authoritative; strict schema and moderation supplement it. Reserve built-in control commands and protect broadcaster/recent chatter names, including near matches. Ideas/generated text never enter TTS or logs.
 - Forge uses injected AI clients in tests, never real keys/network. Live server may read OPENAI_API_KEY from .env; mock/static paths never construct a real client. Preserve exact requested model gpt-6-luna, low reasoning, one repair, output moderation and token/latency telemetry. Unknown costs remain unavailable.
 - Fast R1 Forge gates use 4,000 samples/cell and shared combat arithmetic with production-reducer replay regressions; uniform tuning has eight bounded steps. Keep all four existing production balance matrices and every fixture gate in CI. Offline editing/simulation runs in a cancellable worker and never blocks keyboard play or needs a key.
+
+## Hosted backend (Queue 13i)
+- Worker `/api` authenticates user tokens against this app; hash-only identity caches expire within five minutes. Route the ChannelHub by validated user ID, never a submitted channel. The no-login demo never calls `/api`.
+- Results accept bounded structured fields only and use shared pure formatters. Durable queues keep at most three pending messages, dropping oldest, with at least ten seconds between attempts; alarms flush them. App-token sends use the configured bot and source-only delivery. Keep only safe drop codes for status.
+- Public health flags gate each hosted feature; all flags stay off in committed config. New `/play` grants request chat read, channel:bot and clips:edit; older read-only tokens remain accepted. Backend failures never freeze gameplay.
+- Worker secrets are provisioned with wrangler secret by Claude; never load server .env for Worker builds/checks. Use deploy --dry-run only. Regenerate isolated bindings with npm run types:worker.

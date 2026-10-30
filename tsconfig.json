@@ -17,6 +17,7 @@
   },
   "include": [
     "server",
+    "worker",
     "shared",
     "scripts",
     "overlay",

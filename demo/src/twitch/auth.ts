@@ -1,7 +1,7 @@
 import {setLiveCredentials} from '../credentials';
 declare global {interface ImportMeta {readonly env:{readonly VITE_TWITCH_CLIENT_ID?:string}}}
 /** Browser-only implicit flow. Only the CSRF nonce survives the redirect; tokens never persist. */
-export type TwitchAccount={id:string;login:string;expiresIn:number};
+export type TwitchAccount={id:string;login:string;expiresIn:number;scopes:string[]};
 export type NonceStorage=Pick<Storage,'getItem'|'setItem'|'removeItem'>;
 export class TwitchAuthError extends Error {constructor(){super('Twitch authorization expired or invalid. Connect again.');}}
 const NONCE_KEY='svc.twitch.oauth-state';
@@ -17,10 +17,10 @@ export function createBrowserAuth(options:{clientId:string;redirectUri:string;fe
   if(!response.ok)throw new Error('Twitch validation is unavailable. Try again.');
   const value=await response.json();
   if(value.client_id!==options.clientId||typeof value.user_id!=='string'||!value.user_id||typeof value.login!=='string'||!Array.isArray(value.scopes)||!value.scopes.includes('user:read:chat')||!Number.isFinite(value.expires_in)||value.expires_in<=0){clear();throw new TwitchAuthError();}
-  account={id:value.user_id,login:value.login,expiresIn:value.expires_in};return {...account};
+  account={id:value.user_id,login:value.login,expiresIn:value.expires_in,scopes:[...value.scopes]};return {...account,scopes:[...account.scopes]};
  }
  return {
-  get account(){return account?{...account}:null;},
+  get account(){return account?{...account,scopes:[...account.scopes]}:null;},
   get hasToken(){return token!==null;},
   get authenticated(){return token!==null&&account!==null;},
   clear,validate,
@@ -29,7 +29,7 @@ export function createBrowserAuth(options:{clientId:string;redirectUri:string;fe
    const bytes=new Uint8Array(32);(options.randomBytes??(bytes=>crypto.getRandomValues(bytes)))(bytes);
    const state=Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('');storage.setItem(NONCE_KEY,state);
    const url=new URL('https://id.twitch.tv/oauth2/authorize');
-   url.search=new URLSearchParams({client_id:options.clientId,redirect_uri:options.redirectUri,response_type:'token',scope:'user:read:chat',state}).toString();return url.href;
+   url.search=new URLSearchParams({client_id:options.clientId,redirect_uri:options.redirectUri,response_type:'token',scope:'user:read:chat channel:bot clips:edit',state}).toString();return url.href;
   },
   async consumeCallback(href=location.href):Promise<boolean>{
    const url=new URL(href),hash=new URLSearchParams(url.hash.slice(1));
@@ -45,6 +45,13 @@ export function createBrowserAuth(options:{clientId:string;redirectUri:string;fe
    if(url.origin!==redirect.origin||url.pathname!==redirect.pathname)throw new TwitchAuthError();
    token=received;setLiveCredentials(true);
    try{await validate();return true;}catch(error){clear();throw error;}
+  },
+  async backendRequest(path:string,init:RequestInit={}):Promise<Response>{
+   if(!token||!account)throw new TwitchAuthError();
+   // Deliberately fixed same-origin endpoint allowlist: no redirects can leak the user token.
+   if(!/^\/api\/(results|status)$/.test(path))throw new Error('Invalid hosted API path');
+   const headers=new Headers(init.headers);headers.set('Authorization',`Bearer ${token}`);
+   return request(path,{...init,headers,cache:'no-store',redirect:'error'});
   },
   async request(path:string,init:RequestInit={}):Promise<Response>{
    if(!token||!account)throw new TwitchAuthError();

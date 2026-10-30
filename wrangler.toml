@@ -1,8 +1,33 @@
 name = "streamer-vs-chat"
+main = "worker/src/index.ts"
 compatibility_date = "2026-10-27"
 workers_dev = true
 routes = [{ pattern = "streamervschat.kashifnazir.com", custom_domain = true }]
 
 [assets]
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
 directory = "./dist-demo"
 not_found_handling = "single-page-application"
+
+[vars]
+TWITCH_CLIENT_ID = ""
+BOT_USER_ID = ""
+HOSTED_BOT = "off"
+HOSTED_CLIPS = "off"
+HOSTED_FORGE = "off"
+HOSTED_MEMORY = "off"
+
+[[durable_objects.bindings]]
+name = "CHANNEL"
+class_name = "ChannelHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChannelHub"]
+
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true

@@ -9,7 +9,7 @@ Twitch chat votes the boss's attacks; the streamer blocks and dodges on camera. 
 | Where | Chat | Labelled |
 |---|---|---|
 | The no-login demo (this address) | Simulated crowd of 0, 3, 50 or 500 viewers | **SIMULATED** badge on screen |
-| `/play` (Try it on your channel) | Your own real Twitch chat, read only | LIVE · Twitch chat connected |
+| `/play` (Try it on your channel) | Your own real Twitch chat; optional hosted bot results | LIVE · Twitch chat connected |
 | Local live server + OBS | Real Twitch chat; the bot posts results | LIVE transport status |
 | Local mock server + OBS (the README GIF) | Local simulated chat | SIMULATED CHAT |
 
@@ -39,7 +39,7 @@ Clone and `npm ci` need network access to download the repository and packages. 
 
 - Punches are optional bonus damage; no-punch mode keeps automatic defence counters.
 - The webcam needs Chrome and reasonable light.
-- `/play` reads chat but doesn't post to it. Bot result posts, clips, persistent live viewer memory and live AI Boss Forge need the local server.
+- `/play` reads chat; optional Worker bot results require the deployed bot flag and a `channel:bot` grant. Clips, persistent live viewer memory and live AI Boss Forge still need the local server.
 - The loaded no-login demo runs without network requests; reloading offline is not supported because there is no service worker. For a fully local copy, run `npm run demo`.
 - Esc / **STOP** freezes play; **Resume** continues after clear-space confirmation. Sound starts off.
 - The local `/capture` page starts **INPUTS LOCKED**: tick **My space is clear** and press **Resume inputs** before **START MATCH**. Webcam input additionally requires valid calibration and a fresh framed pose.

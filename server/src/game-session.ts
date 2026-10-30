@@ -1,7 +1,8 @@
 import {createSuperNotices} from '../../shared/src/super-notices';
 import {createBossImpactLedger} from '../../shared/src/boss-impact';
 import {chatCommand} from '../../shared/src/chat-commands';
-import {difficultyName, type Difficulty} from '../../shared/src/tempo';
+import {type Difficulty} from '../../shared/src/tempo';
+import {formatRoundResult,formatHypeFull} from '../../shared/src/result-text';
 import {type BossDef,isDefaultBoss,validateBoss} from '../../shared/src/boss-def';
 import { parseChatVote, type StreamerInput, type TallySnapshot, type PoseState } from '@svc/shared';
 import { createGame, step, weightedTally, type EngineEvent, type GameState } from '../../shared/src/engine';
@@ -74,12 +75,12 @@ export class GameSession {
     const wasOver=this.current.round.over;
     this.current=step(this.current,event,now);
     this.impactLedger.observe(previous,this.current);
-    if(this.superNoticeTracker.observe(previous,this.current,this.now(),event.kind==='restart')&&this.armed)this.results.enqueue('HYPE is full! Type !s for the SUPER',this.now());
+    if(this.superNoticeTracker.observe(previous,this.current,this.now(),event.kind==='restart')&&this.armed)this.results.enqueue(formatHypeFull(),this.now());
     this.options.onState?.(previous,this.current);
     if(this.armed&&!wasOver&&this.current.round.over) {
       const result=this.current.log.rounds.at(-1)!;
       const score=this.current.match.round_wins;
-      const text=`Streamer vs Chat · Round ${result.number}: ${result.winner==='streamer'?'STREAMER':this.current.bossDef?.name??'CHAT GOLEM'} wins (${Math.round(result.streamer_hp)}/100 vs ${Math.round(result.boss_hp)}/${this.current.boss.max_hp} HP) · ${score.streamer}–${score.boss}${this.current.match.winner?' · MATCH OVER':''} · ${difficultyName(this.current.difficulty)} · Chat: ${chatCommand('HOOK_L',this.current.bossDef)} / ${chatCommand('HOOK_R',this.current.bossDef)}`;
+      const text=formatRoundResult({number:result.number,winner:result.winner,streamerHp:result.streamer_hp,bossHp:result.boss_hp,bossMaxHp:this.current.boss.max_hp,bossName:this.current.bossDef?.name??'CHAT GOLEM',score,matchOver:!!this.current.match.winner,difficulty:this.current.difficulty,hookL:chatCommand('HOOK_L',this.current.bossDef),hookR:chatCommand('HOOK_R',this.current.bossDef)});
       this.results.enqueue(text,now);
       this.nextRoundAt=this.current.match.winner?null:now+3000;
     }

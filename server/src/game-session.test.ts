@@ -34,7 +34,7 @@ it('sends one result per actual round only, pauses between rounds, and refuses s
   game.state.boss.hp=1;
   at(100);game.input({kind:'punch',side:'L',at:0,source:'keyboard'});
   await new Promise(resolve=>setTimeout(resolve,0));
-  expect(send).toHaveBeenCalledTimes(1);expect(send.mock.calls[0]?.[1]).toBe(false);
+  expect(send).toHaveBeenCalledTimes(1);expect(send.mock.calls[0]).toEqual(['Streamer vs Chat · Round 1: STREAMER wins (100/100 vs 0/135 HP) · 1–0 · Hard · Chat: !left (!l) / !right (!r)',false]);
   game.input({kind:'control',action:'stop',by:'capture'});
   at(5000);game.advance();expect(game.state.round.number).toBe(1);
   game.input({kind:'control',action:'resume',by:'capture'});game.advance();expect(game.state.round.number).toBe(2);
