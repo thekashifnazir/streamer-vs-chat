@@ -47,3 +47,6 @@ it('posts validator-compatible R1/R2/R3 results exactly once and allows new resu
  for(const seed of [1,2]){observe(step(state,{kind:'restart',seed},state.now+100));state.boss.hp=1;observe(step(state,{kind:'punch',side:'L',at:state.now+100,source:'keyboard'},state.now+100));}
  await flush();expect(bodies()).toHaveLength(5);for(const body of bodies())expect(validateResult(body)).toEqual(body);s.client.dispose();
 });
+it('posts verified clip IDs only when the existing bot opt-in is enabled',async()=>{
+ vi.useFakeTimers();const s=setup();await s.client.initialize();s.client.postClip('ConfirmedClip');await flush();const posts=s.backendRequest.mock.calls.filter(call=>call[0]==='/api/results');expect(posts).toHaveLength(1);expect(JSON.parse(posts[0]![1]!.body as string)).toEqual({kind:'clip',clipId:'ConfirmedClip'});s.client.setEnabled(false);s.client.postClip('NotPosted');await flush();expect(s.backendRequest.mock.calls.filter(call=>call[0]==='/api/results')).toHaveLength(1);s.client.dispose();
+});

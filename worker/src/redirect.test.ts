@@ -25,6 +25,10 @@ describe('Worker redirect compatibility and credential isolation',()=>{
   expect(await new TwitchBotSender(credentials,fetcher,()=>0).send('123','formatted result')).toEqual({dropReason:null});
   expect(fetcher).toHaveBeenCalledTimes(3);
  });
+ it('looks up a confirmed clip with a workerd-compatible fetch',async()=>{
+  const fetcher=workerdFetch(async input=>String(input).endsWith('/token')?token():Response.json({data:[{id:'ClipSlug',broadcaster_id:'123'}]}));
+  expect(await new TwitchBotSender(credentials,fetcher,()=>0).clipUrl('123','ClipSlug')).toBe('https://clips.twitch.tv/ClipSlug');expect(fetcher).toHaveBeenCalledTimes(2);
+ });
  it('preserves Twitch 401 as unauthorized instead of hiding it as auth-unavailable',async()=>{
   const fetcher=workerdFetch(async()=>new Response(null,{status:401}));
   await expect(createUserValidator({clientId:'app',fetch:fetcher,now:()=>0})('Bearer dummy')).rejects.toEqual(new ApiAuthError(401));
@@ -39,6 +43,10 @@ describe('Worker redirect compatibility and credential isolation',()=>{
    const fetcher=workerdFetch(async()=>redirect());
    await expect(new TwitchBotSender(credentials,fetcher,()=>0).send('123','result')).rejects.toThrow('app-token-unavailable');
    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it(`rejects ${label} from Get Clips without following or retrying`,async()=>{
+   const fetcher=workerdFetch(async input=>String(input).endsWith('/token')?token():redirect());
+   await expect(new TwitchBotSender(credentials,fetcher,()=>0).clipUrl('123','ClipSlug')).rejects.toThrow('clip-unavailable');expect(fetcher).toHaveBeenCalledTimes(2);
   });
   it(`rejects ${label} from send-chat without following or retrying`,async()=>{
    const fetcher=workerdFetch(async input=>String(input).endsWith('/token')?token():redirect());

@@ -1,3 +1,4 @@
+import {isClipId} from './clip-results.js';
 /** App credentials remain in isolate memory only; upstream response bodies are never logged. */
 export interface AppCredentials { clientId:string; clientSecret:string; botUserId:string }
 export interface ChatSendResult { dropReason:string|null }
@@ -24,8 +25,28 @@ export class TwitchBotSender {
     this.cached={token:data.access_token,refreshAt:this.now()+Math.max(0,data.expires_in-60)*1000};
     return data.access_token;
   }
-  async send(channel:string,message:string):Promise<ChatSendResult> {
+  private configured():void {
     if(!this.credentials.clientId.trim() || !this.credentials.clientSecret.trim() || !/^[0-9]{1,30}$/.test(this.credentials.botUserId))throw new Error('bot-not-configured');
+  }
+  /** Resolve only a Twitch-confirmed clip owned by the authenticated channel, never a submitted URL. */
+  async clipUrl(channel:string,clipId:string):Promise<string|null> {
+    this.configured();
+    if(!/^[0-9]{1,30}$/.test(channel) || !isClipId(clipId))return null;
+    for(let attempt=0;attempt<2;attempt++){
+      const token=await this.token();
+      const response=await this.fetcher(`https://api.twitch.tv/helix/clips?id=${encodeURIComponent(clipId)}`,{headers:{Authorization:`Bearer ${token}`,'Client-Id':this.credentials.clientId},redirect:'manual',signal:AbortSignal.timeout(8000)});
+      if(response.type==='opaqueredirect'||response.status>=300&&response.status<400)throw new Error('clip-unavailable');
+      if(response.status===401 && attempt===0){this.cached=null;continue;}
+      if(!response.ok)throw new Error('clip-unavailable');
+      const payload:unknown=await response.json();
+      const first=payload && typeof payload==='object' && 'data' in payload && Array.isArray(payload.data)?payload.data[0]:null;
+      if(!first || typeof first!=='object' || !('id' in first) || first.id!==clipId || !('broadcaster_id' in first) || first.broadcaster_id!==channel)return null;
+      return `https://clips.twitch.tv/${clipId}`;
+    }
+    throw new Error('clip-unavailable');
+  }
+  async send(channel:string,message:string):Promise<ChatSendResult> {
+    this.configured();
     for(let attempt=0;attempt<2;attempt++) {
       const token=await this.token();
       const response=await this.fetcher('https://api.twitch.tv/helix/chat/messages',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Client-Id':this.credentials.clientId,'Content-Type':'application/json'},body:JSON.stringify({broadcaster_id:channel,sender_id:this.credentials.botUserId,message,for_source_only:true}),redirect:'manual',signal:AbortSignal.timeout(8000)});

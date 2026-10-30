@@ -24,7 +24,7 @@ import {createDemoViewerMemory} from './viewer-memory';
 
 const impactLedger=createBossImpactLedger('browser');
 const superNotices=createSuperNotices();
-const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);const hypeFull=superNotices.observe(before,after,Date.now(),event.kind==='restart');hosted?.observeGame(after,hypeFull);if(event.kind==='vote')superNotices.denied(after,event.move,Date.now());return after;};
+const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);const hypeFull=superNotices.observe(before,after,Date.now(),event.kind==='restart');hosted?.observeGame(after,hypeFull,event.kind==='restart');if(event.kind==='vote')superNotices.denied(after,event.move,Date.now());return after;};
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const stage=el('stage');
 const host=el('game-hud');
@@ -111,7 +111,7 @@ function paint() {
   hud.setConnection(previewConfig?SCOUT_PREVIEW_BADGE:liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   trackFight();trackLocalRound();
   const summary=game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null;
-  hud.setEndcard(summary&&viewerMemory?{...summary,chatMvp:viewerMemory.summaryMvp()}:summary);
+  hud.setEndcard(summary&&viewerMemory?{...summary,chatMvp:viewerMemory.summaryMvp()}:summary,hosted?.clipsSnapshot()??[]);
   if(game) {
     el('next-round').hidden=!game.round.over||Boolean(game.match.winner)||showSessionSummary;
     el('restart').hidden=false;
@@ -287,7 +287,7 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=()=>{if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}};
-  hosted=mountHostedPlay({onConnected:()=>streamLayout.collapse(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  hosted=mountHostedPlay({onHighlightsChange:()=>paint(),onConnected:()=>streamLayout.collapse(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;

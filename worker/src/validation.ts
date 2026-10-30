@@ -1,6 +1,7 @@
 import type {ResultRoundData} from '../../shared/src/result-text';
+import {isClipId} from './clip-results.js';
 import {isDifficulty} from '../../shared/src/tempo';
-export type ResultRequest=({kind:'round'}&ResultRoundData)|{kind:'hype-full'};
+export type ResultRequest=({kind:'round'}&ResultRoundData)|{kind:'hype-full'}|{kind:'clip';clipId:string};
 const command=/^![a-z0-9]{1,20}$/;
 const name=/^[\p{L}\p{N}\p{P} ]{1,40}$/u;
 const record=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
@@ -9,6 +10,7 @@ const integer=(value:unknown,min:number,max:number):value is number=>bounded(val
 export function validateResult(value:unknown):ResultRequest|null{
  if(!record(value))return null;
  // A supplied channel is ignored; only authenticated identity may select it.
+ if(value.kind==='clip')return Object.keys(value).every(key=>key==='kind'||key==='clipId'||key==='broadcaster_id')&&isClipId(value.clipId)?{kind:'clip',clipId:value.clipId}:null;
  if(value.kind==='hype-full')return Object.keys(value).every(key=>key==='kind'||key==='broadcaster_id')?{kind:'hype-full'}:null;
  const keys=['kind','number','winner','streamerHp','bossHp','bossMaxHp','bossName','score','matchOver','difficulty','hookL','hookR','broadcaster_id'];
  if(value.kind!=='round'||Object.keys(value).some(key=>!keys.includes(key)))return null;

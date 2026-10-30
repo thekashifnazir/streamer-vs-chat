@@ -25,6 +25,7 @@ export function createHostedResults(options:{auth:Pick<BrowserAuth,'account'|'au
   get enabled(){return enabled;},get available(){return available;},get capable(){return capable();},
   async initialize(){try{const response=await request('/api/health',{cache:'no-store'});const data=response.ok?await response.json():{};available=data.bot===true;}catch{available=false;}if(disposed)return;setEnabled(capable());if(available&&!capable())report('Reconnect to enable bot results (channel:bot).');else if(!available)report('Bot results are disabled on this host.');},
   setEnabled,status,
+  postClip(clipId:string){if(enabled&&!disposed&&options.auth.authenticated)void send({kind:'clip',clipId});},
   observeGame(state:GameState,hypeFull=false){
    const before=observed;observed=state;
    if(!enabled||disposed||!options.auth.authenticated)return;

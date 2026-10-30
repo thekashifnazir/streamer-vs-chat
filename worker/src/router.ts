@@ -2,7 +2,7 @@ import {formatHypeFull,formatRoundResult} from '../../shared/src/result-text';
 import {ApiAuthError,createUserValidator} from './auth';
 import {readJson,validateResult,type JsonRequest} from './validation';
 export interface ApiRequest extends JsonRequest {url:string;method:string;headers:{get(name:string):string|null}}
-export type Hub={enqueue:(channel:string,message:string)=>Promise<void>;status:(channel:string)=>Promise<{dropReason:string|null;pending:number}>};
+export type Hub={enqueueClip:(channel:string,clipId:string)=>Promise<boolean>;enqueue:(channel:string,message:string)=>Promise<void>;status:(channel:string)=>Promise<{dropReason:string|null;pending:number}>};
 /** Narrow injected binding surface; no platform runtime required by Node tests. */
 export type RoutingEnv<Id,RequestType extends ApiRequest=Request,AssetResponse=Response>={TWITCH_CLIENT_ID:string;HOSTED_BOT:string;HOSTED_CLIPS:string;HOSTED_FORGE:string;HOSTED_MEMORY:string;ASSETS:{fetch:(request:RequestType)=>Promise<AssetResponse>};CHANNEL:{idFromName:(name:string)=>Id;get:(id:Id)=>Hub}};
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
@@ -25,8 +25,10 @@ export function createWorkerRouter(options:{fetch:typeof fetch;now:()=>number}){
    if(request.headers.get('Content-Type')?.split(';')[0]?.trim().toLowerCase()!=='application/json')return json({reason:'invalid-body'},400);
    let payload:unknown;try{payload=await readJson(request);}catch{return json({reason:'invalid-body'},400);}
    const result=validateResult(payload);if(!result)return json({reason:'invalid-body'},400);
-   const message=result.kind==='round'?formatRoundResult(result):formatHypeFull();
-   const hub=env.CHANNEL.get(env.CHANNEL.idFromName(user.userId));await hub.enqueue(user.userId,message);
+   if(result.kind==='clip'&&env.HOSTED_CLIPS!=='on')return json({reason:'feature-off'},503);
+   const hub=env.CHANNEL.get(env.CHANNEL.idFromName(user.userId));
+   if(result.kind==='clip'){if(!await hub.enqueueClip(user.userId,result.clipId))return json({reason:'clip-not-found'},403);}
+   else await hub.enqueue(user.userId,result.kind==='round'?formatRoundResult(result):formatHypeFull());
    return json({queued:true},202);
   }catch(error){return error instanceof ApiAuthError?json({reason:error.message},error.status):json({reason:'unavailable'},503);}
  };
