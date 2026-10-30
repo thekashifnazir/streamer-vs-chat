@@ -10,7 +10,7 @@ describe('Worker app access token and bot sender',()=>{
     expect(fetcher).not.toHaveBeenCalled();
   });
   it('disallows redirects on credential-bearing requests',async()=>{
-    const fetcher=vi.fn(async(input:string|URL|Request,init?:RequestInit)=>{expect(init?.redirect).toBe('error');return String(input).includes('/oauth2/token')?token():sent();});
+    const fetcher=vi.fn(async(input:string|URL|Request,init?:RequestInit)=>{expect(init?.redirect).toBe('manual');return String(input).includes('/oauth2/token')?token():sent();});
     await new TwitchBotSender(credentials,fetcher,()=>0).send('123','result');expect(fetcher).toHaveBeenCalledTimes(2);
   });
   it('caches until 60 seconds before expiry and sends only the passed validated channel',async()=>{

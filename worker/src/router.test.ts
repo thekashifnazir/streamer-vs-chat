@@ -50,7 +50,7 @@ it('validation cache hashes tokens, lasts at most five minutes and respects toke
 it('bounds token-validation requests and sanitizes an abort',async()=>{
  const fetcher=vi.fn(async(_input:RequestInfo|URL,init?:RequestInit)=>{
   expect(init?.signal).toBeInstanceOf(AbortSignal);
-  expect(init?.redirect).toBe('error');
+  expect(init?.redirect).toBe('manual');
   throw new DOMException('private token upstream','TimeoutError');
  });
  const validate=createUserValidator({clientId:'client',fetch:fetcher,now:()=>0});
