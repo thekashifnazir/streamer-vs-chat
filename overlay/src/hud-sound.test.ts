@@ -80,3 +80,7 @@ it.each(['index.html','play/index.html'])('uses the selected Hard level for prac
  const {hud,host}=setup(false),preview=createSelectedGame(select);hud.render(preview);hud.setPractice(true);expect(host.querySelector('[data-id=difficulty]')!.textContent).toBe('HARD');expect(host.querySelector('[data-id=beat]')!.textContent).toBe('VOTING STARTS AFTER PRACTICE');
  const fight=step(createSelectedGame(select,{now:0}),{kind:'advance'},2400);expect(fight.difficulty).toBe('hard');expect(fight.activeAttack?.lands_at).toBe(3200);hud.dispose();markup.window.close();
 });
+it('replaces the whole live voting heading with one practice label',()=>{
+ const{hud,host}=setup(false);hud.render(createGame());hud.setPractice(true);const count=host.querySelector<HTMLElement>('[data-id=vote-count-label]')!,beat=host.querySelector('[data-id=beat]')!;
+ expect(count.hidden).toBe(true);expect(beat.textContent).toBe('VOTING STARTS AFTER PRACTICE');expect(beat.parentElement!.classList.contains('practice-voting')).toBe(true);hud.setPractice(false);expect(count.hidden).toBe(false);expect(beat.textContent).toContain('NEXT IN');hud.dispose();
+});

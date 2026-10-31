@@ -20,3 +20,15 @@ it('uses equal 4px segmented progress and a 44px outlined Advanced control witho
  expect(computed(bar).display).toBe('grid');expect(computed(bar).gridTemplateColumns).toBe('repeat(3,minmax(0,1fr))');const segments=[...bar.children];expect(segments.map(segment=>(segment as HTMLElement).dataset.state)).toEqual(['done','current','future']);for(const segment of segments)expect(computed(segment).borderTopWidth).toBe('4px');expect(computed(segments[1]!).fontWeight).toBe('700');expect(css).toContain("[data-state=done]::before{content:'✓ '");const summary=doc.querySelector('#advanced-obs>summary')!,box=computed(summary);expect(box.minHeight).toBe('44px');expect(box.borderTopWidth).toBe('1px');expect(box.display).toBe('flex');expect(doc.querySelector('#obs-step .step-number')).toBeNull();
  }finally{dom.window.close();}
 });
+it('centres the offline hero and gives OBS instructions a readable text size',()=>{
+ for(const page of ['../index.html','../play/index.html']){const dom=new JSDOM(readFileSync(new URL(page,import.meta.url),'utf8'));try{const doc=dom.window.document,style=doc.createElement('style');style.textContent=css;doc.head.append(style);const computed=dom.window.getComputedStyle;
+ if(page==='../index.html'){const column=computed(doc.getElementById('onboarding-row')!);expect(column.display).toBe('block');expect(column.maxWidth).toBe('960px');expect(column.marginLeft).toBe('auto');expect(column.marginRight).toBe('auto');}
+ else{doc.body.classList.add('hosted-flow');for(const line of doc.querySelectorAll('#obs-instructions li'))expect(computed(line).fontSize).toBe('16px');expect(doc.getElementById('obs-instructions')!.textContent).not.toMatch(/→\s*→/);expect(computed(doc.querySelector('#advanced-obs>summary')!).minHeight).toBe('44px');}
+ expect(doc.getElementById('tutorial')?.textContent??doc.querySelector('.tutorial')!.textContent).not.toContain('then try three keys');
+ }finally{dom.window.close();}}
+});
+it('keeps narrow practice on the left so the boss side remains uncovered',()=>{
+ // jsdom does not evaluate media queries or layout; check the narrow-screen
+ // constraints explicitly. Actual phone rectangles remain a browser check.
+ expect(css).toContain('.tutorial,.stream-compact .tutorial{top:auto;left:8px;bottom:8px;transform:none;width:60%;max-width:260px;max-height:90%}');
+});

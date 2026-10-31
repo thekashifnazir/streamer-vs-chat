@@ -10,3 +10,8 @@ it('has one immediate keyboard action and moves the single safety checkbox to we
 it('does not seed memory and stops even a pending camera when keyboard is selected',()=>{
  const main=readFileSync(new URL('./main.ts',import.meta.url),'utf8');expect(main).not.toContain('createDemoViewerMemory');expect(main).toContain("if(source.value==='keyboard'){camera.stop();");expect(main).toContain('difficulty.addEventListener');
 });
+it('offers one visible Options control with an accessible disclosure state',()=>{
+ const dom=new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8'));try{const doc=dom.window.document;mountDemoLanding(doc);const button=doc.getElementById('demo-options')!,details=doc.getElementById('demo-more-options') as HTMLDetailsElement;
+ expect(details.querySelector('summary')!.hidden).toBe(true);expect(button.getAttribute('aria-expanded')).toBe('false');button.click();expect(details.open).toBe(true);expect(button.getAttribute('aria-expanded')).toBe('true');button.click();expect(details.open).toBe(false);expect(button.getAttribute('aria-expanded')).toBe('false');
+ }finally{dom.window.close();}
+});

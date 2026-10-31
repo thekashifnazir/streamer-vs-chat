@@ -357,3 +357,8 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .rails-hud footer .hud-options input[data-id=plain]{width:var(--hud-hit-target,24px);height:var(--hud-hit-target,24px);min-width:var(--hud-hit-target,24px);min-height:var(--hud-hit-target,24px);flex-shrink:0;margin:0}
 
 .offline-demo .connection,.offline-demo .hud-options label{display:none}.focus-guide{display:block;font-size:36px;color:#2ef2ff}
+
+/* Practice has one readable label, without the live voter count. */
+.boss .vote-header.practice-voting{white-space:normal;line-height:1.15}
+.boss .vote-header.practice-voting [data-id=beat]{display:block;white-space:normal;overflow-wrap:normal}
+.boss .vote-header [data-id=vote-count-label][hidden]{display:none}

@@ -194,3 +194,14 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 @media(max-width:480px){.hosted-flow #onboarding-row .hosted-panel,.hosted-flow #onboarding-row .fight-setup{padding:16px}.hosted-flow .play-step-bar{gap:8px}.hosted-flow .play-step-bar>span{font-size:14px}.hosted-flow #twitch-connect,.hosted-flow #go-live{min-width:0;max-width:100%;width:100%}}
 
 @media(max-width:480px){.hosted-flow #fight-setup [data-option-for=start-difficulty]{padding-left:6px;padding-right:6px;font-size:14px;min-width:0}}
+
+/* Queue 13v: keep the landing and practice controls clear. */
+.offline-demo-page #onboarding-row{display:block;grid-template-columns:minmax(0,1fr);width:calc(100% - 32px);max-width:960px;margin-left:auto;margin-right:auto}
+.offline-demo-page #demo-intro{width:100%;max-width:100%;box-sizing:border-box}
+#demo-more-options>summary{display:none}
+#pause-screen [data-pause=resume]{display:block;min-height:56px;width:100%;margin:12px auto;background:var(--yellow);color:#0c0912;font-weight:700}
+#pause-screen [data-pause=restart],#pause-screen [data-pause=quit]{min-height:44px}
+.hosted-flow #obs-instructions,.hosted-flow #obs-instructions li{font-size:16px}
+@media(max-width:600px){
+ .tutorial,.stream-compact .tutorial{top:auto;left:8px;bottom:8px;transform:none;width:60%;max-width:260px;max-height:90%}
+}
