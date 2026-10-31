@@ -71,8 +71,11 @@ export function measurePose(landmarks: Landmark[]): PoseMetrics | null {
     leftExtension, rightExtension, leftWristHeight, rightWristHeight,
     // A hanging wrist can be >1.6S from its shoulder for an entire lean. Only a
     // raised extension can be a punch-like interruption of held lean input.
-    punchExtended: (leftExtension > 1.6 && leftWristHeight >= -0.5) ||
-      (rightExtension > 1.6 && rightWristHeight >= -0.5),
+    // Gate on shoulder-axis lengths: the horizontal gap shrinks as the body tilts, so a
+    // guard wrist read as >1.6 widths in a deep lean and froze the lean it should allow
+    // (recorded: test/pose/deep-lean-gate.test.ts). Upright, the two measures are equal.
+    punchExtended: (leftExtension * shoulderWidth / shoulderLength > 1.6 && leftWristHeight >= -0.5) ||
+      (rightExtension * shoulderWidth / shoulderLength > 1.6 && rightWristHeight >= -0.5),
   };
 }
 

@@ -42,7 +42,8 @@ describe('raw landmark classifier', () => {
   it('freezes held lean during the300ms punch gate then restarts dwell', () => {
     const c=new PoseClassifier({guardThreshold:0});
     c.update(frame(.7),0); c.update(frame(.7),200);
-    const raisedPunch=frame(-.7,1.7); raisedPunch[15]!.y-=.13;
+    // 2.0 horizontal widths at tilt .7 is ~1.77 shoulder-axis lengths: a real raised extension.
+    const raisedPunch=frame(-.7,2); raisedPunch[15]!.y-=.16;
     expect(c.update(raisedPunch,300).state.lean).toBe('L');
     c.update(frame(-.7),500);
     expect(c.update(frame(-.7),599).state.lean).toBe('L');
