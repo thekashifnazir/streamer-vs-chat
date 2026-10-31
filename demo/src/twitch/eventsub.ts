@@ -53,18 +53,20 @@ export function createBrowserChat(options:BrowserChatOptions){
    const type=packet?.metadata?.message_type,session=packet?.payload?.session;
    if(type==='session_welcome'){
     if(connection.welcomed||typeof session?.id!=='string')return;
-    connection.welcomed=true;keepaliveMs=Number.isFinite(session.keepalive_timeout_seconds)&&session.keepalive_timeout_seconds>0?session.keepalive_timeout_seconds*1000:10000;watch(connection,keepaliveMs);
+    connection.welcomed=true;keepaliveMs=Number.isFinite(session.keepalive_timeout_seconds)&&session.keepalive_timeout_seconds>0?session.keepalive_timeout_seconds*1000:10000;watch(connection,keepaliveMs+5000);
     if(connection.handoff){const old=active;active=connection;if(old&&old!==connection){old.retired=true;if(old.watch)cancel(old.watch);old.socket.close();connections.delete(old);}attempt=0;status('connected');}
     else{active=connection;void subscribe(session.id,epoch,connection).catch(error=>{if(generation===epoch&&!connection.retired)fail(error);});}
     return;
    }
    if(!connection.welcomed)return;
-   if(type==='session_keepalive'||type==='notification')watch(connection,keepaliveMs);
+   if(type==='session_keepalive'||type==='notification')watch(connection,keepaliveMs+5000);
    if(type==='session_reconnect'){
     if([...connections].some(item=>item.handoff&&!item.retired&&item!==connection))return;
     const address=session?.reconnect_url;
     try{const parsed=new URL(address);if(parsed.protocol!=='wss:'||parsed.host!=='eventsub.wss.twitch.tv'||parsed.username||parsed.password)throw new Error();}catch{fail(new Error('Invalid Twitch reconnect'));return;}
-    status('reconnecting');connect(address,true);return;
+    // A planned handoff retains a healthy active socket and subscriptions.
+    // Report a loss only if that socket or the replacement actually fails.
+    connect(address,true);return;
    }
    if(type==='revocation'){fail(new TwitchAuthError());return;}
    if(type!=='notification')return;

@@ -32,12 +32,12 @@ it('subscribes me/me chat and inbound raids after welcome and parses real-shaped
 it('hands off reconnect URL as-is, retains old socket until welcome, carries subscriptions and deduplicates overlap',async()=>{
  const s=setup();await s.client.start();const old=s.sockets[0]!;old.welcome();await vi.advanceTimersByTimeAsync(0);
  old.message({metadata:{message_type:'session_reconnect'},payload:{session:{reconnect_url:'wss://eventsub.wss.twitch.tv/ws?reconnect=opaque'}}});
- expect(old.closed).toBe(false);const next=s.sockets[1]!;expect(next.url).toBe('wss://eventsub.wss.twitch.tv/ws?reconnect=opaque');old.message(s.notification('one','!jab'));next.welcome('replacement');next.message(s.notification('one','!jab'));await vi.advanceTimersByTimeAsync(0);
+ expect(old.closed).toBe(false);expect(s.status).toHaveBeenLastCalledWith('connected');expect(s.status).not.toHaveBeenCalledWith('reconnecting');const next=s.sockets[1]!;expect(next.url).toBe('wss://eventsub.wss.twitch.tv/ws?reconnect=opaque');old.message(s.notification('one','!jab'));next.welcome('replacement');next.message(s.notification('one','!jab'));await vi.advanceTimersByTimeAsync(0);
  expect(old.closed).toBe(true);expect(s.vote).toHaveBeenCalledOnce();expect(s.request.mock.calls.filter(([path])=>path==='/eventsub/subscriptions')).toHaveLength(2);s.client.stop();
 });
 it('resets keepalive watchdog on notifications, then cold reconnects with validation/backoff and resubscription',async()=>{
  const s=setup();await s.client.start();s.sockets[0]!.welcome();await vi.advanceTimersByTimeAsync(9000);s.sockets[0]!.message(s.notification('one','hello'));
- await vi.advanceTimersByTimeAsync(9000);expect(s.sockets).toHaveLength(1);await vi.advanceTimersByTimeAsync(1000);expect(s.sockets[0]!.closed).toBe(true);
+ await vi.advanceTimersByTimeAsync(9000);expect(s.sockets).toHaveLength(1);await vi.advanceTimersByTimeAsync(1000);expect(s.sockets[0]!.closed).toBe(false);await vi.advanceTimersByTimeAsync(5000);expect(s.sockets[0]!.closed).toBe(true);
  await vi.advanceTimersByTimeAsync(999);expect(s.sockets).toHaveLength(1);await vi.advanceTimersByTimeAsync(1);expect(s.sockets).toHaveLength(2);expect(s.validate).toHaveBeenCalledTimes(2);
  s.sockets[1]!.welcome('cold');await vi.advanceTimersByTimeAsync(0);expect(s.request.mock.calls.filter(([path])=>path==='/eventsub/subscriptions')).toHaveLength(4);s.client.stop();
 });

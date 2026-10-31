@@ -75,10 +75,10 @@ export function createGoLive(options:{auth:Pick<BrowserAuth,'account'|'request'>
  }};
 }
 /** A captured descendant; pose uses the very same camera stream without another camera request. */
-export function createStreamCamera(stage:HTMLElement,pose:HTMLVideoElement,enabled:()=>boolean,media:Pick<MediaDevices,'getUserMedia'>=navigator.mediaDevices){
+export function createStreamCamera(stage:HTMLElement,pose:HTMLVideoElement,enabled:()=>boolean,media:Pick<MediaDevices,'getUserMedia'>=navigator.mediaDevices,poseExpected:()=>boolean=()=>false){
  const bubble=stage.ownerDocument.createElement('video');bubble.className='stream-camera-bubble';bubble.autoplay=true;bubble.muted=true;bubble.playsInline=true;bubble.hidden=true;stage.append(bubble);
  let own:MediaStream|null=null,timer:ReturnType<typeof setInterval>|null=null,epoch=0;
- const sync=()=>{const poseStream=pose.srcObject as MediaStream|null;if(poseStream?.getVideoTracks().some(track=>track.readyState==='live')){if(own){own.getTracks().forEach(track=>track.stop());own=null;}bubble.srcObject=poseStream;}bubble.hidden=!enabled()||!bubble.srcObject;};
+ const sync=()=>{const poseStream=pose.srcObject as MediaStream|null;if(poseStream?.getVideoTracks().some(track=>track.readyState==='live')){if(own){own.getTracks().forEach(track=>track.stop());own=null;}if(bubble.srcObject!==poseStream)bubble.srcObject=poseStream;}bubble.hidden=!enabled()||!bubble.srcObject;};
  const stop=()=>{epoch++;if(timer)clearInterval(timer);timer=null;own?.getTracks().forEach(track=>track.stop());own=null;bubble.srcObject=null;bubble.hidden=true;};
- return {stop,async start(){const current=++epoch;if(!enabled()){stop();return;}sync();if(!bubble.srcObject){const stream=await media.getUserMedia({video:true,audio:false});if(current!==epoch||!enabled()){stream.getTracks().forEach(track=>track.stop());return;}own=stream;bubble.srcObject=stream;}if(current!==epoch)return;bubble.hidden=false;void bubble.play().catch(()=>{});timer=setInterval(sync,250);}};
+ return {stop,async start(){const current=++epoch;if(!enabled()){stop();return;}sync();if(!bubble.srcObject&&!poseExpected()){const stream=await media.getUserMedia({video:true,audio:false});if(current!==epoch||!enabled()){stream.getTracks().forEach(track=>track.stop());return;}own=stream;bubble.srcObject=stream;}if(current!==epoch)return;bubble.hidden=false;void bubble.play().catch(()=>{});if(timer)clearInterval(timer);timer=setInterval(sync,250);}};
 }

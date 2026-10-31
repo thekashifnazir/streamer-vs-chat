@@ -205,3 +205,6 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 @media(max-width:600px){
  .tutorial,.stream-compact .tutorial{top:auto;left:8px;bottom:8px;transform:none;width:60%;max-width:260px;max-height:90%}
 }
+
+#pause-screen [data-pause-reason]{font:clamp(24px,3vw,40px)/1.2 Anton,Impact,sans-serif;color:#ffdc43;overflow-wrap:anywhere}
+#pause-screen [data-guard-resume]{font-size:clamp(18px,2vw,28px);color:#2ef2ff}

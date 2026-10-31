@@ -10,3 +10,14 @@ it('releases a late keyboard camera grant if the switch is turned off while perm
  const dom=new JSDOM('<div id=stage></div><video id=pose></video>'),doc=dom.window.document;let enabled=true,resolve!:(stream:MediaStream)=>void;
  const camera=createStreamCamera(doc.getElementById('stage')!,doc.getElementById('pose') as HTMLVideoElement,()=>enabled,{getUserMedia:()=>new Promise(r=>{resolve=r;})});const starting=camera.start();enabled=false;camera.stop();const stop=vi.fn();resolve({getTracks:()=>[{stop}]} as unknown as MediaStream);await starting;expect(stop).toHaveBeenCalled();expect(doc.querySelector<HTMLVideoElement>('.stream-camera-bubble')!.hidden).toBe(true);dom.window.close();
 });
+
+it('keeps an unchanged pose stream attached across polling and waits for a pending pose camera',async()=>{
+ vi.useFakeTimers();const dom=new JSDOM('<div id=stage></div><video id=pose></video>');
+ try{const doc=dom.window.document,stage=doc.getElementById('stage')!,pose=doc.getElementById('pose') as HTMLVideoElement;
+ const stream={getVideoTracks:()=>[{readyState:'live'}]} as unknown as MediaStream;
+ const media={getUserMedia:vi.fn()},camera=createStreamCamera(stage,pose,()=>true,media,()=>true),bubble=stage.querySelector('video')!;
+ let attached:unknown=null;const assign=vi.fn((value:unknown)=>{attached=value;});Object.defineProperty(bubble,'srcObject',{get:()=>attached,set:assign});bubble.play=vi.fn(async()=>{});
+ await camera.start();expect(media.getUserMedia).not.toHaveBeenCalled();expect(assign).not.toHaveBeenCalled();pose.srcObject=stream;
+ await vi.advanceTimersByTimeAsync(250);expect(assign).toHaveBeenCalledExactlyOnceWith(stream);await vi.advanceTimersByTimeAsync(2000);expect(assign).toHaveBeenCalledOnce();expect(bubble.hidden).toBe(false);camera.stop();
+ }finally{dom.window.close();vi.useRealTimers();}
+});

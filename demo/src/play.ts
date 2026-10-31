@@ -14,7 +14,7 @@ import {getBrowserAuth} from './twitch/auth';
 import {createBrowserChat} from './twitch/eventsub';
 import {PlayMetrics} from './metrics';
 import type {ChatVote,StreamerInput} from '@svc/shared';
-export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryChange?:()=>void;onConnected?:()=>void;onStatus?:(message:string)=>void;onGreen?:(checked:boolean)=>void;onVote:(vote:EngineVote)=>boolean;onRaid?:(event:Extract<EngineEvent,{kind:'raid'}>)=>void;onControl:(event:StreamerInput)=>void;onViewers:(count:number)=>void;onDisconnect:()=>void;onSummary:()=>void;onHighlightsChange?:()=>void;betweenRounds:()=>boolean;onForgeAccepted:(boss:BossDef|null)=>void;onForgeSnapshot:(view:ForgeSnapshot|null)=>void;parseVote?:(text:string,user:string,at:number)=>ChatVote|null}){
+export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryChange?:()=>void;onConnected?:()=>void;onStatus?:(message:string)=>void;onGreen?:(checked:boolean)=>void;onVote:(vote:EngineVote)=>boolean;onRaid?:(event:Extract<EngineEvent,{kind:'raid'}>)=>void;onControl:(event:StreamerInput)=>void;onViewers:(count:number)=>void;onDisconnect:(reason?:string)=>void;onSummary:()=>void;onHighlightsChange?:()=>void;betweenRounds:()=>boolean;onForgeAccepted:(boss:BossDef|null)=>void;onForgeSnapshot:(view:ForgeSnapshot|null)=>void;parseVote?:(text:string,user:string,at:number)=>ChatVote|null}){
  const auth=getBrowserAuth(),metrics=new PlayMetrics(),health=createHostedHealth();
  let connected=false,connectionNotice='',disposed=false;
  const slot=document.getElementById('hosted-onboarding-slot');
@@ -26,7 +26,7 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryCha
  const connect=el<HTMLButtonElement>('twitch-connect');
  let skipped=false,streamPermissionRequested=false,liveSince:number|null=null,starting=false;
  const supported=broadcastSupport();
- const cameraBubble=createStreamCamera(el('stage'),el<HTMLVideoElement>('camera'),()=>el<HTMLInputElement>('stream-camera').checked);
+ const cameraBubble=createStreamCamera(el('stage'),el<HTMLVideoElement>('camera'),()=>el<HTMLInputElement>('stream-camera').checked,navigator.mediaDevices,()=>el<HTMLSelectElement>('input-source').value==='pose'||document.body.classList.contains('webcam-open'));
  const broadcast=createGoLive({auth,stage:el('stage'),camera:cameraBubble,onState:(live,message)=>{if(disposed)return;if(live){liveSince??=Date.now();starting=false;}else{if(liveSince!==null)options.onControl({kind:'control',action:'stop',by:'capture'});liveSince=null;}el('broadcast-status').textContent=message;refresh();}});
  el<HTMLButtonElement>('go-live').hidden=!supported;el<HTMLDetailsElement>('advanced-obs').open=!supported;el('broadcast-support').textContent=supported?'':'Quick streaming needs desktop Chrome or Edge with tab sharing and H.264. Use the OBS setup below.';
  const report=(message:string)=>{connectionNotice=/^(For Twitch login|This build|Reconnect)/.test(message)?message:'';options.onStatus?.(message);refresh();};
@@ -53,7 +53,7 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryCha
  el<HTMLInputElement>('stream-camera').addEventListener('change',()=>{if(!el<HTMLInputElement>('stream-camera').checked)cameraBubble.stop();else if(broadcast.live)void cameraBubble.start().catch(()=>{el('broadcast-status').textContent='Camera unavailable. Stream continues without the camera bubble.';});});
  const chat=createBrowserChat({auth,parseVote:options.parseVote,onRaid:options.onRaid,onChatMessage:message=>{latestChat={userId:message.userId,displayName:message.displayName};forge.onChat(message);memory.onChat(message);},now:()=>performance.now(),onChat:user=>{void metrics.observeChat(user);},onVote:vote=>{if(options.onVote(vote)){void metrics.acceptedVote(vote.user);memory.acceptedVote(vote,latestChat?.userId===vote.user?latestChat.displayName:'Viewer');}latestChat=null;},onControl:options.onControl,onViewers:options.onViewers,onStatus:message=>{
   report(message==='connected'?'LIVE · Twitch chat connected':message==='login-required'?'Reconnect: Twitch authorization expired':`Twitch: ${message}`);connected=auth.authenticated&&message==='connected';
-  if(connected)options.onConnected?.();else options.onDisconnect();refresh();
+  if(connected)options.onConnected?.();else options.onDisconnect(message==='login-required'?'Twitch login expired — reconnect, then resume':'Twitch chat disconnected — reconnect, then resume');refresh();
   // Explicit transport readiness, rather than a loaded token, gates fights.
   if(!auth.authenticated){broadcast.stop('Twitch connection expired. Reconnect before going live.');skipped=false;connect.hidden=false;connect.textContent='Reconnect';}
  }});

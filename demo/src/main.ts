@@ -1,3 +1,4 @@
+import {createGuardResume} from './hosted-pause';
 import {createSelectedGame} from './difficulty-choice';
 import {mountDemoLanding} from './demo-landing';
 import {mountFightUi} from './fight-ui';
@@ -177,10 +178,15 @@ function startFight() {
   game=step(game,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);
   paint();
 }
+let pauseReason='Esc';
+const guardResume=createGuardResume(()=>input({kind:'control',action:'resume',by:'capture'}));
+function pauseHosted(reason:string){pauseReason=reason;guardResume.reset();input({kind:'control',action:'stop',by:'capture'});}
+window.addEventListener('keydown',event=>{if(liveMode&&event.code==='Escape'&&!event.repeat&&fightUi?.paused){event.stopImmediatePropagation();event.preventDefault();input({kind:'control',action:'resume',by:'capture'});}},true);
 function input(event:StreamerInput) {
-  if(event.kind==='control'&&event.action==='stop'&&(tutorialStarted||game)&&!showSessionSummary)fightUi?.setPaused(true);
+  if(event.kind==='control'&&['stop','pause','veto'].includes(event.action)&&(tutorialStarted||game)&&!showSessionSummary){guardResume.reset();fightUi?.setPaused(true,liveMode?pauseReason:undefined,liveMode&&source.value==='pose');pauseReason='Esc';}
   if(event.kind!=='control'&&fightUi?.paused)return;
-  if(event.kind==='control'&&event.action==='resume'&&source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before resuming.';return;}
+  if(event.kind==='control'&&event.action==='resume'&&!safetyCleared()){if(liveMode&&(game?.paused||fightUi?.paused))fightUi?.setPaused(true,'confirm your clear space',source.value==='pose');return;}
+  if(event.kind==='control'&&event.action==='resume'&&source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before resuming.';if(liveMode&&(game?.paused||fightUi?.paused))fightUi?.setPaused(true,"camera can't see you — show your calibrated head, shoulders and both hands",true);return;}
   if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||coldOpenAt!==null||(liveMode&&!hosted?.ready)))return;
   const at=performance.now();
   if(event.kind!=='control'&&!safetyCleared()) {
@@ -231,6 +237,7 @@ const camera=new PoseCamera(video,sample=>{
   const ready=calibrated.ready&&poseFramed&&safetyCleared();
   lastPose=ready?result.state:{kind:'pose',guard:false,lean:null,source:'pose',at:sample.at};
   el('camera-status').textContent=!framed?'Keep head, shoulders and both wrists in frame.':seatedTooClose?'Move further back; seated shoulders must span ≤20% of the frame.':`Camera local · ${sample.fps.toFixed(0)} FPS · ${sample.inferenceMs.toFixed(0)} ms inference`;
+  if(liveMode&&source.value==='pose')guardResume.sample(!!fightUi?.paused&&ready&&cameraRunning&&!!hosted?.ready,lastPose.guard,performance.now());
   if(source.value==='pose') {
     input(lastPose);
     if(ready)for(const punch of result.punches)input(punch);
@@ -276,7 +283,7 @@ clearSpace.addEventListener('change',()=>{
   keyboard.release();
   if(!safetyCleared()) {
     if(game){const at=performance.now();game=step(game,{kind:'pose',guard:false,lean:null,source:source.value==='pose'?'pose':'keyboard',at},at);}
-    input({kind:'control',action:'stop',by:'capture'});
+    if(liveMode)pauseHosted('confirm your clear space');else input({kind:'control',action:'stop',by:'capture'});
   } else if(!game)updateTutorial();
   clearSpace.blur();
 });
@@ -300,7 +307,7 @@ crowdSize.addEventListener('change',()=>{paint();crowdSize.blur();});
 noPunch.addEventListener('change',()=>{updateModes();noPunch.blur();});
 const timer=window.setInterval(()=>{
   const at=performance.now();
-  if(cameraRunning&&at-lastFrameAt>=500){poseFramed=false;setup.frame([],false);}
+  if(cameraRunning&&at-lastFrameAt>=500){poseFramed=false;guardResume.reset();setup.frame([],false);}
   setup.tick(at);fightUi?.tick();
   if(!game)return;
   game=step(game,{kind:'advance'},at);
@@ -332,12 +339,12 @@ if(!liveMode){const {mountDemoForge}=await import('./forge');const panel=el('dem
 if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
-  const freeze=()=>{if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}};
+  const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game)pauseHosted(reason);};
   hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
-  },onRaid:event=>{if(game){game=step(game,event,performance.now());paint();}},onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!safetyCleared())return;input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{showSessionSummary=true;freeze();}});
+  },onRaid:event=>{if(game){game=step(game,event,performance.now());paint();}},onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!safetyCleared())return;if(event.kind==='control'&&['stop','pause','veto'].includes(event.action))pauseReason=event.by==='capture'?'stream ended':'chat requested a pause';input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{showSessionSummary=true;freeze();}});
   crowdSize.closest('label')!.hidden=true;
   document.title='Streamer vs Chat · Twitch play';
 
