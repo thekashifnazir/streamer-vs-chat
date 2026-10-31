@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { createCalibration } from './calibration.js';
-import type { Landmark } from './classifier.js';
+import { LEAN_THRESHOLD_FRACTION, type Landmark } from './classifier.js';
 
 function frame(g=-1.2,tilt=0,width=.18):Landmark[] {
   const landmarks=Array.from({length:33},()=>({x:.5,y:.1,z:0,visibility:1}));
@@ -45,7 +45,9 @@ test('calibrates neutral, waist and near-face guard for3s then comfortable asymm
   hold(calibration,frame(-1.2,-.88),10900,1500);
   expect(calibration.snapshot.ready).toBe(true);
   expect(calibration.snapshot.leanPeaks).toEqual({L:expect.closeTo(.57),R:expect.closeTo(.88)});
-  expect(calibration.snapshot.leanThresholds).toEqual({L:expect.closeTo(.342),R:expect.closeTo(.528)});
+  // 48% of each comfortable peak; the smaller left peak sits on the 0.3 floor.
+  expect(LEAN_THRESHOLD_FRACTION).toBe(.48);
+  expect(calibration.snapshot.leanThresholds).toEqual({L:.3,R:expect.closeTo(.4224)});
 });
 
 test('uses the higher neutral/resting baseline and clamps guard engage to upper chest',()=>{
@@ -74,7 +76,7 @@ test('calibrates seated comfortable small leans independently, keeping the0.3 on
   leans(calibration,.31,.52);
   expect(calibration.snapshot.ready).toBe(true);
   expect(calibration.snapshot.mode).toBe('seated');
-  expect(calibration.snapshot.leanThresholds).toEqual({L:.3,R:expect.closeTo(.312)});
+  expect(calibration.snapshot.leanThresholds).toEqual({L:.3,R:.3});
   expect(calibration.snapshot.leanPeaks).toEqual({L:expect.closeTo(.31),R:expect.closeTo(.52)});
 });
 
@@ -89,7 +91,7 @@ test('records each actual peak and resets pending lean samples on wrong directio
   expect(calibration.snapshot.stage).toBe('lean-right');
   hold(calibration,frame(-1.2,-.5),11600,1500);
   expect(calibration.snapshot.leanPeaks).toEqual({L:expect.closeTo(.7),R:expect.closeTo(.5)});
-  expect(calibration.snapshot.leanThresholds?.L).toBeCloseTo(.42);
+  expect(calibration.snapshot.leanThresholds?.L).toBeCloseTo(.336);
 });
 
 test('seated calibration rejects close framing and resets all calibration metadata for a new posture',()=>{
@@ -129,7 +131,7 @@ test('missing head, a camera pause, or an extended raised arm cannot complete a 
 test('returned calibration metadata cannot mutate stored per-side settings',()=>{
   const calibration=createCalibration();guardCalibration(calibration);leans(calibration);
   const snapshot=calibration.snapshot;snapshot.leanThresholds!.L=99;snapshot.leanPeaks!.R=99;snapshot.guardMedians!.neutral=99;
-  expect(calibration.snapshot.leanThresholds?.L).toBeCloseTo(.342);
+  expect(calibration.snapshot.leanThresholds?.R).toBeCloseTo(.4224);
   expect(calibration.snapshot.leanPeaks?.R).toBeCloseTo(.88);
   expect(calibration.snapshot.guardMedians?.neutral).toBeCloseTo(-2.5);
 });
@@ -193,7 +195,7 @@ test('measures neutral sway p95 and prevents resting sway from completing lean c
   expect(calibration.snapshot.stage).toBe('lean-right');
   hold(calibration,frame(-1.2,-.7),12500,1500);
   expect(calibration.snapshot.ready).toBe(true);
-  expect(calibration.snapshot.leanThresholds).toEqual({L:expect.closeTo(.33),R:expect.closeTo(.42)});
+  expect(calibration.snapshot.leanThresholds).toEqual({L:expect.closeTo(.33),R:expect.closeTo(.336)});
 });
 
 test('neutral sway uses p95 rather than maximum and discards samples from interrupted holds',()=>{

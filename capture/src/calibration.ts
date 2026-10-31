@@ -1,5 +1,5 @@
 import {validateCalibrationSettings} from './calibration-profile.js';
-import { computeGuardReleaseBand, GUARD_MIN_ON, measurePose, type Landmark } from './classifier.js';
+import { computeGuardReleaseBand, GUARD_MIN_ON, leanThresholdsFromPeaks, measurePose, type Landmark } from './classifier.js';
 
 export type CalibrationMode = 'standing' | 'seated';
 export type CalibrationStage = 'idle' | 'neutral' | 'resting' | 'guard' | 'lean-left' | 'lean-right' | 'ready';
@@ -130,7 +130,7 @@ export function createCalibration(options: { onChange?: (snapshot: CalibrationSn
           } else {
             const leanPeaks = {L:leftPeak,R:peak};
             publish({ stage: 'ready', ready: true, progress: 1, leanPeaks,
-              leanThresholds:{L:Math.max(floor,0.6*leanPeaks.L),R:Math.max(floor,0.6*leanPeaks.R)},
+              leanThresholds:leanThresholdsFromPeaks(leanPeaks,floor),
               message: `${snapshot.mode === 'seated' ? 'Seated' : 'Standing'} calibration ready. Face-height guard and both comfortable leans confirmed.` });
           }
         }

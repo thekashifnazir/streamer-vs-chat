@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { measurePose, PoseClassifier, type Landmark } from './classifier.js';
+import { LEAN_DWELL_MS, measurePose, PoseClassifier, type Landmark } from './classifier.js';
 function frame(tilt = 0, leftExtension = .6, rightExtension = .6): Landmark[] {
   const lm = Array.from({length:33}, () => ({x:0,y:0,visibility:1}));
   lm[11] = {x:.6,y:.5 + tilt*.1,visibility:1}; lm[12] = {x:.4,y:.5 - tilt*.1,visibility:1};
@@ -23,21 +23,23 @@ describe('raw landmark classifier', () => {
     const lm=frame(); lm[15]={x:.05,y:.3}; lm[16]={x:.95,y:.3};
     expect(c.update(lm,0).state.guard).toBe(false);
   });
-  it('maps positive raw tilt to player L, waits200ms and uses .25 release hysteresis', () => {
+  it('maps positive raw tilt to player L, waits the lean dwell and uses .25 release hysteresis', () => {
+    expect(LEAN_DWELL_MS).toBe(170);
     const c=new PoseClassifier({guardThreshold:0});
     expect(c.update(frame(.6),0).state.lean).toBe(null);
-    expect(c.update(frame(.6),199).state.lean).toBe(null);
-    expect(c.update(frame(.6),200).state.lean).toBe('L');
-    expect(c.update(frame(.3),201).state.lean).toBe('L');
-    expect(c.update(frame(.24),202).state.lean).toBe(null);
+    expect(c.update(frame(.6),LEAN_DWELL_MS-1).state.lean).toBe(null);
+    expect(c.update(frame(.6),LEAN_DWELL_MS).state.lean).toBe('L');
+    expect(c.update(frame(.3),LEAN_DWELL_MS+1).state.lean).toBe('L');
+    expect(c.update(frame(.24),LEAN_DWELL_MS+2).state.lean).toBe(null);
     c.update(frame(-.6),300);
-    expect(c.update(frame(-.6),500).state.lean).toBe('R');
+    expect(c.update(frame(-.6),300+LEAN_DWELL_MS-1).state.lean).toBe(null);
+    expect(c.update(frame(-.6),300+LEAN_DWELL_MS).state.lean).toBe('R');
   });
   it('requires continuous dwell; a neutral frame interrupts it', () => {
     const c=new PoseClassifier({guardThreshold:0});
     c.update(frame(.7),0); c.update(frame(),150); c.update(frame(.7),200);
-    expect(c.update(frame(.7),399).state.lean).toBe(null);
-    expect(c.update(frame(.7),400).state.lean).toBe('L');
+    expect(c.update(frame(.7),200+LEAN_DWELL_MS-1).state.lean).toBe(null);
+    expect(c.update(frame(.7),200+LEAN_DWELL_MS).state.lean).toBe('L');
   });
   it('freezes held lean during the300ms punch gate then restarts dwell', () => {
     const c=new PoseClassifier({guardThreshold:0});
@@ -48,8 +50,8 @@ describe('raw landmark classifier', () => {
     c.update(frame(-.7),500);
     expect(c.update(frame(-.7),599).state.lean).toBe('L');
     expect(c.update(frame(-.7),600).state.lean).toBe(null);
-    expect(c.update(frame(-.7),799).state.lean).toBe(null);
-    expect(c.update(frame(-.7),800).state.lean).toBe('R');
+    expect(c.update(frame(-.7),600+LEAN_DWELL_MS-1).state.lean).toBe(null);
+    expect(c.update(frame(-.7),600+LEAN_DWELL_MS).state.lean).toBe('R');
   });
   it('emits a bonus punch at the observed peak only after retraction and rearms on return', () => {
     const c=new PoseClassifier({guardThreshold:0});
@@ -73,8 +75,8 @@ describe('raw landmark classifier', () => {
     const c=new PoseClassifier({guardThreshold:-1});
     c.update(frame(.7),0); c.update(frame(.7),200);
     expect(c.update(frame(.7),451).state.lean).toBe(null);
-    expect(c.update(frame(.7),650).state.lean).toBe(null);
-    expect(c.update(frame(.7),651).state.lean).toBe('L');
+    expect(c.update(frame(.7),451+LEAN_DWELL_MS-1).state.lean).toBe(null);
+    expect(c.update(frame(.7),451+LEAN_DWELL_MS).state.lean).toBe('L');
     c.reset(); c.update(frame(.7),0);
     expect(c.update(frame(.7),1000).state.lean).toBe(null);
   });

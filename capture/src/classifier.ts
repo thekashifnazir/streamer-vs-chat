@@ -15,6 +15,23 @@ export function computeGuardReleaseBand(medians:Pick<GuardMedians,'neutral'|'gua
   return GUARD_BAND_FRACTION*spread;
 }
 export type LeanThresholds = {L:number;R:number};
+/**
+ * Lean activation as a fraction of each side's calibrated comfortable peak. Swept on the
+ * owner's recorded landmarks (31 Oct, two replays): 0.60 caught 9/18 shallow leans; 0.48 catches 18/18,
+ * while 0.46 and below let one of Kash's recorded jabs (27 Oct webcam) register as a lean.
+ */
+export const LEAN_THRESHOLD_FRACTION = 0.48;
+/**
+ * Continuous time beyond the threshold before a lean registers. 170 rather than 200 keeps six
+ * 30 fps frames but lets ~15 fps capture (live streams measured 16 FPS) register after three
+ * intervals instead of four. 150 ms and below let brief torso twists during recorded punches
+ * (Pexels fixtures) register as leans, so the dwell stays above that.
+ */
+export const LEAN_DWELL_MS = 170;
+/** Per-side activation from calibrated peaks; release stays at half of each. */
+export function leanThresholdsFromPeaks(peaks:LeanThresholds, floor:number):LeanThresholds {
+  return {L:Math.max(floor,LEAN_THRESHOLD_FRACTION*peaks.L),R:Math.max(floor,LEAN_THRESHOLD_FRACTION*peaks.R)};
+}
 export type PoseCalibration = {guardThreshold:number;leanThresholds?:LeanThresholds;guardReleaseBand?:number;guardMedians?:GuardMedians;neutralSwayP95?:number};
 export type PoseMetrics = {
   g: number;
@@ -146,7 +163,7 @@ export class PoseClassifier {
       const desired = metrics.tilt > this.leanThresholds.L ? 'L' : metrics.tilt < -this.leanThresholds.R ? 'R' : null;
       if (desired !== this.lean && desired !== null) {
         if (this.candidate !== desired) { this.candidate = desired; this.candidateSince = at; }
-        if (at - this.candidateSince >= 200) { this.lean = desired; this.candidate = null; }
+        if (at - this.candidateSince >= LEAN_DWELL_MS) { this.lean = desired; this.candidate = null; }
       } else this.candidate = null;
     }
     if(this.punchesEnabled)for (const side of ['L', 'R'] as const) {
