@@ -319,10 +319,13 @@ difficulty.addEventListener('change',()=>{paint();updateTutorial();});
 crowdSize.addEventListener('change',()=>{paint();crowdSize.blur();});
 noPunch.addEventListener('change',()=>{updateModes();noPunch.blur();});
 const timer=window.setInterval(()=>{
-  const at=performance.now();
-  if(cameraRunning&&at-lastFrameAt>=500){poseFramed=false;guardResume.reset();setup.frame([],false);}
-  setup.tick(at);fightUi?.tick();
+  const tickAt=performance.now();
+  if(cameraRunning&&tickAt-lastFrameAt>=500){poseFramed=false;guardResume.reset();setup.frame([],false);}
+  setup.tick(tickAt);fightUi?.tick();
   if(!game)return;
+  // Either tick can start the fight (end of the webcam countdown) or the next round at a later
+  // performance.now(); stepping that game with tickAt would run the reducer's clock backwards.
+  const at=performance.now();
   game=step(game,{kind:'advance'},at);
   if(source.value==='keyboard')game=step(game,{kind:'pose',...keyboard.physical,source:'keyboard',at},at);
   else if(!cameraRunning||at-lastFrameAt>=500){poseFramed=false;setup.frame([],false);game=step(game,{kind:'pose',guard:false,lean:null,source:'pose',at},at);}
