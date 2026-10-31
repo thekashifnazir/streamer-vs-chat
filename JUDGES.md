@@ -1,33 +1,47 @@
 # Streamer vs Chat: notes for judges
 
-Twitch chat votes the boss's attacks; the streamer blocks and dodges on camera. This page gets you from zero to the interesting parts in five minutes.
+Twitch chat votes the boss's attacks; the streamer blocks and dodges on camera. Start with the 90-second path; the five-minute tour and the detail follow.
 
 **Address:** https://streamervschat.kashifnazir.com. The no-login demo is free. The Workers fallback is https://streamer-vs-chat.kash-553.workers.dev.
+
+## The 90-second path
+
+1. **Open the demo:** [streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com). No login, no install; chat is simulated and badged **SIMULATED**.
+2. **Press PLAY NOW · KEYBOARD** and do the short practice (**K → A → J**).
+3. **Follow the callouts.** Each warning names the defence: **GUARD!** → hold **K**; **LEAN LEFT!** → hold **A**; **LEAN RIGHT!** → hold **D**. You have 1.0 s on Medium.
+4. **Watch for the scouting card in round 2.** If you keep dodging to one side, a card on the left rail shows chat your habit; if chat keeps voting one move, a card on the right rail tells you. It needs enough evidence, so it may not appear every match; [the scout preview](https://streamervschat.kashifnazir.com/?scout=fast) (badged **SCOUT PREVIEW · SIMULATED**) shows it in round 1.
+5. **Press Esc** to pause: Resume / Restart / Quit to setup.
+6. **Test a boss in Boss Forge.** Before starting or between rounds (choose **Expand** if the compact bar is shown), open **Boss Forge**, pick a boss and press **Test this boss** to see its before/after win rates.
+
+### What to look for
+
+- **Chat is the opponent, the body is the controller.** Vote bars pick the next attack; the callout names the defence, and you answer with your hands or a lean (keys here).
+- **Both sides scout each other.** Chat learns your dodge habit; you learn chat's favourite move and can pre-hold the counter for **READ IT** and +25% counter damage.
+- **Nothing unfair reaches the fight.** A Forge boss only fights after validation and the balance gate; **Test this boss** shows the before/after win rates.
 
 ## 1. What's live and what's simulated
 
 | Where | Chat | Labelled |
 |---|---|---|
-| The no-login demo (this address) | Simulated crowd of 0, 3, 50 or 500 viewers | **SIMULATED** badge on screen |
+| The no-login demo (this address; the README GIF) | Simulated crowd of 0, 3, 50 or 500 viewers | **SIMULATED** badge on screen |
 | `/play` (Try it on your channel) | Your own real Twitch chat; optional hosted bot results | Twitch chat connected |
 | Local live server + OBS | Real Twitch chat; the bot posts results | LIVE transport status |
-| Local mock server + OBS (the README GIF) | Local simulated chat | SIMULATED CHAT |
+| Local mock server + OBS | Local simulated chat | SIMULATED CHAT |
 
 Simulated chat is never sent to a live Twitch channel.
 
 ## Two ways to go live
 
-**Quick (this page, no OBS):** open [/play](https://streamervschat.kashifnazir.com/play), Connect Twitch, then Go live. Grant the extra stream-key permission only when requested; share this Chrome tab with tab audio. The key remains in memory. Twitch's WHIP ingest is undocumented: **MEASURED 31 Oct**, Kash's prep test returned 201, connected in under one second and was visible on twitch.tv/kashruns. Later on 31 Oct, going live from the page was **MEASURED** working on twitch.tv/kashruns: a viewer saw only the fight stage with the camera bubble, and the deployed app's own Go live was used live on kashruns (a pause bug seen in that run was then fixed in `3677761`). **Advanced (OBS):** expand the existing Mac/Windows guide, complete video/audio setup and press “Done, it's in OBS”. Skip is available if already live. Then choose Webcam (calibration, clear space and countdown) or Keyboard (no camera or checkbox).
+**Advanced (OBS)** is the documented path: expand the Mac/Windows guide, complete video/audio setup and press “Done, it's in OBS”. **Quick (this page, no OBS)** is an experimental shortcut that uses Twitch's undocumented WHIP ingest: open [/play](https://streamervschat.kashifnazir.com/play), Connect Twitch, then Go live. Grant the extra stream-key permission only when requested; share this Chrome tab with tab audio. The key remains in memory. **MEASURED 31 Oct:** Kash's prep test returned 201, connected in under one second and was visible on twitch.tv/kashruns. Later on 31 Oct, going live from the page was **MEASURED** working on twitch.tv/kashruns: a viewer saw only the fight stage with the camera bubble, and the deployed app's own Go live was used live on kashruns (a pause bug seen in that run was then fixed in `3677761`). Skip is available if already live. Then choose Webcam (calibration, clear space and countdown) or Keyboard (no camera or checkbox). More: [docs/HOSTED.md](docs/HOSTED.md).
 
 ## 2. Five-minute tour
 
 Chat Golem commands (first word, case-insensitive): **!jab (!j)** = guard; **!left (!l)** = hook from the left → **you lean right**; **!right (!r)** = hook from the right → **you lean left**; **!combo (!c)** = guard; **!super (!s)** = follow all three displayed GUARD / LEAN steps, only at full hype. Custom Forge bosses use exactly their displayed commands. Keyboard K / A / D / J controls the streamer.
 
-
 1. **Play a round on the keyboard.** Open the address, press **PLAY NOW · KEYBOARD**, then practise: press **K → A → J** (hold **K** to guard, hold **A/D** to lean, **J** for bonus punches). With **Defence only**, the tutorial is **K → A → D**. Difficulty initially selects **Medium** (3.0 s beats, 1.0 s warnings). The **Options** disclosure also offers Easy, Hard and Expert, applying at the next match; Hard has the original 0.8 s warning. When the warning appears it names the defence: **GUARD!** for a JAB or COMBO, **LEAN RIGHT!** for HOOK L, **LEAN LEFT!** for HOOK R (TILT instead of LEAN when seated); **SUPER!** shows all three guard/lean steps up front; follow each highlighted step. The spoken "hands up" line plays at most once per round. **Esc Pause** (or the on-screen button) opens Resume / Restart / Quit to setup at any time, including between rounds. Clean defences fill **FOCUS**. At **FINISHER READY**, hold **K** (guard) for **1 s** in a gap between attacks: **FINISHER!** deals **4 damage** and opens a **3 s** double-punch window. No punches are required to trigger it, and the boss keeps attacking on its normal schedule.
 2. **Change the crowd.** Between rounds, choose **Expand**, then set **Crowd** to **500 viewers**, then choose **Next round** or **New match** and watch the vote bars. The selector is disabled during a fight. The attack is drawn by vote share, so a big chat stays unpredictable.
 3. **[See the scouting card in one round](https://streamervschat.kashifnazir.com/?scout=fast).** This demo-only preset lowers the evidence threshold and is badged **SCOUT PREVIEW · SIMULATED**. Keep making successful same-side dodges in round 1 to reveal it. For production scouting, open the normal address and lean the same way most of the time in round 1. From round 2, enough consistent successful dodges can show your habit on the left rail (at least 12 samples, ≥65% share and a confidence bound); it is not guaranteed every match. Balance your last eight dodge leans to clear it and heal up to 10 HP. If chat repeats one move enough, a right-rail card reveals it: pre-hold that card's correct defence before the tell, then defend successfully for **READ IT** and +25% automatic counter damage.
-4. **Forge a boss.** Before starting or between rounds, choose **Expand** if the compact bar is shown, then open **Boss Forge**. Choose a **Boss**, optionally expand **Edit boss JSON**, then press **Test this boss**. It shows before/after win rates; press **Fight this boss now** (or **Use it next round**), then finish the tutorial if this is your first fight, or choose **New match** / **Next round** when available to play it. **Back to Chat Golem** selects the default again.
+4. **Forge a boss.** Before starting or between rounds, choose **Expand** if the compact bar is shown, then open **Boss Forge**. Choose a **Boss**, optionally open **Advanced: edit the boss file (JSON)**, then press **Test this boss**. It shows before/after win rates; press **Fight this boss now** (or **Use it next round**), then finish the tutorial if this is your first fight, or choose **New match** / **Next round** when available to play it. **Back to Chat Golem** selects the default again.
 5. **Optional webcam.** From setup choose **Use my webcam instead**, select Standing/Seated, confirm clear space, and press **Turn on camera**. Choosing the webcam preselects **Easy** (1.2 s warnings, labelled "Recommended for webcam") unless you already picked a level; webcam leans take about 0.4 s to register. Follow relaxed / hands-at-waist / guard / left / right cues. Keep head, shoulders and both wrists in frame; press **START WEBCAM FIGHT** when enabled. Guard is wrists above elbows near the face; lean is shoulder tilt, with directions belonging to the player, not the mirrored preview.
 
 ## 3. Checking the build
@@ -37,16 +51,19 @@ git clone https://github.com/thekashifnazir/streamer-vs-chat && cd streamer-vs-c
 npm ci && npm test && npx tsc --noEmit && npm run sim && npm run build:demo
 ```
 
-Clone and `npm ci` need network access to download the repository and packages. After installation, tests, type-check, sim and build need no key or external network. **MEASURED 31 Oct** on a fresh clone at `74cc38d`: 1,029 offline tests pass, and the sim output is identical to `0be805d`. Three automated end-to-end browser suites also pass at `74cc38d` (demo flows 8/8, including a bot-played best-of-3 and the webcam path fed a recorded clip as a fake camera; hosted `/play` 9/9 with Twitch and the Worker mocked in the browser; responsive/a11y at 6 widths in Chromium and WebKit, Lighthouse accessibility 100 on `/` and `/play`). They live outside this repository, so they are described, not linked; see the [README](README.md#judging-criteria--evidence).
+Clone and `npm ci` need network access to download the repository and packages. After installation, tests, type-check, sim and build need no key or external network. **MEASURED 31 Oct** on a fresh clone at `74cc38d`: 1,029 offline tests pass, and the sim output is identical to `0be805d`.
 
-The Codex session ID is `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`. That thread made 57 code commits; after its weekly limit ran out, 16 labelled "fix (Claude Code)" commits finished the build. See [How Codex built this](README.md#how-codex-built-this) and [Fixes made with Claude Code](README.md#fixes-made-with-claude-code).
+Three end-to-end browser suites were run by the team outside this repo; not included. **MEASURED** at `74cc38d`: demo flows 8/8 (including a bot-played best-of-3 and the webcam path fed a recorded clip as a fake camera), a hosted `/play` journey 9/9 with Twitch and the Worker mocked in the browser, and responsive/a11y checks at 6 widths in Chromium and WebKit with Lighthouse accessibility 100 on `/` and `/play`.
+
+The Codex session ID is `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`. Kash directed; that thread made 57 code commits; after its weekly limit ran out, 16 labelled "fix (Claude Code)" commits finished the build. See [How Codex built this](README.md#how-codex-built-this) and [Fixes made with Claude Code](README.md#fixes-made-with-claude-code).
 
 ## 4. Known limits
 
 - Punches are optional bonus damage; no-punch mode keeps automatic defence counters.
 - The webcam needs Chrome and reasonable light. Webcam leans take about 0.4 s to register, so Easy is recommended (and preselected) for webcam play.
 - Not yet checked live in this build: bot result lines, clips, `!forge` and sound on stream (OBS audio). The first three are deployed with their flags on.
-- `/play` reads chat; optional Worker bot results require the deployed bot flag and a `channel:bot` grant. Optional hosted clips require the deployed clips flag, a `clips:edit` grant and a live stream at least 60 seconds old. Only confirmed clips appear on the session card. When hosted Forge is enabled, chat can propose with `!forge <idea>` and endorse with `!forge +1`; a broadcaster/mod generates with plain `!forge` between rounds. Its gate runs in the browser, and daily caps apply. Hosted viewer memory is separately flagged and unchecked by default: “Remember my viewers” opts into per-channel Twitch IDs, display names and vote counts, with 90-day retention and `!forgetme`. Its records are separate from the counts-only results export.
+- Going live from the page is experimental (undocumented WHIP ingest); OBS is the documented path.
+- `/play` reads chat; bot results, clips, hosted Forge and viewer memory each need their deployed flag and, where relevant, a Twitch grant (`channel:bot`, `clips:edit`). Clips need a live stream at least 60 seconds old; viewer memory is unchecked by default and never stores chat text. Details: [docs/HOSTED.md](docs/HOSTED.md).
 - The loaded no-login demo runs without network requests; reloading offline is not supported because there is no service worker. For a fully local copy, run `npm run demo`.
 - **Esc Pause** opens Resume / Restart / Quit to setup, including during practice. Webcam Resume retains fresh-frame/safety checks. The demo enables sound at PLAY NOW; M mutes. Round results auto-advance after five seconds.
 - The local `/capture` page starts **INPUTS LOCKED**: tick **My space is clear** and press **Resume inputs** before **START MATCH**. Webcam input additionally requires valid calibration and a fresh framed pose.
