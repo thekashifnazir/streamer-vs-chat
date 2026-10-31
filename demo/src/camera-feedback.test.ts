@@ -3,6 +3,7 @@ import {JSDOM} from 'jsdom';
 import {expect,it,vi} from 'vitest';
 import {cameraErrorMessage,showCameraError} from './camera-feedback';
 import {mountFightSetup} from './setup-ui';
+import {mountDemoLanding} from './demo-landing';
 
 it.each([
  ['NotAllowedError',"Camera blocked. Allow it in your browser's site settings, or use the keyboard."],
@@ -30,4 +31,13 @@ it('camera caption is outside preview hit-testing at narrow widths',()=>{
   try{const doc=dom.window.document,style=doc.createElement('style');style.textContent=css;doc.head.append(style);const caption=doc.querySelector('.webcam-instructions')!;expect(doc.getElementById('webcam-preview')!.contains(caption)).toBe(false);expect(dom.window.getComputedStyle(caption).position).toBe('static');expect(dom.window.getComputedStyle(caption).pointerEvents).toBe('none');expect(dom.window.getComputedStyle(doc.getElementById('camera-start-overlay')!).zIndex).toBe('2');}finally{dom.window.close();}
  }
  expect(css).toContain('@media(max-width:480px)');
+});
+it('points the camera prompt at the clear-space box on the webcam setup page itself',()=>{
+ for(const page of ['../index.html','../play/index.html']){
+  const doc=new JSDOM(readFileSync(new URL(page,import.meta.url),'utf8')).window.document,reason=doc.getElementById('camera-start-reason')!;
+  expect(reason.textContent).toContain('on this page');expect(reason.textContent).not.toContain('fight setup');
+ }
+ // The landing moves the safety box into the webcam setup view, next to the camera prompt.
+ const doc=new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8')).window.document;mountDemoLanding(doc);
+ expect(doc.getElementById('camera-start-reason')!.closest('.webcam-layout')!.contains(doc.getElementById('clear-space'))).toBe(true);
 });
