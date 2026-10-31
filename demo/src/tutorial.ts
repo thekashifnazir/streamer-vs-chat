@@ -4,10 +4,11 @@ import type { StreamerInput } from '@svc/shared';
 export class InputTutorial {
   private index=0;
   constructor(private noPunch=false) {}
+  reset(){this.index=0;}
   get step(){return this.index;}
   get complete(){return this.index===3;}
   get keys(){return this.noPunch?['K','A','D'] as const:['K','A','J'] as const;}
-  status(started:boolean){return started?`Step ${Math.min(3,this.step+1)} of 3 · Press ${this.keys[Math.min(2,this.step)]}`:'Press START FIGHT above to begin.';}
+  status(started:boolean){return started?`Practice: press ${this.keys[Math.min(2,this.step)]} to ${this.step===0?'guard':this.step===1?'lean left':this.noPunch?'lean right':'punch'} (${Math.min(3,this.step+1)} of 3) · chat starts voting after 3 practice moves`:'Press START FIGHT above to begin.';}
   setNoPunch(value:boolean){this.noPunch=value;}
   input(input:StreamerInput) {
     if(this.index===0&&input.kind==='pose'&&input.guard)this.index=1;

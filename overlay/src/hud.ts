@@ -72,10 +72,10 @@ export function exploitHabitNote(state:GameState):string {
 }
 
 /** The same view consumes server ticks and local demo reducer states; it owns no game rules. */
-export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean;seated?:boolean;noPunch?:boolean;soundDefault?:boolean;deferSoundUntilStart?:boolean}={}) {
+export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plain?:boolean;seated?:boolean;noPunch?:boolean;soundDefault?:boolean;deferSoundUntilStart?:boolean;offlineDemo?:boolean}={}) {
   host.classList.add('rails-host');
   host.innerHTML=`<main class="rails-hud" aria-label="Streamer vs Chat">
-  <aside class="rail streamer"><header><p class="eyebrow" data-id="input-lock" role="status">STREAMER</p><h1>KASH</h1></header>
+  <aside class="rail streamer"><header><p class="eyebrow" data-id="input-lock" role="status">STREAMER</p><h1 data-id="player-name">KASH</h1></header>
   <div class="hp"><strong data-id="streamer-hp">100</strong><span>%</span><span class="focus-meter" data-id="focus-meter"><b data-id="focus-value">FOCUS 0</b><span class="focus-track"><i data-id="focus-fill"></i></span></span></div><div class="health-bar" data-id="streamer-bar" role="progressbar" aria-label="streamer HP 100 / 100" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i><span></span></div>
   <p class="rounds">ROUNDS <strong data-id="streamer-wins">0</strong> – <span data-id="boss-wins">0</span></p>
   <section class="scouting" data-id="scouting" hidden aria-live="polite"><p class="eyebrow" data-id="scouting-label">SCOUTED</p><div data-id="habit-details"><h2 data-id="habit">DODGES LEFT</h2><strong class="habit-share" data-id="habit-share"></strong><p class="scouting-evidence"><span data-id="habit-n"></span><span data-id="exploit-cooldown"></span></p><p>CHAT: VOTE <b data-id="exploit-command"></b></p></div><div data-id="fixed-details" hidden><strong class="fixed-stamp">FIXED!</strong><p data-id="fixed-reward"></p></div></section>
@@ -96,6 +96,8 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   const renderForge=()=>forgeView.render(forge,forgeVisible??forge?.betweenRounds??(!current||current.round.over));
   const setForge=(value:ForgeSnapshot|null,visible?:boolean)=>{forge=value;forgeVisible=visible;renderForge();};
   const setText=(id:string,value:string)=>{const element=el(id);if(element.textContent!==value)element.textContent=value;};
+  stage.classList.toggle('offline-demo',!!options.offlineDemo);
+  if(options.offlineDemo){el('player-name').textContent='YOU';el('plain').closest('label')!.hidden=true;}
   stage.classList.toggle('plain',!!options.plain);
   el<HTMLInputElement>('plain').checked=!!options.plain;
   el('simulated').hidden=!options.simulated;
@@ -147,6 +149,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   el('plain').addEventListener('change',()=>stage.classList.toggle('plain',el<HTMLInputElement>('plain').checked));
   const muteKey=(event:KeyboardEvent)=>{if(event.code==='KeyM'&&!event.repeat&&!['INPUT','TEXTAREA','SELECT'].includes((event.target as HTMLElement)?.tagName)){void toggle();}};
   window.addEventListener('keydown',muteKey);
+  let practice=false;
   let current:GameState|undefined;
   let superNotices:SuperNoticesView|null=null;
   let currentSimulated=!!options.simulated;
@@ -213,7 +216,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     hp('streamer',state.streamer.hp,state.streamer.max_hp);hp('boss',state.boss.hp,state.boss.max_hp);
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
-    renderFocus(el('focus-meter'),el('focus-value'),el('focus-fill'),state);
+    renderFocus(el('focus-meter'),el('focus-value'),el('focus-fill'),state);if(options.offlineDemo&&state.focus>0&&!host.querySelector('.focus-guide')){const guide=document.createElement('small');guide.className='focus-guide';guide.textContent='FOCUS → FINISHER';host.querySelector('.status-card')!.append(guide);}
     const finisherView=finisherPresentation(state);el('finisher-ready').hidden=!finisherView.visible;el('finisher-ready').classList.toggle('window-active',finisherView.active);setText('finisher-ready',finisherView.text);
     el('hype').textContent=`${Math.round(state.hype)}%`;el('hype-fill').style.width=`${state.hype}%`;
     const superReady=!!state.bossDef||state.hype>=100&&state.supers_used<3;setText('super-command',`→ ${chatCommand('SUPER',state.bossDef,true)}`);el('super-command').hidden=!availableMoves(state).includes('SUPER');
@@ -245,7 +248,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     host.querySelector('.boss')!.classList.toggle('raid-active',raid.active);
     if(raid.active){setText('raid-label',`PHASE 2 · RAID · ${raid.seconds}s`);el('raid-phase').title='Raider votes have 2× influence, capped at half the combined influence. Regular votes are needed; raiders alone have zero influence.';}
     setText('difficulty',difficultyName(state.difficulty).toUpperCase());
-    el('beat').textContent=state.paused?'· PAUSED':`· NEXT IN ${nextBeatSeconds(state)}s`;
+    el('beat').textContent=practice?'VOTING STARTS AFTER PRACTICE':state.paused?'· PAUSED':`· NEXT IN ${nextBeatSeconds(state)}s`;
     const sequence=superSequencePresentation(state,modes.seated);renderSuperSteps(el('super-steps'),sequence);
     const notices=superNoticePresentation(state,superNotices,Date.now());el('super-ready').hidden=!notices.ready||notices.denied;el('super-denied').hidden=!notices.denied;
     const attack=state.activeAttack;
@@ -316,5 +319,5 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       const attack=current.activeAttack;const viewNow=(current.clock.paused_at??current.now)+(current.paused?0:now-snapshotRealAt);tryTelegraphSound(current,viewNow);el('banner').style.opacity=attack&&!attack.vetoed&&lastTelegraph?String(Math.min(1,Math.max(0,(attack.lands_at-viewNow)/120))):'1';
     }else sprite.draw('idle',now);frameId=requestAnimationFrame(animate);};
   frameId=requestAnimationFrame(animate);
-  return {soundRequested:()=>sound.requested,setSoundRequested,activateSound,render,renderTally,setSuperNotices(value:SuperNoticesView){superNotices=value;},presentBossImpact(impact:BossImpact){bossFeedback.present(impact,performance.now());},setBossReceipts(batch:BossImpactBatch,prime=false){bossFeedback.setReceipts(batch,prime);},setModes,setMemory,setForge,setInputLocked(locked:boolean){el('input-lock').textContent=locked?'INPUTS LOCKED':'STREAMER';el('input-lock').classList.toggle('input-lock-active',locked);},setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelIdleSound();cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
+  return {setPractice(value:boolean){if(practice===value)return;practice=value;if(current)render(current,currentSimulated);},soundRequested:()=>sound.requested,setSoundRequested,activateSound,render,renderTally,setSuperNotices(value:SuperNoticesView){superNotices=value;},presentBossImpact(impact:BossImpact){bossFeedback.present(impact,performance.now());},setBossReceipts(batch:BossImpactBatch,prime=false){bossFeedback.setReceipts(batch,prime);},setModes,setMemory,setForge,setInputLocked(locked:boolean){el('input-lock').textContent=locked?'INPUTS LOCKED':'STREAMER';el('input-lock').classList.toggle('input-lock-active',locked);},setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},dispose(){disposed=true;cancelIdleSound();cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
 }

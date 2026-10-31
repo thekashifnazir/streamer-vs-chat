@@ -74,3 +74,9 @@ it('defers standalone OBS autoplay until idle and cancels priming on disposal',a
  const cancelled=setup(true,true);cancelled.hud.dispose();cancelled.idleCallbacks[0]!({} as IdleDeadline);
  expect(fetch).not.toHaveBeenCalled();expect(cancelled.contexts).toHaveLength(0);
 });
+it.each(['index.html','play/index.html'])('uses the selected Hard level for practice and the actual fight from %s',async page=>{
+ const {readFileSync}=await import('node:fs'),{createSelectedGame}=await import('../../demo/src/difficulty-choice'),{step}=await import('../../shared/src/engine');
+ const markup=new JSDOM(readFileSync(new URL('../../demo/'+page,import.meta.url),'utf8')),select=markup.window.document.getElementById('start-difficulty') as HTMLSelectElement;select.value='hard';
+ const {hud,host}=setup(false),preview=createSelectedGame(select);hud.render(preview);hud.setPractice(true);expect(host.querySelector('[data-id=difficulty]')!.textContent).toBe('HARD');expect(host.querySelector('[data-id=beat]')!.textContent).toBe('VOTING STARTS AFTER PRACTICE');
+ const fight=step(createSelectedGame(select,{now:0}),{kind:'advance'},2400);expect(fight.difficulty).toBe('hard');expect(fight.activeAttack?.lands_at).toBe(3200);hud.dispose();markup.window.close();
+});

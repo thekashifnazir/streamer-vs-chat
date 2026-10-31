@@ -7,7 +7,7 @@ it('offers hosted sound on by default with truthful page-specific footers',()=>{
  const demo=new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8'));
  expect(live.window.document.querySelector<HTMLInputElement>('#stream-sound')!.checked).toBe(true);
  expect(live.window.document.querySelector('footer')!.textContent).toContain('Sound starts on at START FIGHT');
- expect(demo.window.document.querySelector('#stream-sound')).toBeNull();expect(demo.window.document.querySelector('footer')!.textContent).toContain('Sound starts off');
+ expect(demo.window.document.querySelector('#stream-sound')).toBeNull();expect(demo.window.document.querySelector('footer')!.textContent).toContain('Sound on at PLAY NOW');
  live.window.close();demo.window.close();
 });
 it('gives both OBS audio routes and a meter test without changing Twitch permissions',()=>{

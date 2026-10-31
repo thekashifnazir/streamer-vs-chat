@@ -73,10 +73,10 @@ test.each(['../index.html','../play/index.html'])('keeps pre-start copy above th
   expect(status.textContent).toBe(tutorial.status(false));
   // An unsolicited pre-start input must render through the same status path.
   status.textContent=tutorial.status(false);expect(status.textContent).toBe('Press START FIGHT above to begin.');
-  status.textContent=tutorial.status(true);expect(status.textContent).toBe('Step 1 of 3 · Press K');
-  tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:0});status.textContent=tutorial.status(true);expect(status.textContent).toBe('Step 2 of 3 · Press A');
-  tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});status.textContent=tutorial.status(true);expect(status.textContent).toBe('Step 3 of 3 · Press J');
-  tutorial.setNoPunch(true);status.textContent=tutorial.status(true);expect(status.textContent).toBe('Step 3 of 3 · Press D');
+  status.textContent=tutorial.status(true);expect(status.textContent).toContain('press K to guard (1 of 3)');
+  tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:0});status.textContent=tutorial.status(true);expect(status.textContent).toContain('press A to lean left (2 of 3)');
+  tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});status.textContent=tutorial.status(true);expect(status.textContent).toContain('press J to punch (3 of 3)');
+  tutorial.setNoPunch(true);status.textContent=tutorial.status(true);expect(status.textContent).toContain('press D to lean right (3 of 3)');
   const main=readFileSync(new URL('./main.ts',import.meta.url),'utf8');expect(main).toContain('if(!game)updateTutorial();');expect(main).toContain("el('tutorial-status').textContent=tutorial.status(tutorialStarted)");expect(main).not.toContain('Check “My space is clear” below');
  }finally{dom.window.close();}
 });

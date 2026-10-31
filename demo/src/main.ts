@@ -1,3 +1,6 @@
+import {createSelectedGame} from './difficulty-choice';
+import {mountDemoLanding} from './demo-landing';
+import {mountFightUi} from './fight-ui';
 import {showCameraError} from './camera-feedback';
 import {mountShareTools} from './share-tools';
 import {mountFightSetup} from './setup-ui';
@@ -6,13 +9,13 @@ import {scoutPreviewConfig,SCOUT_PREVIEW_BADGE} from './scout-preview';
 import {createSuperNotices} from '../../shared/src/super-notices';
 import {createBossImpactLedger} from '../../shared/src/boss-impact';
 import {chatCommandLegend} from '../../shared/src/chat-commands';
-import {tempoFor,type Difficulty} from '../../shared/src/tempo';
+import {tempoFor} from '../../shared/src/tempo';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import type {BossDef} from '../../shared/src/boss-def';
 import '../../overlay/src/style.css';
 import './style.css';
 import { createRailsHud } from '../../overlay/src/hud';
-import { createGame, step as engineStep, type GameState } from '../../shared/src/engine';
+import { step as engineStep, type GameState } from '../../shared/src/engine';
 import {parseChatVote} from '@svc/shared';
 import type { PoseState, StreamerInput } from '@svc/shared';
 import { createKeyboard } from '../../capture/src/keyboard';
@@ -25,7 +28,6 @@ import {startColdOpen,coldOpenStage} from './cold-open';
 import {mountStreamLayout} from './stream-layout';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
-import {createDemoViewerMemory} from './viewer-memory';
 
 const impactLedger=createBossImpactLedger('browser');
 const superNotices=createSuperNotices();
@@ -42,13 +44,14 @@ const clearSpace=el<HTMLInputElement>('clear-space');
 const noPunch=el<HTMLInputElement>('no-punch');
 const avatar=el('keyboard-avatar');
 const liveMode=location.pathname==='/play'||location.pathname.startsWith('/play/');
-const safetyCleared=()=>liveMode&&source.value==='keyboard'||clearSpace.checked;
+const safetyCleared=()=>source.value==='keyboard'||clearSpace.checked;
+if(!liveMode)mountDemoLanding(document);
 const previewConfig=scoutPreviewConfig(location,{liveMode,liveTokenLoaded:false});
 if(previewConfig)document.querySelector('.demo-tag')!.textContent=SCOUT_PREVIEW_BADGE;
-const hud=createRailsHud(host,{simulated:!liveMode,soundDefault:liveMode,deferSoundUntilStart:liveMode});
-const streamSound=document.getElementById('stream-sound') as HTMLInputElement|null;
+const hud=createRailsHud(host,{simulated:!liveMode,soundDefault:true,deferSoundUntilStart:true,offlineDemo:!liveMode});
+const streamSound=(document.getElementById('stream-sound')??document.getElementById('demo-sound')) as HTMLInputElement|null;
 if(streamSound){
-  const syncSound=()=>{streamSound.checked=hud.soundRequested();};
+  const syncSound=()=>{streamSound.checked=hud.soundRequested();const label=document.getElementById('landing-mode-label');if(label)label.textContent=`Sound ${hud.soundRequested()?'on':'off'} · ${difficulty.value[0]!.toUpperCase()+difficulty.value.slice(1)}`;};
   host.addEventListener('rails-sound-change',syncSound);
   streamSound.addEventListener('change',()=>{void hud.setSoundRequested(streamSound.checked);});
   syncSound();
@@ -59,6 +62,7 @@ let pendingBoss:BossDef|null=null;
 let forgeSnapshot:ForgeSnapshot|null=null;
 let forgePanel:ReturnType<typeof import('./forge').mountDemoForge>|null=null;
 let game:GameState|null=null;
+let fightUi:ReturnType<typeof mountFightUi>|null=null;
 let crowd:ReturnType<typeof createSimulationSource>|null=null;
 let crowdBeat='';
 let cameraRunning=false;
@@ -77,7 +81,6 @@ const playtest=new LocalPlaytestStats();
 if(!liveMode)mountShareTools(document);
 let playtestRound:string|null=null;
 let tutorialStarted=false;
-const viewerMemory=liveMode?null:createDemoViewerMemory({offline:true,factory:globalThis.indexedDB,onChange:()=>paint()});
 function trackLocalRound(){
  if(!game||liveMode||coldOpenAt!==null)return;
  const key=`${game.match.seed}:${game.round.number}`;
@@ -96,6 +99,8 @@ function updateTutorial() {
   el('tutorial-last-key').textContent=tutorial.keys[2];
   el('tutorial-last-label').textContent=noPunch.checked?`Try the other ${posture.value==='seated'?'tilt':'lean'}`:'Try a bonus punch';
   el('tutorial-status').textContent=tutorial.status(tutorialStarted);
+  hud.setPractice(tutorialStarted&&!game);
+  fightUi?.modes(source.value==='keyboard',noPunch.checked);
   for(const [index,item]of Array.from(document.querySelectorAll('[data-step]')).entries()) {
     item.classList.toggle('done',index<tutorial.step);item.classList.toggle('active',index===tutorial.step);
   }
@@ -120,15 +125,19 @@ function paint() {
   forgePanel?.update();
   hud.setForge(forgeSnapshot,!game||game.round.over);
   setup.commands(game?game.bossDef:pendingBoss);
-  if(game&&coldOpenAt===null)viewerMemory?.observe(game);
-  hud.setMemory(hosted?.memoryView()??viewerMemory?.view()??null);
+  hud.setMemory(hosted?.memoryView()??null);
   document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef)+' · FINISHER READY: hold K (guard) for 1 s; no punches required.';
   hud.setBossReceipts(impactLedger.snapshot());hud.setSuperNotices(superNotices.snapshot());
-  hud.render(game??createGame({seed,viewers:liveMode?0:Number(crowdSize.value),now:0,difficulty:difficulty.value as Difficulty,...(previewConfig?{scoutingConfig:previewConfig}:{})}),!liveMode);
+  hud.render(game??createSelectedGame(difficulty,{seed,viewers:liveMode?0:Number(crowdSize.value),now:0,...(previewConfig?{scoutingConfig:previewConfig}:{})}),!liveMode);
   hud.setConnection(previewConfig?SCOUT_PREVIEW_BADGE:liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   trackFight();trackLocalRound();
+  hud.setPractice(tutorialStarted&&!game);
+  if(previewConfig){const badge=host.querySelector('[data-id=simulated]');if(badge)badge.textContent=SCOUT_PREVIEW_BADGE;}
+  if(!liveMode){const label=document.getElementById('landing-mode-label');if(label)label.textContent=`Sound ${hud.soundRequested()?'on':'off'} · ${difficulty.value[0]!.toUpperCase()+difficulty.value.slice(1)}`;}
   const summary=game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null;
-  hud.setEndcard(summary&&viewerMemory?{...summary,chatMvp:viewerMemory.summaryMvp()}:summary&&hosted?hosted.publicSummary(summary):summary,hosted?.clipsSnapshot()??[]);
+  const publicSummary=summary&&hosted?hosted.publicSummary(summary):summary;
+  fightUi?.render(game,showSessionSummary,liveMode?{mvp:publicSummary?.chatMvp?.displayName??publicSummary?.chatMvp?.user,clips:hosted?.clipsSnapshot()}:{});
+  hud.setEndcard(null);
   if(game) {
     el('next-round').hidden=!game.round.over||Boolean(game.match.winner)||showSessionSummary;
     el('restart').hidden=false;
@@ -144,7 +153,6 @@ function drawCrowd(at:number) {
   crowdBeat=key;
   const votes=crowd.votes(game,at);
   game=step(game,{kind:'vote-batch',votes},at);
-  viewerMemory?.votes(votes,game);
   for(const vote of votes)playtest.vote(vote.user,game.votes[vote.user]===vote.move);
 }
 function startFight() {
@@ -152,9 +160,10 @@ function startFight() {
   if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Connect Twitch and wait for LIVE before starting.';return;}
   if(!safetyCleared()){el('tutorial-status').textContent='Tick “my space is clear” above before starting.';return;}
   if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before starting.';setup.open();return;}
+  fightUi?.setPaused(false);tutorialStarted=false;hud.setPractice(false);fightUi?.showStage();
   hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
   const at=performance.now();
-  game=createGame({seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,difficulty:difficulty.value as Difficulty,...(previewConfig?{scoutingConfig:previewConfig}:{}),...(pendingBoss?{bossDef:pendingBoss}:{})});
+  game=createSelectedGame(difficulty,{seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,...(previewConfig?{scoutingConfig:previewConfig}:{}),...(pendingBoss?{bossDef:pendingBoss}:{})});
   hosted?.observePhase(true);
   hosted?.observeGame(game,false,true);
   // Live chat and the offline crowd both feed the shared reducer; no server import.
@@ -169,6 +178,8 @@ function startFight() {
   paint();
 }
 function input(event:StreamerInput) {
+  if(event.kind==='control'&&event.action==='stop'&&(tutorialStarted||game)&&!showSessionSummary)fightUi?.setPaused(true);
+  if(event.kind!=='control'&&fightUi?.paused)return;
   if(event.kind==='control'&&event.action==='resume'&&source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before resuming.';return;}
   if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||coldOpenAt!==null||(liveMode&&!hosted?.ready)))return;
   const at=performance.now();
@@ -177,8 +188,9 @@ function input(event:StreamerInput) {
     return;
   }
   if(!game) {
-    if(source.value==='pose')return;
-    if(tutorial.input(event))startFight();
+    if(event.kind==='control'){if(event.action==='resume')fightUi?.setPaused(false);return;}
+    if(!tutorialStarted||source.value==='pose')return;
+    if(tutorial.input(event)){startFight();return;}
     updateTutorial();
     return;
   }
@@ -189,6 +201,7 @@ function input(event:StreamerInput) {
       cameraRunning&&at-lastFrameAt<500?{...lastPose,at}:{kind:'pose',guard:false,lean:null,source:'pose',at};
     game=step(game,pose,at);
   }
+  if(event.kind==='control'&&event.action==='resume'&&!game.paused)fightUi?.setPaused(false);
   drawCrowd(at);paint();
 }
 const keyboard=createKeyboard({emit:input,label:label=>{
@@ -196,7 +209,8 @@ const keyboard=createKeyboard({emit:input,label:label=>{
 }});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
-const setup=mountFightSetup(document,{keyboardRequiresClearSpace:!liveMode,simplifiedCalibration:liveMode,onStart:()=>{void hud.activateSound();if(liveMode||game){startFight();return;}tutorialStarted=true;el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
+const setup=mountFightSetup(document,{keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,onStart:()=>{void hud.activateSound();if(game){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
+fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
 const calibration=createCalibration({onChange(snapshot){
   el('calibration-status').textContent=snapshot.message;
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
@@ -252,9 +266,10 @@ el('start-calibration').addEventListener('click',()=>{
 });
 posture.addEventListener('change',()=>{setup.restored(false);poseFramed=false;calibration.reset();classifier.reset();lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};if(game&&source.value==='pose')input(lastPose);restoreCalibration();updateModes();posture.blur();});
 source.addEventListener('change',()=>{
+  if(source.value==='keyboard'){camera.stop();cameraRunning=false;poseFramed=false;video.hidden=true;avatar.hidden=false;setup.camera(false);}
   if(game)input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});
   keyboard.setEnabled(!game||source.value==='keyboard');
-  if(source.value==='pose')restoreCalibration();setup.sync();
+  if(source.value==='pose')restoreCalibration();setup.sync();fightUi?.modes(source.value==='keyboard',noPunch.checked);
   source.blur();
 });
 clearSpace.addEventListener('change',()=>{
@@ -280,12 +295,13 @@ el('next-round').addEventListener('click',()=>{
   crowd=liveMode?null:createSimulationSource({viewers:Number(crowdSize.value),seed:seed+game.round.number,liveTokenLoaded:hosted?.hasToken??false});
   trackLocalRound();crowdBeat='';drawCrowd(at);paint();
 });
+difficulty.addEventListener('change',()=>{paint();updateTutorial();});
 crowdSize.addEventListener('change',()=>{paint();crowdSize.blur();});
 noPunch.addEventListener('change',()=>{updateModes();noPunch.blur();});
 const timer=window.setInterval(()=>{
   const at=performance.now();
   if(cameraRunning&&at-lastFrameAt>=500){poseFramed=false;setup.frame([],false);}
-  setup.tick(at);
+  setup.tick(at);fightUi?.tick();
   if(!game)return;
   game=step(game,{kind:'advance'},at);
   if(source.value==='keyboard')game=step(game,{kind:'pose',...keyboard.physical,source:'keyboard',at},at);
@@ -299,20 +315,20 @@ const timer=window.setInterval(()=>{
   }
   drawCrowd(at);paint();
 },100);
-window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();playtest.dispose();void viewerMemory?.close();});
+window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();playtest.dispose();});
 el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
-el('back-to-setup').addEventListener('click',()=>{setup.cancel();if(game)input({kind:'control',action:'stop',by:'capture'});streamLayout.expand();el('fight-setup').scrollIntoView?.({block:'start',behavior:'smooth'});});
+el('back-to-setup').addEventListener('click',()=>fightUi?.end());
 el('cold-open').addEventListener('click',()=>{
  if(liveMode)return;
  if(!safetyCleared()){el('cold-open-status').textContent='Confirm clear space first.';return;}
  if(source.value==='pose'&&(!calibration.snapshot.ready||!cameraRunning)){el('cold-open-status').textContent='Start and calibrate the camera first, or choose Keyboard.';return;}
- playtest.endRound();const at=performance.now();coldOpenAt=at;crowd=null;showSessionSummary=false;
+ fightUi?.showStage();playtest.endRound();const at=performance.now();coldOpenAt=at;crowd=null;showSessionSummary=false;
  void hud.activateSound();
  game=startColdOpen(at,seed++,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose);
  el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();stage.scrollIntoView?.({block:'start',behavior:'smooth'});stage.classList.remove('cold-open-tally');paint();
 });
-if(!liveMode){const {mountDemoForge}=await import('./forge');const panel=el('demo-forge-host');forgePanel=mountDemoForge(panel,{betweenRounds:()=>!game||game.round.over,onAccepted:boss=>{pendingBoss=boss;},onSnapshot:snapshot=>{forgeSnapshot=snapshot;hud.setForge(snapshot,!game||game.round.over);}});}
+if(!liveMode){const {mountDemoForge}=await import('./forge');const panel=el('demo-forge-host');forgePanel=mountDemoForge(panel,{betweenRounds:()=>!game||game.round.over,onAccepted:boss=>{pendingBoss=boss;},onFightNow:()=>{void hud.activateSound();game=null;crowd=null;startFight();},onSnapshot:snapshot=>{forgeSnapshot=snapshot;hud.setForge(snapshot,!game||game.round.over);}});}
 if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');

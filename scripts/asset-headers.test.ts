@@ -12,3 +12,6 @@ describe('static asset cache headers',()=>{
  });
  it('uses static assets headers because only API routes run the worker first',async()=>{const config=await readFile('wrangler.toml','utf8');expect(config).toContain('run_worker_first = ["/api/*"]');const builder=await readFile('scripts/build-demo.ts','utf8');expect(builder).toContain('writeAssetHeaders(output)');});
 });
+it('serves text credits with UTF-8 and builds a UTF-8 HTML credits page',async()=>{
+ expect(assetHeaders([])).toContain('/credits/*.txt\n  Content-Type: text/plain; charset=utf-8');const source=await readFile('scripts/build-demo.ts','utf8');expect(source).toContain('join(credits,\'index.html\')');expect(source).toContain('meta charset="utf-8"');
+});

@@ -1,0 +1,24 @@
+# Queue 13t — demo and fight-screen cleanup
+
+31 October 2026. Browser presentation/onboarding/input routing only. Engine/reducer, combat timing/damage/balance and pose/classification/calibration arithmetic are unchanged. No dependencies added; no deployment. The 13s hosted onboarding, OAuth/WHIP and stream extras implementation remain unchanged.
+
+## Changes
+
+- Offline landing has one PLAY NOW · KEYBOARD action and the requested pitch, webcam/real-chat links and compact sound/difficulty options. `VIDEO_URL` is empty so the watch link is absent. The game preview and how-to cards stay hidden until play. Keyboard needs no safety checkbox; the existing one checkbox moves into webcam setup. The demo defaults to requested-on audio and unlocks on PLAY NOW/START, retaining M and the HUD mute control.
+- Browser practice now explicitly explains the next K/A/J move (K/A/D in defence-only mode), pulses its key and displays VOTING STARTS AFTER PRACTICE. There is no running reducer during practice. Preview and START both read the same difficulty selection through `createSelectedGame`; Hard is tested on both page markups and against the unchanged first-attack timing. The stale Medium label came from the earlier preview: changing the select and starting practice did not repaint the HUD; actual START already read the select. Both paths now repaint/read one helper.
+- A UI pause state handles Esc even before a game exists. Active fights use the existing STOP/resume inputs. The centred PAUSED dialog has Resume, Restart, Quit to setup and the paused voting explanation. The fight bar has only Esc Pause and End fight; say-stop transport handling is untouched. Webcam restart countdown hides the old fight's pause dialog while the old reducer remains stopped.
+- Phones get held K/A/D/J pointer pads below the stage, pointer cancellation/release and tappable practice cards, using the same keyboard event adapter. Defence-only hides J. Compact mobile styles wrap controls/results and retain 44px targets; a laptop/webcam hint is shown. The Rails HUD remains at its existing logical dimensions/font floor.
+- Offline HUD says YOU, hides PLAIN/connection duplication/stream-only tools and explains FOCUS → FINISHER. The demo no longer opens or seeds the fictional viewer-memory store. Old stored fictional data is left untouched and unused. Hosted viewer memory, consent and public MVP filtering are preserved.
+- Browser results show the round winner and three plain stats, with NEXT ROUND and a five-second UI auto-advance; the UI countdown freezes while paused. Match end gives NEW MATCH. Offline results omit historical MVP/clip/memory jargon. Hosted results retain public MVP and safe confirmed clip links. Reducer round results and advancement rules are untouched.
+- The prior source-change path only changed input routing; it never called camera.stop(). Selecting Keyboard now stops the pose camera even if a camera start/model load is still pending, hides its mirrored video and updates setup state. This does not stop a separate explicitly enabled 13s stream camera.
+- How-to copy explicitly names the side the hook comes from. Credits now have UTF-8 text headers plus a UTF-8 HTML page linked by both footers. A passing Boss Forge candidate reveals Fight this boss now, using the existing accepted-definition callback before START. The play-test checkbox/export move to results; consent still records only after opt-in, never retrospectively.
+
+## Checks
+
+`npx vitest run`: 980/980 tests across 127 files, exit 0 (28.98 s). `npx tsc --noEmit`: exit 0 (3.96 s). `npm run build:demo`: exit 0 (2.35 s), including the offline, compressed-audio and header audits. `npm run sim`: exit 0 (815.49 s); all production/scouting/difficulty and five Forge gates passed. Output is byte-identical to 0be805d (3,652 bytes, SHA-256 `b1fac984b5bad9b5ceea6c5fb1bd9680fbff80d87a56a0ef88708891b3d64527`). No golden changes. All tests use fakes/local data, never live Twitch. Coverage includes the mounted offline entry playing an actual reducer round with no network, Esc during practice, source switching, selected Hard previews/first attack, touch key routing, plain results/one-shot auto-advance/pause, hosted NEXT ROUND and safe clips, Forge start admission, and UTF-8 credits.
+
+The requested subagent review is skipped; Claude reviews in a fresh clone and real browser.
+
+## Needs Claude / Kash
+
+Rendered 390px and desktop checks remain real-browser checks: landing hierarchy, practice readability/key pulse, held touch pads, results wrapping/auto-advance, FOCUS label spacing, webcam → Back → Keyboard hardware camera light/feed, and the existing hosted WHIP/OBS flow. No physical camera, OBS, browser geometry or live Twitch claims are made here. Confirm credits accents/quotes after deployment. No deployment performed.

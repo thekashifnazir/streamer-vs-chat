@@ -29,10 +29,15 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   const cameraStop=dom.window.document.getElementById('stop-camera') as HTMLButtonElement;cameraStop.disabled=false;cameraStop.click();
   expect(inputSource.value).toBe('keyboard');expect(dom.window.document.querySelector('[data-option-for="input-source"][data-value="keyboard"]')!.getAttribute('aria-pressed')).toBe('true');
   expect(dom.window.document.getElementById('open-webcam')!.hidden).toBe(true);
-  const clear=dom.window.document.getElementById('clear-space') as HTMLInputElement;clear.checked=true;clear.dispatchEvent(new dom.window.Event('change'));
+  const level=dom.window.document.getElementById('start-difficulty') as HTMLSelectElement;level.value='hard';level.dispatchEvent(new dom.window.Event('change'));
+  dom.window.document.getElementById('play-now')!.click();
+  dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{code:'Escape'}));
+  dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{code:'KeyK'}));
+  expect(dom.window.document.getElementById('pause-screen')!.hidden).toBe(false);expect(dom.window.document.getElementById('tutorial-status')!.textContent).toContain('(1 of 3)');
+  dom.window.document.querySelector<HTMLButtonElement>('[data-pause=resume]')!.click();
   for(const code of ['KeyK','KeyA','KeyJ'])dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{code}));
   await vi.advanceTimersByTimeAsync(80000);
-  const states=observed.renders as {log:{rounds:unknown[]};clock:{beat:number}}[];
+  const states=observed.renders as {difficulty:string;log:{rounds:unknown[]};clock:{beat:number}}[];expect(states.at(-1)!.difficulty).toBe('hard');
   expect(states.some(state=>state.clock.beat>0)).toBe(true);
   expect(states.some(state=>state.log.rounds.length>0)).toBe(true);
   const previous=states.at(-1) as unknown as {match:{seed:number}};dom.window.document.querySelector<HTMLButtonElement>('.stream-expand')!.click();

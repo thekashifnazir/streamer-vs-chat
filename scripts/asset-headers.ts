@@ -6,7 +6,7 @@ import {join} from 'node:path';
  */
 export function assetHeaders(paths:string[]){
  const immutable=paths.filter(path=>/^assets\/[^/]+-[A-Za-z0-9_-]{8,}\.[^/]+$/.test(path)).sort();
- return ['# Generated: fingerprinted assets only; HTML must revalidate.','/\n  Cache-Control: no-cache','/play\n  Cache-Control: no-cache','/play/\n  Cache-Control: no-cache','/*.html\n  Cache-Control: no-cache',...immutable.map(path=>`/${path}\n  Cache-Control: public, max-age=31536000, immutable`)].join('\n\n')+'\n';
+ return ['# Generated: fingerprinted assets only; HTML must revalidate.','/\n  Cache-Control: no-cache','/play\n  Cache-Control: no-cache','/play/\n  Cache-Control: no-cache','/*.html\n  Cache-Control: no-cache','/credits/*.txt\n  Content-Type: text/plain; charset=utf-8',...immutable.map(path=>`/${path}\n  Cache-Control: public, max-age=31536000, immutable`)].join('\n\n')+'\n';
 }
 export async function writeAssetHeaders(output:string){
  const paths:string[]=[];

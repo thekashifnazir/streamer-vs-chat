@@ -48,7 +48,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
   const key=JSON.stringify([boss??DEFAULT_BOSS,posture,mode]);if(commandKey===key)return;commandKey=key;
   const standard=!boss||isDefaultBoss(boss),moves=(boss??DEFAULT_BOSS).moves,rows=get('attack-rows');rows.replaceChildren();
   const seated=posture==='seated',lean=seated?'Tilt':'Lean';
-  const defs=[{defence:'guard',title:'Guard',key:'K',pose:'Both fists up',body:'Straight punches and flurries. Hands up.'},{defence:'lean_left',title:`${lean} left`,key:'A',pose:`${lean} left`,body:`Hook from your right. ${lean} away from it.`},{defence:'lean_right',title:`${lean} right`,key:'D',pose:`${lean} right`,body:`Hook from your left. ${lean} away from it.`}] as const;
+  const defs=[{defence:'guard',title:'Guard',key:'K',pose:'Both fists up',body:'Straight punches and flurries. Hands up.'},{defence:'lean_left',title:`${lean} left`,key:'A',pose:`${lean} left`,body:`The hook comes from your right. ${lean} away from it.`},{defence:'lean_right',title:`${lean} right`,key:'D',pose:`${lean} right`,body:`The hook comes from your left. ${lean} away from it.`}] as const;
   function chip(command:string,alias?:string){const item=root.createElement('span');item.className='chat-chip command-chip';item.append(command);if(alias){const small=root.createElement('small');small.textContent=` (${alias})`;item.append(small);}return item;}
   for(const definition of defs){
    const card=root.createElement('article');card.className='defence-card';card.dataset.defence=definition.defence;
