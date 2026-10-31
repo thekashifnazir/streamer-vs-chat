@@ -243,3 +243,6 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  #pause-screen [data-pause=restart],#pause-screen [data-pause=quit]{order:2;flex:0 1 auto;margin:0}
  #pause-screen p:not([data-pause-reason]):not([data-guard-resume]){order:3;font-size:14px}
 }
+/* Desktop: the round/match results sit in the centre stage column (the HUD rails are 470/1920 =
+   24.5% wide each side), so the streamer and boss panels stay readable behind it. */
+@media(min-width:1000px){.round-results{inset:12% 25.5% 6%;padding:20px 24px}.round-results h2{font-size:clamp(28px,3vw,52px)}.round-results .plain-stats{gap:4px 20px}}
