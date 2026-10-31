@@ -19,14 +19,15 @@ it('the webcam countdown starts the fight without stepping the new game back in 
  const errors:unknown[]=[];
  try{await import('./main');const doc=dom.window.document;
   doc.getElementById('demo-webcam')!.click();
+  expect(doc.getElementById('landing-mode-label')!.textContent).toContain('Easy · recommended for webcam');
   const space=doc.getElementById('clear-space') as HTMLInputElement;space.checked=true;space.dispatchEvent(new dom.window.Event('change'));doc.getElementById('start-camera')!.click();await Promise.resolve();await Promise.resolve();
   const landmarks=Array.from({length:33},()=>({x:.5,y:.5,z:0,visibility:1}));landmarks[11]!.x=.4;landmarks[12]!.x=.6;
   const frames=setInterval(()=>observed.frame({landmarks,at:performance.now(),fps:30,inferenceMs:12}),33);
   await vi.advanceTimersByTimeAsync(100);doc.getElementById('play-webcam')!.click();
   expect(doc.getElementById('webcam-countdown')!.textContent).toContain('Get in position');
-  for(let ms=0;ms<8000;ms+=100){try{await vi.advanceTimersByTimeAsync(100);}catch(error){errors.push(error);}}
+  for(let ms=0;ms<9000;ms+=100){try{await vi.advanceTimersByTimeAsync(100);}catch(error){errors.push(error);}}
   clearInterval(frames);
   expect(errors).toEqual([]);
-  const game=observed.renders.at(-1)!;expect(game.paused).toBe(false);expect(game.clock.beat).toBeGreaterThanOrEqual(1);
+  const game=observed.renders.at(-1)!;expect(game.difficulty).toBe('easy');expect(game.paused).toBe(false);expect(game.clock.beat).toBeGreaterThanOrEqual(1);
  }finally{dom.window.dispatchEvent(new dom.window.Event('pagehide'));dom.window.close();vi.unstubAllGlobals();vi.useRealTimers();}
 });

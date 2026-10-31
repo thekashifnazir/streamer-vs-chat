@@ -1,5 +1,5 @@
 import {createGuardResume} from './hosted-pause';
-import {createSelectedGame} from './difficulty-choice';
+import {createSelectedGame,difficultyLabel} from './difficulty-choice';
 import {mountDemoLanding} from './demo-landing';
 import {mountFightUi} from './fight-ui';
 import {showCameraError} from './camera-feedback';
@@ -54,7 +54,7 @@ if(previewConfig)document.querySelector('.demo-tag')!.textContent=SCOUT_PREVIEW_
 const hud=createRailsHud(host,{simulated:!liveMode,soundDefault:true,deferSoundUntilStart:true,offlineDemo:!liveMode});
 const streamSound=(document.getElementById('stream-sound')??document.getElementById('demo-sound')) as HTMLInputElement|null;
 if(streamSound){
-  const syncSound=()=>{streamSound.checked=hud.soundRequested();const label=document.getElementById('landing-mode-label');if(label)label.textContent=`Sound ${hud.soundRequested()?'on':'off'} · ${difficulty.value[0]!.toUpperCase()+difficulty.value.slice(1)}`;};
+  const syncSound=()=>{streamSound.checked=hud.soundRequested();updateLandingLabel();};
   host.addEventListener('rails-sound-change',syncSound);
   streamSound.addEventListener('change',()=>{void hud.setSoundRequested(streamSound.checked);});
   syncSound();
@@ -99,6 +99,10 @@ function trackFight(){
   if(game.round.over)hosted.endFight();
 }
 
+function updateLandingLabel() {
+  const label=document.getElementById('landing-mode-label');
+  if(label)label.textContent=`Sound ${hud.soundRequested()?'on':'off'} · ${difficultyLabel(difficulty.value,source.value==='pose')}`;
+}
 function updateTutorial() {
   tutorial.setNoPunch(noPunch.checked);
   el('tutorial-last-key').textContent=tutorial.keys[2];
@@ -146,7 +150,7 @@ function paint() {
   trackFight();trackLocalRound();
   hud.setPractice(tutorialStarted&&!game);
   if(previewConfig){const badge=host.querySelector('[data-id=simulated]');if(badge)badge.textContent=SCOUT_PREVIEW_BADGE;}
-  if(!liveMode){const label=document.getElementById('landing-mode-label');if(label)label.textContent=`Sound ${hud.soundRequested()?'on':'off'} · ${difficulty.value[0]!.toUpperCase()+difficulty.value.slice(1)}`;}
+  if(!liveMode)updateLandingLabel();
   const summary=game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null;
   const publicSummary=summary&&hosted?hosted.publicSummary(summary):summary;
   fightUi?.render(game,showSessionSummary,liveMode?{mvp:publicSummary?.chatMvp?.displayName??publicSummary?.chatMvp?.user,clips:hosted?.clipsSnapshot()}:{});
@@ -289,7 +293,7 @@ source.addEventListener('change',()=>{
   if(source.value==='keyboard'){camera.stop();cameraRunning=false;poseFramed=false;video.hidden=true;avatar.hidden=false;setup.camera(false);}
   if(game)input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});
   keyboard.setEnabled(!game||source.value==='keyboard');
-  if(source.value==='pose')restoreCalibration();setup.sync();fightUi?.modes(source.value==='keyboard',noPunch.checked);setup.commands(game?game.bossDef:pendingBoss);updateControlGuide();
+  if(source.value==='pose')restoreCalibration();setup.sync();fightUi?.modes(source.value==='keyboard',noPunch.checked);setup.commands(game?game.bossDef:pendingBoss);updateControlGuide();updateLandingLabel();
   source.blur();
 });
 clearSpace.addEventListener('change',()=>{
