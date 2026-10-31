@@ -56,7 +56,8 @@ const streamSound=(document.getElementById('stream-sound')??document.getElementB
 if(streamSound){
   const syncSound=()=>{streamSound.checked=hud.soundRequested();updateLandingLabel();};
   host.addEventListener('rails-sound-change',syncSound);
-  streamSound.addEventListener('change',()=>{void hud.setSoundRequested(streamSound.checked);});
+  // Blur like the other switches: the HUD's M shortcut ignores keys while an input has focus.
+  streamSound.addEventListener('change',()=>{void hud.setSoundRequested(streamSound.checked);streamSound.blur();});
   syncSound();
 }
 const tutorial=new InputTutorial();
