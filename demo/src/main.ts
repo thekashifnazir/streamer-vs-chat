@@ -203,13 +203,14 @@ function startFight() {
 }
 let pauseReason='Esc';
 const guardResume=createGuardResume(()=>input({kind:'control',action:'resume',by:'capture'}));
-function pauseHosted(reason:string){pauseReason=reason;guardResume.reset();input({kind:'control',action:'stop',by:'capture'});}
+/** Pause with a reason shown on the stage. Both / and /play use it; only /play has Twitch reasons. */
+function pauseWith(reason:string){pauseReason=reason;guardResume.reset();input({kind:'control',action:'stop',by:'capture'});pauseReason='Esc';}
 window.addEventListener('keydown',event=>{if(liveMode&&event.code==='Escape'&&!event.repeat&&fightUi?.paused){event.stopImmediatePropagation();event.preventDefault();input({kind:'control',action:'resume',by:'capture'});}},true);
 function input(event:StreamerInput) {
-  if(event.kind==='control'&&['stop','pause','veto'].includes(event.action)&&(tutorialStarted||game)&&!showSessionSummary){guardResume.reset();fightUi?.setPaused(true,liveMode?pauseReason:undefined,liveMode&&source.value==='pose');pauseReason='Esc';}
+  if(event.kind==='control'&&['stop','pause','veto'].includes(event.action)&&(tutorialStarted||game)&&!showSessionSummary){guardResume.reset();fightUi?.setPaused(true,pauseReason,source.value==='pose');pauseReason='Esc';}
   if(event.kind!=='control'&&fightUi?.paused)return;
-  if(event.kind==='control'&&event.action==='resume'&&!safetyCleared()){if(liveMode&&(game?.paused||fightUi?.paused))fightUi?.setPaused(true,'confirm your clear space',source.value==='pose');return;}
-  if(event.kind==='control'&&event.action==='resume'&&source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before resuming.';if(liveMode&&(game?.paused||fightUi?.paused))fightUi?.setPaused(true,"camera can't see you — show your calibrated head, shoulders and both hands",true);return;}
+  if(event.kind==='control'&&event.action==='resume'&&!safetyCleared()){if(game?.paused||fightUi?.paused)fightUi?.setPaused(true,'confirm your clear space',source.value==='pose');return;}
+  if(event.kind==='control'&&event.action==='resume'&&source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before resuming.';if(game?.paused||fightUi?.paused)fightUi?.setPaused(true,"camera can't see you — show your calibrated head, shoulders and both hands",true);return;}
   if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||coldOpenAt!==null||(liveMode&&!hosted?.ready)))return;
   const at=performance.now();
   if(event.kind!=='control'&&!safetyCleared()) {
@@ -260,7 +261,8 @@ const camera=new PoseCamera(video,sample=>{
   const ready=calibrated.ready&&poseFramed&&safetyCleared();
   lastPose=ready?result.state:{kind:'pose',guard:false,lean:null,source:'pose',at:sample.at};
   el('camera-status').textContent=!framed?'Keep head, shoulders and both wrists in frame.':seatedTooClose?'Move further back; seated shoulders must span ≤20% of the frame.':`Camera local · ${sample.fps.toFixed(0)} FPS · ${sample.inferenceMs.toFixed(0)} ms inference`;
-  if(liveMode&&source.value==='pose')guardResume.sample(!!fightUi?.paused&&ready&&cameraRunning&&!!hosted?.ready,lastPose.guard,performance.now());
+  // Hands-free resume: a 1 s guard hold, only while calibrated, framed, fresh and clear-space confirmed.
+  if(source.value==='pose')guardResume.sample(!!fightUi?.paused&&ready&&cameraRunning&&!showSessionSummary&&(!liveMode||!!hosted?.ready),lastPose.guard,performance.now());
   if(source.value==='pose') {
     input(lastPose);
     if(ready)for(const punch of result.punches)input(punch);
@@ -306,7 +308,7 @@ clearSpace.addEventListener('change',()=>{
   keyboard.release();
   if(!safetyCleared()) {
     if(game){const at=performance.now();game=step(game,{kind:'pose',guard:false,lean:null,source:source.value==='pose'?'pose':'keyboard',at},at);}
-    if(liveMode)pauseHosted('confirm your clear space');else input({kind:'control',action:'stop',by:'capture'});
+    pauseWith('confirm your clear space');
   } else if(!game)updateTutorial();
   clearSpace.blur();
 });
@@ -367,7 +369,7 @@ if(!liveMode){const {mountDemoForge}=await import('./forge');const panel=el('dem
 if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
-  const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game)pauseHosted(reason);};
+  const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game)pauseWith(reason);};
   hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
