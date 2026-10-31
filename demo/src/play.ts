@@ -14,9 +14,12 @@ import {getBrowserAuth} from './twitch/auth';
 import {createBrowserChat} from './twitch/eventsub';
 import {PlayMetrics} from './metrics';
 import type {ChatVote,StreamerInput} from '@svc/shared';
+export const FRESH_LOGIN_KEY='svc.twitch.fresh-login';
 export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryChange?:()=>void;onConnected?:()=>void;onStatus?:(message:string)=>void;onGreen?:(checked:boolean)=>void;onVote:(vote:EngineVote)=>boolean;onRaid?:(event:Extract<EngineEvent,{kind:'raid'}>)=>void;onControl:(event:StreamerInput)=>void;onViewers:(count:number)=>void;onDisconnect:(reason?:string)=>void;onSummary:()=>void;onHighlightsChange?:()=>void;betweenRounds:()=>boolean;onForgeAccepted:(boss:BossDef|null)=>void;onForgeSnapshot:(view:ForgeSnapshot|null)=>void;onBroadcast?:(live:boolean)=>void;parseVote?:(text:string,user:string,at:number)=>ChatVote|null}){
  const auth=getBrowserAuth(),metrics=new PlayMetrics(),health=createHostedHealth();
- let connected=false,connectionNotice='',disposed=false;
+ let connected=false,connectionNotice='',disposed=false,freshLogin=false;
+ // Resolves once a remembered token has been checked, so entry can keep the loading shell up instead of flashing step 1.
+ let settle:()=>void=()=>{};const settled=new Promise<void>(resolve=>{settle=resolve;});
  const slot=document.getElementById('hosted-onboarding-slot');
  const panel=slot?.querySelector<HTMLElement>('.hosted-panel')??document.createElement('section');panel.className='hosted-panel';
  if(!panel.childElementCount)panel.innerHTML=hostedOnboardingMarkup();
@@ -41,7 +44,7 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryCha
  let latestChat:{userId:string;displayName:string}|null=null;
  const syncBot=async()=>{await bot.initialize();refresh();};
  botToggle.addEventListener('change',()=>{botToggle.checked=bot.setEnabled(botToggle.checked);refresh();});
- const refresh=()=>{updateHostedConnectionPill(document,auth.authenticated,auth.account?.login,auth.restored);updateHostedOnboarding(panel,{connected:auth.authenticated,login:auth.account?.login,notice:connectionNotice||undefined,scopes:auth.account?.scopes??[],bot:{available:bot.available,capable:bot.capable,enabled:bot.enabled},obsReady:obs.ready,clips:{available:clips.available,capable:clips.capable,enabled:clips.enabled},memory:{available:memory.available,capable:memory.capable,enabled:memory.enabled},forge:{available:forge.available,capable:forge.capable,enabled:forge.enabled}});flow.update({connected:auth.authenticated,live:broadcast.live,obs:obs.ready,skipped,preparing:starting});el('broadcast-label').textContent=`● LIVE on twitch.tv/${auth.account?.login??''} · ${String(Math.floor((Date.now()-(liveSince??Date.now()))/60000)).padStart(2,'0')}:${String(Math.floor((Date.now()-(liveSince??Date.now()))/1000)%60).padStart(2,'0')}`;el<HTMLButtonElement>('go-live').disabled=starting;if(streamPermissionRequested&&!auth.account?.scopes.includes(STREAM_KEY_SCOPE)){el('permission-banner').hidden=false;el('permission-copy').textContent='Going live needs one more Twitch permission to read your stream key. It stays in memory only.';}};
+ const refresh=()=>{updateHostedConnectionPill(document,auth.authenticated,auth.account?.login,auth.restored&&!freshLogin);updateHostedOnboarding(panel,{connected:auth.authenticated,login:auth.account?.login,notice:connectionNotice||undefined,scopes:auth.account?.scopes??[],bot:{available:bot.available,capable:bot.capable,enabled:bot.enabled},obsReady:obs.ready,clips:{available:clips.available,capable:clips.capable,enabled:clips.enabled},memory:{available:memory.available,capable:memory.capable,enabled:memory.enabled},forge:{available:forge.available,capable:forge.capable,enabled:forge.enabled}});flow.update({connected:auth.authenticated,live:broadcast.live,obs:obs.ready,skipped,preparing:starting});el('broadcast-label').textContent=`● LIVE on twitch.tv/${auth.account?.login??''} · ${String(Math.floor((Date.now()-(liveSince??Date.now()))/60000)).padStart(2,'0')}:${String(Math.floor((Date.now()-(liveSince??Date.now()))/1000)%60).padStart(2,'0')}`;el<HTMLButtonElement>('go-live').disabled=starting;if(streamPermissionRequested&&!auth.account?.scopes.includes(STREAM_KEY_SCOPE)){el('permission-banner').hidden=false;el('permission-copy').textContent='Going live needs one more Twitch permission to read your stream key. It stays in memory only.';}};
  el<HTMLInputElement>('hosted-clips-toggle').addEventListener('change',event=>{clips.setEnabled((event.target as HTMLInputElement).checked);refresh();});
  el<HTMLInputElement>('hosted-forge-toggle').addEventListener('change',event=>{forge.setEnabled((event.target as HTMLInputElement).checked);refresh();});
  const obs=mountObsSetup(panel,refresh);
@@ -71,12 +74,14 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryCha
  refresh();
  const initialize=async()=>{
   void health.get();
-  if(!auth.authenticated)await auth.restore();
+  // entry.ts marks a just-finished OAuth callback: that login is new, not a remembered one.
+  try{freshLogin=sessionStorage.getItem(FRESH_LOGIN_KEY)==='1';sessionStorage.removeItem(FRESH_LOGIN_KEY);}catch{/* Storage restrictions only affect the header wording. */}
+  try{if(!auth.authenticated)await auth.restore();}finally{settle();}
   if(disposed)return;
   refresh();
   if(auth.authenticated)void start();
   else{void syncBot();void clips.initialize().then(refresh);void forge.initialize().then(refresh);void syncMemory();report((history.state?.oauthError||new URLSearchParams(location.search).get('oauthError')==='1')?'Reconnect: Twitch authorization was not accepted.':'Connect Twitch to begin the baseline count. No simulated chat runs on this page.');}
  };
  void initialize();
- return {memoryView:()=>memory.view(),publicSummary:(summary:GameSummary)=>memory.publicSummary(summary),get forgeBusy(){return forge.busy;},observePhase:(reset=false)=>forge.observePhase(reset),get ready(){return connected&&auth.authenticated;},get broadcasting(){return broadcast.live;},get hasToken(){return auth.hasToken;},metrics,observeGame:(state:GameState,hypeFull:boolean,reset=false)=>{bot.observeGame(state,hypeFull);clips.observeGame(state,reset);memory.observeGame(state,reset);},clipsSnapshot:()=>clips.snapshot(),startFight:()=>metrics.startFight(),endFight:()=>metrics.endFight(),dispose(){disposed=true;clearInterval(liveClock);broadcast.stop();void memory.dispose();forge.dispose();clips.dispose();bot.dispose();chat.stop();metrics.dispose();}};
+ return {settled,memoryView:()=>memory.view(),publicSummary:(summary:GameSummary)=>memory.publicSummary(summary),get forgeBusy(){return forge.busy;},observePhase:(reset=false)=>forge.observePhase(reset),get ready(){return connected&&auth.authenticated;},get broadcasting(){return broadcast.live;},get hasToken(){return auth.hasToken;},metrics,observeGame:(state:GameState,hypeFull:boolean,reset=false)=>{bot.observeGame(state,hypeFull);clips.observeGame(state,reset);memory.observeGame(state,reset);},clipsSnapshot:()=>clips.snapshot(),startFight:()=>metrics.startFight(),endFight:()=>metrics.endFight(),dispose(){disposed=true;settle();clearInterval(liveClock);broadcast.stop();void memory.dispose();forge.dispose();clips.dispose();bot.dispose();chat.stop();metrics.dispose();}};
 }

@@ -374,5 +374,8 @@ if(liveMode){
   document.title='Streamer vs Chat · Twitch play';
 
   el('demo-status').textContent='Connect your own Twitch channel. Keyboard and webcam use the same rules.';
+  // Keep entry.ts's dark loading shell up while a remembered login validates (capped), so a
+  // connected streamer never sees step 1's Connect Twitch flash before step 2.
+  await Promise.race([hosted.settled,new Promise(resolve=>setTimeout(resolve,2500))]);
 }
 updateModes();paint();input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});

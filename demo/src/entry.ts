@@ -4,7 +4,7 @@ const params=new URLSearchParams(location.hash.slice(1));
 if(params.has('access_token')||params.has('error')||new URLSearchParams(location.search).has('error')){
   const status=document.getElementById('entry-status');if(status)status.textContent='Connecting to Twitch…';
   let failed=false;
-  try{const {getBrowserAuth}=await import('./twitch/auth');await getBrowserAuth().consumeCallback();}
+  try{const {getBrowserAuth}=await import('./twitch/auth');await getBrowserAuth().consumeCallback();try{sessionStorage.setItem('svc.twitch.fresh-login','1');}catch{/* Header wording only. */}}
   catch{failed=true;}
   location.replace(failed?'/play?oauthError=1':'/play');
 }else{

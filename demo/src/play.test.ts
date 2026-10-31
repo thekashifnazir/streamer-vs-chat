@@ -60,3 +60,15 @@ it('offers the existing Reconnect once flow for stream-key permission only after
  dom.window.document.getElementById('go-live')!.click();expect(url).not.toHaveBeenCalled();expect(dom.window.document.getElementById('permission-banner')!.hidden).toBe(false);expect(dom.window.document.getElementById('permission-copy')!.textContent).toContain('stream key');
  dom.window.document.getElementById('twitch-reconnect')!.click();expect(url).toHaveBeenCalledWith(['channel:read:stream_key']);expect(assign).toHaveBeenCalledOnce();
 });
+it('says Connected (not Reconnected) on the load right after OAuth',async()=>{
+ dom.window.sessionStorage.setItem('svc.twitch.fresh-login','1');vi.stubGlobal('sessionStorage',dom.window.sessionStorage);
+ setup(vi.fn<typeof fetch>(async()=>Response.json(valid)));await vi.waitFor(()=>expect(bridge.start).toHaveBeenCalledOnce());
+ expect(dom.window.document.querySelector('.demo-tag')!.textContent).toBe('Connected as streamer');expect(dom.window.sessionStorage.getItem('svc.twitch.fresh-login')).toBeNull();
+ await vi.waitFor(()=>expect(bridge.initialize).toHaveBeenCalledTimes(4));await new Promise(resolve=>setTimeout(resolve,10));
+});
+it('settles only after a remembered token has been checked, so the loading shell can cover step 1',async()=>{
+ let finish!:(value:Response)=>void;setup(vi.fn<typeof fetch>(()=>new Promise(resolve=>{finish=resolve;})));let settled=false;void ui!.settled.then(()=>{settled=true;});
+ await new Promise(resolve=>setTimeout(resolve,0));expect(settled).toBe(false);
+ finish(Response.json(valid));await ui!.settled;expect(dom.window.document.body.dataset.playStep).toBe('live');
+ await vi.waitFor(()=>expect(bridge.initialize).toHaveBeenCalledTimes(4));await new Promise(resolve=>setTimeout(resolve,10));
+});
