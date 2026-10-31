@@ -169,3 +169,28 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 @media(max-width:600px){.stream-compact>main{overflow-y:auto}.stream-compact .demo-controls{flex-wrap:wrap;height:auto;min-height:56px;overflow:visible;justify-content:center}.stream-compact .demo-controls .control-guide{display:none}.tap-pads{display:block;width:100%;padding:8px 12px;box-sizing:border-box}.tap-pads>p{font-size:14px;text-align:center}.tap-pads>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.tap-pads button{min-width:0;min-height:64px;padding:6px;font-size:14px;touch-action:none;user-select:none}.tap-pads kbd{display:block;font-size:22px}.fight-dialog{inset:3%;padding:12px}.fight-dialog button{margin:4px;min-height:44px;font-size:16px}.plain-stats{gap:4px;font-size:14px}.tutorial{width:94%;max-width:94%;padding:10px!important;box-sizing:border-box}.tutorial h1,.tutorial .tutorial-eyebrow,.tutorial>p:not(#tutorial-status),.tutorial>small{display:none}.tutorial ol{display:flex;gap:6px;margin:0!important;padding:0}.tutorial li{min-width:0;flex:1;padding:2px!important}.practice-tap{flex-direction:column;gap:4px;padding:4px;font-size:14px}.tutorial #tutorial-status{font-size:14px;margin:6px 0}.tutorial li kbd{font-size:20px;width:40px;height:40px}.stream-compact>main>.tap-pads{display:block!important}}
 
 .hosted-flow:not(.fight-started) .tap-pads{display:none!important}
+
+/* One hosted setup column: the ID must override the older page-top grid. */
+.hosted-flow #onboarding-row{display:block;grid-template-columns:minmax(0,1fr);width:calc(100% - 32px);max-width:960px;margin-left:auto;margin-right:auto}
+.hosted-flow #hosted-onboarding-slot,.hosted-flow #fight-setup{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.hosted-flow #onboarding-row .hosted-panel,.hosted-flow #onboarding-row .fight-setup{height:auto}
+.hosted-flow .play-step-bar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0;margin:0 0 28px;text-align:left}
+.hosted-flow .play-step-bar>span{min-width:0;border-top-width:4px;border-top-style:solid;border-top-color:#4a3f63;padding-top:12px;color:var(--muted);font-size:16px;font-weight:400;overflow-wrap:anywhere}
+.hosted-flow .play-step-bar>[data-state=current]{border-top-color:var(--yellow);color:var(--yellow);font-weight:700}
+.hosted-flow .play-step-bar>[data-state=done]{border-top-color:var(--cyan);color:var(--cyan)}
+.hosted-flow .play-step-bar>[data-state=done]::before{content:'✓ ';font-weight:700}
+.hosted-flow #advanced-obs{border:0;padding:0;margin:20px 0}
+.hosted-flow #advanced-obs>summary{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;padding:10px 16px;border:1px solid #4a3f63;border-radius:8px;background:#1d1629;font-size:16px;cursor:pointer;list-style:none}
+.hosted-flow #advanced-obs>summary::-webkit-details-marker{display:none}
+.hosted-flow #advanced-obs[open]>summary{border-color:var(--cyan)}
+.hosted-flow .obs-compact{padding:20px 0;text-align:left;min-width:0}
+.hosted-flow .obs-resources{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:12px}
+.hosted-flow .obs-resources a{display:inline-flex;align-items:center;min-height:44px;color:var(--cyan);font-size:14px;overflow-wrap:anywhere}
+.hosted-flow .obs-instructions{margin:12px 0;padding:0;border:0;background:none}
+.hosted-flow .obs-instructions ol{margin:12px 0;padding-left:24px;line-height:1.6;overflow-wrap:anywhere}
+.hosted-flow .obs-instructions li+li{margin-top:10px}
+.hosted-flow .obs-more{margin-top:14px;font-size:14px;color:var(--muted)}
+.hosted-flow #advanced-obs .obs-more>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--cyan)}
+@media(max-width:480px){.hosted-flow #onboarding-row .hosted-panel,.hosted-flow #onboarding-row .fight-setup{padding:16px}.hosted-flow .play-step-bar{gap:8px}.hosted-flow .play-step-bar>span{font-size:14px}.hosted-flow #twitch-connect,.hosted-flow #go-live{min-width:0;max-width:100%;width:100%}}
+
+@media(max-width:480px){.hosted-flow #fight-setup [data-option-for=start-difficulty]{padding-left:6px;padding-right:6px;font-size:14px;min-width:0}}

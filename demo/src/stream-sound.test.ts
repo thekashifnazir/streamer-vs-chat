@@ -13,9 +13,8 @@ it('offers hosted sound on by default with truthful page-specific footers',()=>{
 it('gives both OBS audio routes and a meter test without changing Twitch permissions',()=>{
  const dom=new JSDOM(hostedOnboardingMarkup()),doc=dom.window.document;
  const text=doc.querySelector('#obs-instructions')!.textContent;
- expect(text).toContain('macOS Screen Capture → Method: Window Capture → “Streamer vs Chat · Twitch play”');
- expect(text).toContain('macOS Audio Capture → Application Audio Capture → Google Chrome');
- expect(text).toContain('Window Capture has no audio option on macOS');
- expect(text).toContain('Window Capture → “Streamer vs Chat · Twitch play” (this Chrome window) → tick Capture Audio');
- expect(text).toContain('START FIGHT plays the announcer and the OBS meter should move');expect(text).toContain('M mutes and unmutes');expect(text).not.toContain('Test: press M');dom.window.close();
+ expect(text).toContain('macOS Screen Capture → Window: Streamer vs Chat · Twitch play → Cmd+F');
+ expect(text).toContain('Sources + → macOS Audio Capture → Google Chrome');
+ expect(text).toContain('Window Capture → Streamer vs Chat · Twitch play → tick Capture Audio');
+ expect(text).toContain('Start Fight: the OBS audio meter should move');expect(text).not.toContain('Test: press M');dom.window.close();
 });
