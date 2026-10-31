@@ -6,8 +6,10 @@
   <meta name="description" content="Streamer vs Chat: connect your Twitch chat and defend with keyboard or webcam." />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://id.twitch.tv https://api.twitch.tv https://g.webrtc.live-video.net:4443 wss://eventsub.wss.twitch.tv; media-src 'self' blob:; worker-src 'self' blob:" />
   <title>Streamer vs Chat · Twitch play</title>
+  <style>html{background:#0c0912;color:#f5f2fa}.entry-loading> :not(#entry-status){visibility:hidden}#entry-status{position:fixed;inset:0;display:grid;place-items:center;margin:0;background:#0c0912;color:#f5f2fa;font:24px system-ui,sans-serif;z-index:1000}</style>
 </head>
-<body class="hosted-flow" data-play-step="twitch">
+<body class="hosted-flow entry-loading" data-play-step="twitch">
+  <p id="entry-status" role="status">Loading Streamer vs Chat…</p>
   <header class="demo-header"><a class="wordmark" href="/">STREAMER <span>VS</span> CHAT</a><span class="demo-tag header-status" data-state="not-connected">Not connected</span></header>
   <main>
     <section id="onboarding-row" class="onboarding-row page-top-row"><div id="hosted-onboarding-slot"><section class="hosted-panel"><nav class="play-step-bar" aria-label="Setup steps"><span data-play-step="twitch">1 · Twitch</span><span data-play-step="live">2 · Go live</span><span data-play-step="fight">3 · Fight</span></nav>

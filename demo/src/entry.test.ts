@@ -22,8 +22,16 @@ it('keeps the hosted document and runtime window title identical to OBS instruct
  const html=readFileSync(new URL('../play/index.html',import.meta.url),'utf8'),main=readFileSync(new URL('./main.ts',import.meta.url),'utf8');
  expect(html).toContain('<title>Streamer vs Chat · Twitch play</title>');expect(main).toContain("document.title='Streamer vs Chat · Twitch play'");
 });
-it('ships a dark inline loading shell before callback code or page CSS loads',async()=>{
- const {readFileSync}=await import('node:fs');const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');const dom=new JSDOM(html);try{
+// OAuth lands on / and then replaces to /play; both documents paint before entry.ts or the
+// JS-loaded page CSS runs, so each needs its own render-blocking dark shell.
+it.each(['../index.html','../play/index.html'])('%s ships a dark inline loading shell before callback code or page CSS loads',async page=>{
+ const {readFileSync}=await import('node:fs');const html=readFileSync(new URL(page,import.meta.url),'utf8');const dom=new JSDOM(html);try{
  const doc=dom.window.document;expect(doc.body.classList.contains('entry-loading')).toBe(true);expect(doc.getElementById('entry-status')!.getAttribute('role')).toBe('status');expect(html).toContain('.entry-loading> :not(#entry-status){visibility:hidden}');expect(html).toContain('html{background:#0c0912;color:#f5f2fa}');expect([...doc.scripts].every(script=>script.hasAttribute('src'))).toBe(true);
  }finally{dom.window.close();}
+});
+it('reveals the /play page once its code and CSS have loaded',async()=>{
+ vi.resetModules();auth.getBrowserAuth.mockClear();const {readFileSync}=await import('node:fs');
+ const dom=new JSDOM(readFileSync(new URL('../play/index.html',import.meta.url),'utf8'),{url:'https://streamervschat.kashifnazir.com/play/?oauthError=1'});
+ vi.stubGlobal('document',dom.window.document);vi.stubGlobal('location',dom.window.location);
+ try{await import('./entry');expect(auth.getBrowserAuth).not.toHaveBeenCalled();expect(dom.window.document.body.classList.contains('entry-loading')).toBe(false);expect(dom.window.document.getElementById('entry-status')).toBeNull();}finally{dom.window.close();}
 });
