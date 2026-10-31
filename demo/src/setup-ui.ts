@@ -23,7 +23,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
   if(!framed||options.webcamFramed?.()===false){countdown.textContent='Step back until both hands show ✓';return;}
   cancel();options.onWebcamStart();
  }
- function begin(){if(!space.checked||!camera||!ready)return;close();due=now()+5000;countdown.hidden=false;options.onWebcamCountdown?.();tick(now());stage.scrollIntoView?.({block:'start',behavior:'smooth'});}
+ function begin(){if(!space.checked||!camera||!ready)return;close(false);due=now()+5000;countdown.hidden=false;options.onWebcamCountdown?.();tick(now());stage.scrollIntoView?.({block:'start',behavior:'smooth'});}
  root.addEventListener('keydown',event=>{if(event.code==='Escape')cancel();});
  let commandKey='',latestCalibration:CalibrationSnapshot|null=null;
  // Webcam starts on Easy and keyboard on Medium until the player picks a level by hand.
@@ -51,12 +51,14 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
   get('calibration-saved').hidden=!restored;
   get<HTMLButtonElement>('start-camera').disabled=!space.checked;get('camera-start-reason').hidden=space.checked;
  };
- function open(){webcam.hidden=false;preview.prepend(video);root.body.classList.add('webcam-open');webcam.scrollIntoView?.({block:'start',behavior:'smooth'});}
- function close(){webcam.hidden=true;stage.prepend(video);root.body.classList.remove('webcam-open');get('fight-setup').scrollIntoView?.({block:'start',behavior:'smooth'});}
+ // Keyboard users land on the webcam heading and return to the control that opened it.
+ let opener:HTMLElement|null=null;
+ function open(){const active=root.activeElement as HTMLElement|null;opener=active&&active!==root.body?active:null;webcam.hidden=false;preview.prepend(video);root.body.classList.add('webcam-open');webcam.scrollIntoView?.({block:'start',behavior:'smooth'});const heading=webcam.querySelector<HTMLElement>('h2');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}}
+ function close(restoreFocus=true){webcam.hidden=true;stage.prepend(video);root.body.classList.remove('webcam-open');get('fight-setup').scrollIntoView?.({block:'start',behavior:'smooth'});if(restoreFocus&&opener?.isConnected&&opener.getClientRects().length)opener.focus();opener=null;}
  for(const button of root.querySelectorAll<HTMLButtonElement>('[data-option-for]'))button.addEventListener('click',()=>{const target=select(button.dataset.optionFor!);if(button.dataset.optionFor==='start-difficulty')difficultyByHand=true;if(target.value===button.dataset.value)return;target.value=button.dataset.value!;target.dispatchEvent(new Event('change'));sync();});
  get('start-difficulty').addEventListener('change',()=>{if(!applyingDefault)difficultyByHand=true;});
  for(const id of ['start-difficulty','input-source','posture','clear-space','no-punch'])get(id).addEventListener('change',()=>{if(id==='input-source'||id==='posture'||id==='clear-space')cancel();if(id==='input-source')defaultDifficulty();sync();if(id==='input-source'||id==='posture')commands();});
- get('open-webcam').addEventListener('click',()=>{if(camera&&ready)begin();else open();});get('close-webcam').addEventListener('click',close);
+ get('open-webcam').addEventListener('click',()=>{if(camera&&ready)begin();else open();});get('close-webcam').addEventListener('click',()=>close());
  get('use-keyboard').addEventListener('click',()=>{select('input-source').value='keyboard';select('input-source').dispatchEvent(new Event('change'));close();});
  get('start-fight').addEventListener('click',()=>{if(!space.checked&&(select('input-source').value==='pose'||options.keyboardRequiresClearSpace!==false))return;if(select('input-source').value==='pose'){if(camera&&ready)begin();else open();return;}options.onStart();});
  get('play-webcam').addEventListener('click',begin);

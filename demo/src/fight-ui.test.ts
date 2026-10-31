@@ -41,3 +41,12 @@ it('stacks the pause dialog above the round results so Resume stays reachable be
  const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');const z=(selector:string)=>Number(new RegExp(`${selector.replace(/[.#]/g,'\\$&')}\\{[^}]*z-index:(\\d+)`).exec(css)?.[1]);
  expect(z('#pause-screen')).toBeGreaterThan(z('.fight-dialog'));
 });
+it('keeps Tab focus inside the aria-modal pause dialog',()=>{
+ const {doc,ui}=setup();ui.showStage();ui.setPaused(true);
+ const [resume,,quit]=[...doc.querySelectorAll<HTMLButtonElement>('#pause-screen button')];
+ const tab=(shiftKey=false)=>{const event=new doc.defaultView!.KeyboardEvent('keydown',{key:'Tab',shiftKey,bubbles:true,cancelable:true});(doc.activeElement??doc.body).dispatchEvent(event);return event.defaultPrevented;};
+ expect(doc.activeElement).toBe(resume);expect(tab(true)).toBe(true);expect(doc.activeElement).toBe(quit);
+ expect(tab()).toBe(true);expect(doc.activeElement).toBe(resume);
+ doc.getElementById('stop-input')!.focus();expect(tab()).toBe(true);expect(doc.activeElement).toBe(resume);
+ ui.setPaused(false);doc.getElementById('stop-input')!.focus();expect(tab()).toBe(false);
+});

@@ -210,3 +210,11 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 
 #pause-screen [data-pause-reason]{font:clamp(24px,3vw,40px)/1.2 Anton,Impact,sans-serif;color:#ffdc43;overflow-wrap:anywhere}
 #pause-screen [data-guard-resume]{font-size:clamp(18px,2vw,28px);color:#2ef2ff}
+
+/* Accessibility pass (e2e-j): 24 px minimum targets (WCAG 2.5.8), 44 px rows, 14 px floor. */
+#game-hud .rails-hud footer .hud-options input[data-id=plain]{width:calc(24px / var(--demo-hud-scale,1));height:calc(24px / var(--demo-hud-scale,1));min-width:calc(24px / var(--demo-hud-scale,1));min-height:calc(24px / var(--demo-hud-scale,1))}
+#game-hud .rails-hud footer .hud-options button[data-id=sound]{min-height:max(44px,calc(24px / var(--demo-hud-scale,1)))}
+.demo-forge summary{padding:11px 0}
+.more-cards .demo-forge select{appearance:none;-webkit-appearance:none;box-sizing:border-box;padding:10px 40px 10px 12px;color:#f5f2fa;background:#0c0912 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23f5f2fa' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center;border:1px solid #746681;border-radius:6px}
+.hosted-flow .switch-row{display:flex;align-items:center;gap:10px;min-height:44px}
+.hosted-flow .defend-cards small{font-size:14px}

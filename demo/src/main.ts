@@ -137,7 +137,7 @@ function updateModes() {
 }
 
 
-function resize(){host.style.transform=`scale(${stage.clientWidth/1920})`;}
+function resize(){const scale=stage.clientWidth/1920;host.style.transform=`scale(${scale})`;if(scale>0)host.style.setProperty('--demo-hud-scale',String(scale));}
 new ResizeObserver(resize).observe(stage);resize();
 function paint() {
   hosted?.observePhase();
