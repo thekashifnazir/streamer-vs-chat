@@ -81,6 +81,9 @@ let showSessionSummary=false;
 let coldOpenAt:number|null=null;
 // The rehearsal runs in the compact stream view, which hides its result line and the Rehearse button.
 let coldOpenSettled=false;
+// When the pause dialog opened during a rehearsal; the 5-second take is frozen while paused.
+let coldOpenPausedAt:number|null=null;
+function clearColdOpen(){coldOpenAt=null;coldOpenPausedAt=null;stage.classList.remove('cold-open-tally');}
 // Closing the tab ends a browser broadcast and loses the match; warn only while either is at stake.
 const leaveGuard=createLeaveGuard(window,()=>({live:hosted?.broadcasting===true,game,ended:showSessionSummary}));
 const streamLayout=mountStreamLayout({live:liveMode,onEnd:()=>{if(liveMode){el<HTMLButtonElement>('show-results').click();return;}showSessionSummary=true;if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}}});
@@ -185,7 +188,7 @@ function startFight() {
   if(!safetyCleared()){el('tutorial-status').textContent='Tick “my space is clear” above before starting.';return;}
   if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before starting.';setup.open();return;}
   fightUi?.setPaused(false);tutorialStarted=false;hud.setPractice(false);fightUi?.showStage();
-  hosted?.endFight();showSessionSummary=false;coldOpenAt=null;stage.classList.remove('cold-open-tally');
+  hosted?.endFight();showSessionSummary=false;clearColdOpen();
   const at=performance.now();
   game=createSelectedGame(difficulty,{seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,...(previewConfig?{scoutingConfig:previewConfig}:{}),...(pendingBoss?{bossDef:pendingBoss}:{})});
   hosted?.observePhase(true);
@@ -207,11 +210,13 @@ const guardResume=createGuardResume(()=>input({kind:'control',action:'resume',by
 function pauseWith(reason:string){pauseReason=reason;guardResume.reset();input({kind:'control',action:'stop',by:'capture'});pauseReason='Esc';}
 window.addEventListener('keydown',event=>{if(liveMode&&event.code==='Escape'&&!event.repeat&&fightUi?.paused){event.stopImmediatePropagation();event.preventDefault();input({kind:'control',action:'resume',by:'capture'});}},true);
 function input(event:StreamerInput) {
-  if(event.kind==='control'&&['stop','pause','veto'].includes(event.action)&&(tutorialStarted||game)&&!showSessionSummary){guardResume.reset();fightUi?.setPaused(true,pauseReason,source.value==='pose');pauseReason='Esc';}
+  if(event.kind==='control'&&['stop','pause','veto'].includes(event.action)&&(tutorialStarted||game)&&!showSessionSummary){guardResume.reset();fightUi?.setPaused(true,pauseReason,source.value==='pose');pauseReason='Esc';if(coldOpenAt!==null)coldOpenPausedAt??=performance.now();}
   if(event.kind!=='control'&&fightUi?.paused)return;
+  // Resume after a finished rehearsal take returns to the landing page; mid-take it resumes the take.
+  if(event.kind==='control'&&event.action==='resume'&&coldOpenAt!==null&&(!game||game.log.resolved.length>0||(coldOpenPausedAt??performance.now())-coldOpenAt>=5000)){leaveColdOpen();return;}
   if(event.kind==='control'&&event.action==='resume'&&!safetyCleared()){if(game?.paused||fightUi?.paused)fightUi?.setPaused(true,'confirm your clear space',source.value==='pose');return;}
   if(event.kind==='control'&&event.action==='resume'&&source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before resuming.';if(game?.paused||fightUi?.paused)fightUi?.setPaused(true,"camera can't see you — show your calibrated head, shoulders and both hands",true);return;}
-  if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||coldOpenAt!==null||(liveMode&&!hosted?.ready)))return;
+  if(event.kind==='control'&&event.action==='resume'&&(showSessionSummary||(liveMode&&!hosted?.ready)))return;
   const at=performance.now();
   if(event.kind!=='control'&&!safetyCleared()) {
     if(!game)updateTutorial();
@@ -231,7 +236,7 @@ function input(event:StreamerInput) {
       cameraRunning&&at-lastFrameAt<500?{...lastPose,at}:{kind:'pose',guard:false,lean:null,source:'pose',at};
     game=step(game,pose,at);
   }
-  if(event.kind==='control'&&event.action==='resume'&&!game.paused)fightUi?.setPaused(false);
+  if(event.kind==='control'&&event.action==='resume'&&!game.paused){fightUi?.setPaused(false);if(coldOpenAt!==null&&coldOpenPausedAt!==null){coldOpenAt+=at-coldOpenPausedAt;coldOpenPausedAt=null;}}
   drawCrowd(at);paint();
 }
 const keyboard=createKeyboard({emit:input,label:label=>{
@@ -240,7 +245,9 @@ const keyboard=createKeyboard({emit:input,label:label=>{
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
 const setup=mountFightSetup(document,{keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,onStart:()=>{void hud.activateSound();if(game){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
-fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
+fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
+/** Leave a rehearsal take for the landing page, keeping its result line on screen. */
+function leaveColdOpen(){clearColdOpen();game=null;crowd=null;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('cold-open-status').scrollIntoView?.({block:'center'});}
 const calibration=createCalibration({onChange(snapshot){
   el('calibration-status').textContent=snapshot.message;
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
@@ -342,7 +349,7 @@ const timer=window.setInterval(()=>{
   if(source.value==='keyboard')game=step(game,{kind:'pose',...keyboard.physical,source:'keyboard',at},at);
   else if(!cameraRunning||at-lastFrameAt>=500){poseFramed=false;setup.frame([],false);game=step(game,{kind:'pose',guard:false,lean:null,source:'pose',at},at);}
   if(coldOpenAt!==null){
-    const age=at-coldOpenAt,phase=coldOpenStage(game,age);
+    const age=(coldOpenPausedAt??at)-coldOpenAt,phase=coldOpenStage(game,age);
     // A one-attack rehearsal deliberately pauses after the actual outcome.
     if(game.log.resolved.length&&!game.paused)game=step(game,{kind:'control',action:'stop',by:'capture'},at);
     stage.classList.toggle('cold-open-tally',phase==='tally'||phase==='done');
@@ -360,7 +367,7 @@ el('cold-open').addEventListener('click',()=>{
  if(liveMode)return;
  if(!safetyCleared()){el('cold-open-status').textContent='Confirm clear space first.';return;}
  if(source.value==='pose'&&(!calibration.snapshot.ready||!cameraRunning)){el('cold-open-status').textContent='Start and calibrate the camera first, or choose Keyboard.';return;}
- fightUi?.showStage();playtest.endRound();const at=performance.now();coldOpenAt=at;coldOpenSettled=false;crowd=null;showSessionSummary=false;
+ fightUi?.showStage();playtest.endRound();const at=performance.now();coldOpenAt=at;coldOpenPausedAt=null;coldOpenSettled=false;crowd=null;showSessionSummary=false;
  void hud.activateSound();
  game=startColdOpen(at,seed++,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose);
  el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();stage.scrollIntoView?.({block:'start',behavior:'smooth'});stage.classList.remove('cold-open-tally');paint();
