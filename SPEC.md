@@ -206,7 +206,7 @@ Acceptance: validator rejects Unicode/underscore/reserved commands, 999 HP, `kas
 
 ## 13. Difficulty levels
 
-Difficulty is selected before START. The engine defaults to Hard for compatibility; capture, the offline demo and hosted `/play` initially select Medium. Changing the selector affects the next START, never the current match. The authoritative state, HUD and round result identify the active level.
+Difficulty is selected before START. The engine defaults to Hard for compatibility; capture, the offline demo and hosted `/play` initially select Medium. From 31 October, choosing Webcam in the offline demo or hosted `/play` preselects Easy ("Recommended for webcam") unless the player picked a level by hand in that page session; Keyboard keeps Medium (`e1bfd01`, `demo/src/webcam-difficulty.test.ts`). Changing the selector affects the next START, never the current match. The authoritative state, HUD and round result identify the active level.
 
 | Level | Tempo factor | Beat | Default telegraph | COMBO hit gap |
 |---|---:|---:|---:|---:|

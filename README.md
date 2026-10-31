@@ -11,7 +11,7 @@
   <a href="[DEVPOST_URL]"><b>Devpost</b></a>
 </p>
 
-<p align="center"><img src="docs/img/hero.gif" alt="SIMULATED local HUD recording: HANDS UP!, a successful block and counter damage" width="720"></p>
+<p align="center"><img src="docs/img/hero.gif" alt="SIMULATED local HUD recording from an earlier build (its warning still read HANDS UP!; the current build names the defence): a successful block and counter damage" width="720"></p>
 
 <p align="center">
   <a href="https://streamervschat.kashifnazir.com"><img src="https://img.shields.io/badge/%E2%96%B6%20Play%20now-no%20login-9146FF?style=for-the-badge" alt="Play now, no login" height="44"></a>
@@ -21,11 +21,11 @@
   <a href="#how-it-works"><img src="https://img.shields.io/badge/Twitch-EventSub%20%C2%B7%20Helix%20%C2%B7%20Clips-9146FF?style=for-the-badge&logo=twitch&logoColor=white" alt="Twitch EventSub, Helix and Clips"></a>
   <a href="#how-it-works"><img src="https://img.shields.io/badge/MediaPipe-Pose-0097A7?style=for-the-badge" alt="MediaPipe Pose"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/Node-22%20%C2%B7%20TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Node 22 and TypeScript"></a>
-  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-991%20offline-5C5850?style=for-the-badge" alt="991 offline tests"></a>
+  <a href="#tests-and-balance"><img src="https://img.shields.io/badge/tests-1%2C029%20offline-5C5850?style=for-the-badge" alt="1,029 offline tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-5C5850?style=for-the-badge" alt="Licence: MIT"></a>
 </p>
 
-**Codex × TwitchCon Hackathon** · all entry code written in one main Codex thread, October 2026 · Codex session ID `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` · from 31 October, docs-only commits by Claude Code (labelled)
+**Codex × TwitchCon Hackathon** · 57 code commits written in one main Codex thread, October 2026 · Codex session ID `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` · from 31 October, after the Codex weekly limit ran out, 16 fixes and the docs by Claude Code (every commit labelled)
 
 **Built with** OpenAI Codex · Twitch EventSub, Helix and Clips (Twurple) · MediaPipe Pose Landmarker · Node 22 + TypeScript · OBS · Cloudflare Workers
 
@@ -38,7 +38,8 @@ Here chat runs the boss and the streamer has to physically survive it: viewers v
 | Hard casual / no-punch win rates, four ordinary/coordinated R1/R2 matrices · **INFERRED** player models | **54.7–70.0% / 39.7–57.4%** |
 | Real live Twitch chat to server · **MEASURED** on Kash's Mac in the prep spike, before this repo existed | **p95 291 ms** ([recorded in the kickoff prompt](docs/prompts/day0-kickoff.txt)) |
 | Simulated load, 1,000 chatters: ingest to HUD · **MEASURED** | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
-| Offline tests (unit, golden vectors, recorded pose clips, transports) | **991**, no Twitch or external network (31 October 2026) |
+| Offline tests (unit, golden vectors, recorded pose clips, transports) | **1,029**, no Twitch or external network (31 October 2026, fresh clone at `74cc38d`) |
+| Automated end-to-end suites in a real browser · **MEASURED** at `74cc38d` | demo flows **8/8**, hosted `/play` journey **9/9**, responsive/a11y at 6 widths in Chromium and WebKit; Lighthouse accessibility **100** on `/` and `/play` |
 
 ### Judging criteria → evidence
 
@@ -46,8 +47,10 @@ Here chat runs the boss and the streamer has to physically survive it: viewers v
 |---|---|---|
 | **Innovation** | Chat and streamer scout each other: chat gets a card on the streamer's dodge habit, the streamer gets a card on chat's favourite move. Chat stops spamming and starts coaching. | [scouting tests](test/engine/scouting.test.ts), [two-way tests](test/engine/two-way.test.ts), [SPEC](SPEC.md), [two-way review](docs/queue11a-review.md) |
 | **Potential impact** | Works with one viewer, and the balance gate runs from 0 to 500 simulated viewers. Streamers go live from the page with no OBS, or use OBS. Every real Twitch session changed the game. | [Real playtests](#real-playtests), [crowd tests](test/engine/crowd.test.ts), [LOAD.md](docs/LOAD.md), [Go live code](demo/src/go-live.ts) |
-| **Technical implementation + Codex** | One pure reducer shared by server, sim, demo and `/play`; MediaPipe pose with per-user calibration; EventSub; browser WHIP go-live; 991 offline tests; all code built in one Codex thread | [engine](shared/src/engine.ts), [golden vectors](test/engine/golden.test.ts), [Codex evidence](docs/codex-evidence.md), [AGENTS.md](AGENTS.md) |
-| **Design** | GUARD! / LEAN warning → a real block in 1.0 s on Medium; four difficulty levels; one main button per setup step; keyboard, seated and no-punch modes; no-login demo | [no-login demo](https://streamervschat.kashifnazir.com), [HUD.md](docs/HUD.md), [day 6 review](docs/day6-review.md) |
+| **Technical implementation + Codex** | One pure reducer shared by server, sim, demo and `/play`; MediaPipe pose with per-user calibration; EventSub; browser WHIP go-live; 1,029 offline tests; three automated end-to-end suites that pass at `74cc38d` (below); webcam lean thresholds tuned by replaying Kash's recorded calibration clip; 57 code commits in one Codex thread, then 16 labelled Claude Code fixes | [engine](shared/src/engine.ts), [golden vectors](test/engine/golden.test.ts), [shallow-lean replay test](test/pose/shallow-lean.test.ts), [deep-lean gate test](test/pose/deep-lean-gate.test.ts), [Codex evidence](docs/codex-evidence.md), [AGENTS.md](AGENTS.md) |
+| **Design** | Each warning names the defence (GUARD! / LEAN LEFT! / LEAN RIGHT!, TILT when seated) → a real block in 1.0 s on Medium; four difficulty levels, with webcam players starting on Easy (1.2 s warning); one main button per setup step; keyboard, seated and no-punch modes; no-login demo | [no-login demo](https://streamervschat.kashifnazir.com), [callout tests](overlay/src/hud-callout.test.ts), [webcam difficulty tests](demo/src/webcam-difficulty.test.ts), [HUD.md](docs/HUD.md), [day 6 review](docs/day6-review.md) |
+
+**End-to-end suites (MEASURED, 31 October, at `74cc38d`).** These scripts live in the owner's scratch folders, not in this repository, so they are described here rather than linked. Demo flows **8/8**, including a full best-of-3 played by a bot that reads the on-screen callouts, and the webcam path driven by a recorded clip of Kash as a fake camera. Hosted `/play` journey **9/9**, with Twitch OAuth, Helix, EventSub, WHIP and the Worker mocked inside the browser (zero off-origin requests). Responsive and accessibility checks across 6 widths in Chromium and WebKit, with Lighthouse accessibility 100 on `/` and `/play`. Together they found 10 bugs; their fixes are among the [Claude Code fixes](#fixes-made-with-claude-code) below.
 
 ## How to play
 
@@ -56,8 +59,8 @@ Chat Golem commands (first word, case-insensitive): **!jab (!j)** = guard; **!le
 ### Try it in 60 seconds
 
 1. Open **[streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com)**. No account, no install. A loaded demo keeps running offline; reloading offline is not supported because there is no service worker.
-2. Press **PLAY NOW · KEYBOARD**; no safety tick is needed for keys. **Options** offers difficulty, **Defence only** and sound. **Use my webcam instead** opens posture, calibration and its clear-space tick. Practise: **K → A → J** (or **K → A → D** with no punches). Difficulty starts at **Medium**; Options offers Easy / Medium / Hard / Expert. Webcam is optional.
-3. Simulated chat (badged **SIMULATED**) plays the boss. When the warning appears (**GUARD!**, **LEAN RIGHT!** or **LEAN LEFT!**, naming the defence) you have 1.0 s on Medium: guard a JAB or COMBO, lean right for HOOK L, left for HOOK R. SUPER has a longer warning and three highlighted guard/lean steps. Hard retains the original 0.8 s warning. Clean defences fill **FOCUS**. At **FINISHER READY**, hold **K** (guard) continuously for **1 s** in a gap between attacks: the FINISHER deals **4 damage**, then gives **3 s** of double-damage bonus punches. It works with no punches too; attacks keep their normal schedule.
+2. Press **PLAY NOW · KEYBOARD**; no safety tick is needed for keys. **Options** offers difficulty, **Defence only** and sound. **Use my webcam instead** opens posture, calibration and its clear-space tick. Practise: **K → A → J** (or **K → A → D** with no punches). Difficulty starts at **Medium**; Options offers Easy / Medium / Hard / Expert. Webcam is optional; choosing it starts you on **Easy** (1.2 s warning, labelled "Recommended for webcam") unless you picked a level yourself. **Esc Pause** opens Resume / Restart / Quit to setup.
+3. Simulated chat (badged **SIMULATED**) plays the boss. When the warning appears (**GUARD!**, **LEAN RIGHT!** or **LEAN LEFT!**, naming the defence; TILT instead of LEAN when seated) you have 1.0 s on Medium: guard a JAB or COMBO, lean right for HOOK L, left for HOOK R. **SUPER!** has a longer warning and three highlighted guard/lean steps. The spoken "hands up" line plays at most once per round. Hard retains the original 0.8 s warning. Clean defences fill **FOCUS**. At **FINISHER READY**, hold **K** (guard) continuously for **1 s** in a gap between attacks: the FINISHER deals **4 damage**, then gives **3 s** of double-damage bonus punches. It works with no punches too; attacks keep their normal schedule.
 4. **[See the scouting card in one round](https://streamervschat.kashifnazir.com/?scout=fast)** with the demo-only **SCOUT PREVIEW · SIMULATED** preset and repeated successful same-side dodges. Normal play keeps the full evidence threshold from round 2: your lean habit on the left rail for chat, chat's repeated move on the right rail for you.
 
 Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simulated, and the known limits.
@@ -66,7 +69,7 @@ Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simul
 
 Open **[/play in Chrome](https://streamervschat.kashifnazir.com/play)** and Connect Twitch, then choose how to go live and how to defend. Initial access is chat read, `channel:bot` for optional results, and `clips:edit` for optional clips.
 
-**Two ways to go live: Quick (this page, no OBS) / Advanced (OBS).** Quick asks to share this Chrome tab with tab audio and captures the fight stage, with an optional camera bubble. Only when you choose Go live does it request `channel:read:stream_key`; the key stays in browser memory. Twitch does not publicly document this WHIP ingest. **MEASURED 31 Oct:** Kash's prep test received HTTP 201, connected in under one second and appeared live on twitch.tv/kashruns; this is a prior test, not a guarantee for every browser/account. Advanced keeps the Mac/Windows OBS guide, green background and Chroma Key; keep your webcam as an OBS source. If quick streaming is unavailable or fails, use Advanced. You can also skip if already live.
+**Two ways to go live: Quick (this page, no OBS) / Advanced (OBS).** Quick asks to share this Chrome tab with tab audio and captures the fight stage, with an optional camera bubble. Only when you choose Go live does it request `channel:read:stream_key`; the key stays in browser memory. Twitch does not publicly document this WHIP ingest. **MEASURED 31 Oct:** Kash's prep test received HTTP 201, connected in under one second and appeared live on twitch.tv/kashruns. Later that day going live from the page was **MEASURED** working on twitch.tv/kashruns: a viewer saw only the fight stage with the camera bubble, and the deployed app's own Go live was used live on kashruns (a pause bug seen in that run was then fixed in `3677761`). These are tests on one account, not a guarantee for every browser/account. Advanced keeps the Mac/Windows OBS guide, green background and Chroma Key; keep your webcam as an OBS source. If quick streaming is unavailable or fails, use Advanced. You can also skip if already live.
 
 `/play` can post results, make confirmed clips, run Forge and remember viewers only when the corresponding hosted flags/permissions allow it. Memory is off each session; Forge starts off. The [local-server path](docs/DEVELOPMENT.md) remains supported. Two minutes is onboarding copy, not a measured setup time.
 
@@ -102,7 +105,7 @@ In the local Node/OBS flow, the server owns all game state; the HUD is a view an
 
 ### Hosted backend
 
-The Worker serves `/api` and keeps a separate Durable Object result queue per authenticated channel. `/play` never posts chat with the streamer's token: the bot sends only server-formatted round results, HYPE notices, verified clip links and fixed forget acknowledgements, at most once per 10 seconds. “Post results in chat (as streamervschatbot)” defaults on only when the deployed bot flag and `channel:bot` grant are present. Delivery failures show a status line and leave play running. All hosted flags are committed off; Claude configures public app/bot IDs and the Worker secret before deploying. Older chat-only tokens keep working and can reconnect to enable results or clips. The user token survives reload only in this tab’s sessionStorage and is revalidated before reconnecting; Disconnect, any 401 or validation failure clears it. Hosted clips use that user token, require `clips:edit` and a stream at least 60 seconds old, and appear only after Get Clips confirmation within 15 seconds. Stale/unconfirmed moments stay stats-only; hosted mode has no local replay. The bot independently verifies each clip belongs to the authenticated channel before posting its link.
+The Worker serves `/api` and keeps a separate Durable Object result queue per authenticated channel. `/play` never posts chat with the streamer's token: the bot sends only server-formatted round results, HYPE notices, verified clip links and fixed forget acknowledgements, at most once per 10 seconds. “Post results in chat (as streamervschatbot)” defaults on only when the deployed bot flag and `channel:bot` grant are present. Delivery failures show a status line and leave play running. All hosted flags are committed off; Claude configures public app/bot IDs and the Worker secret before deploying. Older chat-only tokens keep working and can reconnect to enable results or clips. The user token is remembered on this computer (localStorage, or this tab’s sessionStorage if storage is blocked) until Disconnect, and is revalidated before reconnecting; Disconnect, any 401 or validation failure clears it. Hosted clips use that user token, require `clips:edit` and a stream at least 60 seconds old, and appear only after Get Clips confirmation within 15 seconds. Stale/unconfirmed moments stay stats-only; hosted mode has no local replay. The bot independently verifies each clip belongs to the authenticated channel before posting its link.
 
 Hosted viewer memory is **unchecked by default**. When enabled on the host, “Remember my viewers” stores Twitch IDs, latest display names and vote counts per channel, with 90-day retention applied when loaded. It never stores chat text. Viewers can type `!forgetme`; deletion is durable before acknowledgement, and a permanent per-channel opt-out prevents later recording. Unchecking stops memory requests; the separate counts-only results export does not include these records. The no-login demo uses only its fictional, SIMULATED memory and never calls these APIs.
 
@@ -114,13 +117,13 @@ Hosted viewer memory is **unchecked by default**. When enabled on the host, “R
 | Viewer memory | Deployed with the flag on, opt-in each session |
 | Reload keeps the session | Works: on 31 October a manual reload kept Kash connected to Twitch |
 | Sound on stream (OBS audio) | not yet confirmed live |
-| Go live from the page (WHIP) | Deployed; 31 October prep test MEASURED live on kashruns · in-app check: not yet run in the deployed app (the 31 October test used a prep page) |
+| Go live from the page (WHIP) | Deployed; MEASURED live on kashruns on 31 October (a viewer saw only the fight stage with the camera bubble) · in-app go-live: used live on kashruns on 31 October; a pause bug in that run was then fixed in `3677761` |
 
 The repository commits every hosted flag off; the deployed Worker turns them on. Cheers and subs are local-server only.
 
 ## Results
 
-Balance below is from the final 13g-2 `npm run sim` at `0be805d` (4,000 rounds per cell). Every balance row is **INFERRED**, using assumed player models, not measured human win rates. Viewer columns in the first four rows are **0 / 3 / 50 / 500**. Load and soak figures come from saved 28 October local measurements. [Difficulty results](SPEC.md#13-difficulty-levels) cover all four levels.
+Balance below is from the final 13g-2 `npm run sim` at `0be805d` (4,000 rounds per cell); the sim output at `74cc38d` is identical. Every balance row is **INFERRED**, using assumed player models, not measured human win rates. Viewer columns in the first four rows are **0 / 3 / 50 / 500**. Load and soak figures come from saved 28 October local measurements. [Difficulty results](SPEC.md#13-difficulty-levels) cover all four levels.
 
 | What | Result |
 |---|---|
@@ -144,7 +147,7 @@ No wider playtest happened: there wasn't time. Every real session on Twitch chan
 - **Session 1 (29 October, kashruns, 1 viewer typing):** real chat reached the game, and the bot posted every round result in chat. The pace was too fast to move to, so Codex added four difficulty levels and an obvious INPUTS LOCKED banner (`19830f9`…`beb1e3d`).
 - **Session 2 (29 October, same viewer, 14 commands):** hits on the boss weren't obvious, `!hookl` was hard to type and nobody knew what `!super` did. Codex added one-letter commands and `!left`/`!right`, clear hit feedback, SUPER as a visible 3-step sequence and a FOCUS → FINISHER meter (`e76b693`…`0be805d`).
 - **Session 3 (31 October):** planned; not run yet at the time of writing. Real results will be added here, raw counts only.
-- **Setup session (31 October):** Kash's own setup on kashruns surfaced the login landing, webcam start and OBS friction fixed in 13r–13v, and led to going live straight from the page.
+- **Setup session (31 October):** Kash's own setup on kashruns surfaced the login landing, webcam start and OBS friction fixed in 13r–13v, and led to going live straight from the page. Later that day Kash went live from the page on kashruns, and a viewer saw only the fight stage with the camera bubble; a pause bug seen in that run was fixed in `3677761`.
 
 ## Run it locally
 
@@ -175,29 +178,61 @@ In the no-login demo, open **Boss Forge**, pick one of four prebaked bosses—Ne
 
 ## How Codex built this
 
+In Kash's words:
+
+> All of this was built on a Plus plan, and in the first iterations we burned through a load of credits I had from a previous OpenAI hackathon, and after that we used the weekly reset. There's only so much I'm able to do on a Plus account, so we tried to do as much as we can in Codex: 77 turns and 57 code commits in one thread.
+>
+> Near the end we had to be realistic if we wanted to get this finished. We were having to iterate quite a bit to fix problems that we kept seeing coming up in live tests, and so when the weekly limit ran out we finished it off with Claude Code (the last 16 fixes, listed below). Ideally I would have had a Pro Codex account to do this, and from doing this hackathon that's now something I want, because I really enjoyed working with Codex.
+
 **Decisions Codex made inside the briefs** (prompt → commit → test):
 1. **FINISHER retuned, gate untouched.** The brief asked for an 8-damage FINISHER. The balance gate rejected it (coordinated R2 casual 72.6% > 70%), so Codex lowered the damage step by step to 4, then cut the FOCUS gains from +15/+30 to +12/+24 until the cell passed at 69.98%, without loosening the gate ([13g review](docs/queue13g-review.md) → `0be805d` → [focus-finisher tests](test/engine/focus-finisher.test.ts)).
 2. **CHAT SYNC dropped.** Two tuning attempts both failed the gate, so the feature was removed rather than the gate relaxed ([review](docs/queue11a-review.md) → `b311b51` → [two-way tests](test/engine/two-way.test.ts)).
 3. **Lean-invariant guard.** Live tests showed the guard flickering while leaning, which on stream would drop every block. Codex made guard independent of shoulder tilt, with hysteresis ([day 2 prompt](docs/prompts/day2-pose.md) → `0c75cd7`, `3c7a268` → [recorded-clip replay tests](test/pose/replay.test.ts)).
 4. **Resting hands are not a guard.** Hands at the waist read as guard, so a resting streamer blocked everything. Codex added an anatomical wrist/elbow/torso gate (`0f7707f`, then `3f638ae`).
 
-**How the work was split.** One main Codex thread (`01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`) planned each task, split it into subagent lanes where useful, ran an **independent subagent review** before each commit (the last few small turns, 13s–13v, used Claude's fresh-clone and browser checks instead, to save budget), and wrote all of the entry's code. Kash set the direction and did every camera, Twitch and physical playtest. Claude Code on Kash's Mac wrote the task briefs, queued them into that one thread with `codex exec resume`, checked every result in a fresh clone and a real browser, and deployed. Devin wrote task prompts and reviewed results until 30 October. From 31 October, to save Codex budget for the site, Claude Code writes the Markdown docs; those commits start with "docs (Claude Code)".
+**How the work was split.** One main Codex thread (`01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`) planned each task, split it into subagent lanes where useful, ran an **independent subagent review** before each commit (the last few small turns, 13s–13v, used Claude's fresh-clone and browser checks instead, to save budget), and wrote the entry's code up to its last turn, 13w (`3677761`), by which point the Plus plan's weekly limit was about 94% used. Kash set the direction and did every camera, Twitch and physical playtest. Claude Code on Kash's Mac wrote the task briefs, queued them into that one thread with `codex exec resume`, checked every result in a fresh clone and a real browser, and deployed. Devin wrote task prompts and reviewed results until 30 October. From 31 October, to save Codex budget for the site, Claude Code writes the Markdown docs; those commits start with "docs (Claude Code)". From 31 October, after the Codex limit, Claude Code also wrote code fixes, found in live tests and the end-to-end suites; every one is a separate commit starting "fix (Claude Code)", listed below.
 
-Evidence snapshot (31 October 2026); counts come from the real root rollout and git, with [definitions and reproduction](docs/codex-evidence.md).
+### Fixes made with Claude Code
+
+The 16 code commits after the last Codex turn (`git log --oneline | grep 'fix (Claude Code)'`), oldest first:
+
+- `7348cf2` remember the Twitch login on this computer until Disconnect
+- `7f06308` warn before leaving a live or in-progress match
+- `0ce1e42` no unstyled flash while Twitch login returns
+- `b1c7b22` name the defence in each callout, quieter announcer, webcam SUPER prompts
+- `4f3c5ef` deep leans no longer trip the punch gate (gate on shoulder-axis length)
+- `7c71f02` lean threshold 48% of the calibrated peak, 170 ms dwell
+- `8bbf47e` webcam countdown no longer steps the new fight back in time
+- `e1bfd01` webcam players start on Easy unless they picked a level
+- `4bfb1dc` pause dialog sits above the round results so Resume works between rounds
+- `b3cac4d` match-end results no longer show "Next round in 0 s"
+- `cb1f49b` show the rehearsal result and Rehearse button when the take ends
+- `f62dd87` M mutes straight after clicking the Sound switch
+- `ae39ec0` /play keeps the loading shell while a remembered login validates; says Connected after OAuth
+- `503ffd3` Disconnect shows its notice on step 1, not a stale "Stream ended."; chat status drops "LIVE ·"
+- `6cc03bf` a revoked or expired Twitch login mid-fight shows the Reconnect card, not a blank page
+- `74cc38d` a11y pass: 24 px HUD targets in the demo, pause focus trap, webcam focus, touch-sized rows
+
+**Webcam lean tuning (MEASURED by replaying Kash's recorded calibration clip, 31 October):** shallow leans registered 3/6 → **6/6**, fight-speed leans **16/16**, and **0** false leans while relaxed or guarding, with the lean threshold at 48% of the calibrated peak and a 170 ms dwell (`7c71f02`, [shallow-lean test](test/pose/shallow-lean.test.ts)). A deep lean could trip the punch gate and never register; that was fixed in `4f3c5ef` ([deep-lean gate test](test/pose/deep-lean-gate.test.ts)). The balance sim output is identical to `0be805d` and no golden vectors changed.
+
+Evidence snapshot (31 October 2026, `74cc38d`); counts come from the real root rollout and git, with [definitions and reproduction](docs/codex-evidence.md).
 
 | | |
 |---|---|
 | Main Codex thread (submit this ID) | `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` |
-| Root turns started / completed | **76 / 76** |
-| Code commits on `main`, all made in the Codex thread | **56** |
-| Docs-only commits by Claude Code | **1 (this one)** |
-| Offline tests | 19 on day 1 → **991** |
+| Root turns started / completed | **77 / 77** (54 with tools, 23 without) |
+| Codex plan | Plus; weekly limit about 94% used by the last Codex turn (13w, `3677761`) |
+| Code commits made in the Codex thread | **57** |
+| Claude Code commits (labelled) | **16** "fix (Claude Code)" + **1** "docs (Claude Code)" + this docs commit |
+| Commits on `main` at `74cc38d` | **74** (57 + 16 + 1) |
+| Offline tests | 19 on day 1 → **1,029** (fresh clone at `74cc38d`) |
+| End-to-end suites at `74cc38d` | demo flows **8/8**, `/play` journey **9/9**, responsive/a11y at 6 widths in Chromium and WebKit; 10 bugs found and fixed |
 
 ### Codex sessions
 
 | Session | Purpose |
 |---|---|
-| `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` | Main thread: all entry code |
+| `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` | Main thread: all entry code up to 13w (`3677761`), 57 code commits; the 16 later fixes are by Claude Code |
 | `01a17fb6-76f6-78f2-9c20-e7926e5aba23` | Scratch probe in `/private/tmp/cx-resume-test`, testing `codex exec resume`; no entry code |
 | `01a17fb7-0a50-70b1-af8e-edcee261d14d` | Scratch probe in `/Users/kash/cx-resume-test` (ONE/TWO/THREE replies); no entry code |
 
@@ -207,6 +242,7 @@ Evidence snapshot (31 October 2026); counts come from the real root rollout and 
 
 - **Punches are optional bonus damage.** Punch detection is less reliable on unseen bodies than guard and lean; no-punch mode keeps automatic defence counters.
 - **Camera needs Chrome**, not the OBS Browser Source, and decent light; lost tracking releases held pose inputs.
+- **Webcam leans take about 0.4 s to register**, so Easy (1.2 s warning) is recommended for webcam play and is preselected when you choose the webcam.
 - **Hosted features sit behind flags.** The repository commits them off; the deployed site turns all four on. Cheers and subs need the local server.
 - **Clips need a live stream at least 60 seconds old**; otherwise the session card shows stats (or a local replay in local server mode).
 - **Boss Forge needs a configured OpenAI key on the local server or hosted Worker**; it never asks a viewer for a key. Tests use injected fake clients.
@@ -215,7 +251,7 @@ Evidence snapshot (31 October 2026); counts come from the real root rollout and 
 
 - **Rules and numbers:** [SPEC.md](SPEC.md). **HUD layout:** [docs/HUD.md](docs/HUD.md).
 - **Developer guide** (OBS, mock Twitch, live chat, highlights, viewer memory, hardening): [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
-- **Accessibility:** keyboard, seated and no-punch modes, a 36 px HUD font floor, calm FX (`?fx=calm` or reduced motion), sound on at PLAY NOW in the offline demo and an optional Sound on stream switch enabled at START FIGHT on `/play` ([day 5](docs/day5-review.md), [day 6](docs/day6-review.md)).
+- **Accessibility:** keyboard, seated and no-punch modes, a 36 px HUD font floor, 24 px HUD targets in the demo, a focus-trapped pause dialog, Lighthouse accessibility 100 on `/` and `/play` (MEASURED 31 October), calm FX (`?fx=calm` or reduced motion), sound on at PLAY NOW in the offline demo and an optional Sound on stream switch enabled at START FIGHT on `/play` ([day 5](docs/day5-review.md), [day 6](docs/day6-review.md)).
 - **Assets and licences:** [CREDITS.md](CREDITS.md).
 
 ## What's next
