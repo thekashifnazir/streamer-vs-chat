@@ -72,3 +72,9 @@ it('settles only after a remembered token has been checked, so the loading shell
  finish(Response.json(valid));await ui!.settled;expect(dom.window.document.body.dataset.playStep).toBe('live');
  await vi.waitFor(()=>expect(bridge.initialize).toHaveBeenCalledTimes(4));await new Promise(resolve=>setTimeout(resolve,10));
 });
+it('shows the Disconnected notice in the step 1 card without a stale stream message',async()=>{
+ setup(vi.fn<typeof fetch>(async()=>Response.json(valid)));await vi.waitFor(()=>expect(bridge.start).toHaveBeenCalledOnce());
+ const doc=dom.window.document;doc.getElementById('twitch-disconnect')!.click();
+ expect(doc.getElementById('connect-step-body')!.textContent).toBe('Disconnected. Connect Twitch to play live, or open the no-login demo.');expect(doc.getElementById('broadcast-status')!.textContent).toBe('');
+ await vi.waitFor(()=>expect(bridge.initialize).toHaveBeenCalledTimes(4));await new Promise(resolve=>setTimeout(resolve,10));
+});
