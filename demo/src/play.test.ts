@@ -23,7 +23,7 @@ it('validates the tab token before silently starting chat, shows Reconnected, ro
 });
 it('clears an expired reload token and leaves the normal Connect step without starting chat',async()=>{
  const s=setup(vi.fn<typeof fetch>(async()=>new Response(null,{status:401})));
- await vi.waitFor(()=>expect(bridge.initialize).toHaveBeenCalled());expect(s.data.size).toBe(0);expect(bridge.start).not.toHaveBeenCalled();const button=dom.window.document.getElementById('twitch-connect') as HTMLButtonElement;expect(button.hidden).toBe(false);expect(button.textContent).toBe('Connect with Twitch');expect(dom.window.document.querySelector('.demo-tag')!.textContent).toBe('Not connected');
+ await vi.waitFor(()=>expect(bridge.initialize).toHaveBeenCalled());expect(s.data.size).toBe(0);expect(bridge.start).not.toHaveBeenCalled();const button=dom.window.document.getElementById('twitch-connect') as HTMLButtonElement;expect(button.hidden).toBe(false);expect(button.textContent).toBe('Connect Twitch');expect(dom.window.document.querySelector('.demo-tag')!.textContent).toBe('Not connected');
 });
 it('does not open a socket if the page is disposed while reload validation is pending',async()=>{
  let finish!:(value:Response)=>void;setup(vi.fn<typeof fetch>(()=>new Promise(resolve=>{finish=resolve;})));ui!.dispose();ui=undefined;finish(Response.json(valid));await new Promise(resolve=>setTimeout(resolve,0));expect(bridge.start).not.toHaveBeenCalled();expect(bridge.initialize).not.toHaveBeenCalled();
@@ -53,4 +53,10 @@ it('keeps an OAuth failure visible after a full navigation to /play',async()=>{
  const request=vi.fn<typeof fetch>(async()=>new Response(null,{status:401}));setup(request);
  await vi.waitFor(()=>expect(dom.window.document.getElementById('connect-step-body')!.textContent).toBe('Reconnect: Twitch authorization was not accepted.'));
  expect(bridge.start).not.toHaveBeenCalled();
+});
+it('offers the existing Reconnect once flow for stream-key permission only after Go live',async()=>{
+ const request=vi.fn<typeof fetch>(async()=>Response.json(valid));setup(request);await vi.waitFor(()=>expect(bridge.start).toHaveBeenCalledOnce());
+ const assign=vi.fn();vi.stubGlobal('location',{origin:'https://streamervschat.kashifnazir.com',search:'',assign});const url=vi.spyOn(bridge.auth,'loginUrl');
+ dom.window.document.getElementById('go-live')!.click();expect(url).not.toHaveBeenCalled();expect(dom.window.document.getElementById('permission-banner')!.hidden).toBe(false);expect(dom.window.document.getElementById('permission-copy')!.textContent).toContain('stream key');
+ dom.window.document.getElementById('twitch-reconnect')!.click();expect(url).toHaveBeenCalledWith(['channel:read:stream_key']);expect(assign).toHaveBeenCalledOnce();
 });

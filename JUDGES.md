@@ -15,6 +15,10 @@ Twitch chat votes the boss's attacks; the streamer blocks and dodges on camera. 
 
 Simulated chat is never sent to a live Twitch channel.
 
+## Two ways to go live
+
+**Quick (this page, no OBS):** open [/play](https://streamervschat.kashifnazir.com/play), Connect Twitch, then Go live. Grant the extra stream-key permission only when requested; share this Chrome tab with tab audio. The key remains in memory. Twitch's WHIP ingest is undocumented: **MEASURED 31 Oct**, Kash's prep test returned 201, connected in under one second and was visible on twitch.tv/kashruns. This build still needs Claude's real-browser verification. **Advanced (OBS):** expand the existing Mac/Windows guide, complete video/audio setup and press “Done, it's in OBS”. Skip is available if already live. Then choose Webcam (calibration, clear space and countdown) or Keyboard (no camera or checkbox).
+
 ## 2. Five-minute tour
 
 Chat Golem commands (first word, case-insensitive): **!jab (!j)** = guard; **!left (!l)** = hook from the left → **you lean right**; **!right (!r)** = hook from the right → **you lean left**; **!combo (!c)** = guard; **!super (!s)** = follow all three displayed GUARD / LEAN steps, only at full hype. Custom Forge bosses use exactly their displayed commands. Keyboard K / A / D / J controls the streamer.

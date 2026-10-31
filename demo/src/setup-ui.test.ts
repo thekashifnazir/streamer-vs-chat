@@ -60,3 +60,9 @@ it('does not start on a stale framed pose and cancels on changing input mode',()
  const {ui,change,byId,onWebcamStart}=mount();change('clear-space',true);ui.camera(true);ui.calibration({...createCalibration().snapshot,ready:true,stage:'ready'});ui.frame([],false);
  byId('play-webcam').click();ui.tick(5000);expect(onWebcamStart).not.toHaveBeenCalled();change('input-source','pose');ui.frame(Array.from({length:33},()=>({x:.5,y:.5,visibility:1})),true);ui.tick(5100);expect(onWebcamStart).not.toHaveBeenCalled();
 });
+it('hosted simplified setup keeps all measurements, hides camera controls until on and gives no-body tips at 8 seconds',()=>{
+ const {dom,doc}=mount('play/index.html');let at=0;
+ const tips=doc.createElement('p');tips.id='no-body-tips';tips.hidden=true;doc.body.append(tips);
+ const ui=mountFightSetup(doc,{onStart:()=>{},onWebcamStart:()=>{},simplifiedCalibration:true,now:()=>at});expect(doc.getElementById('start-calibration')!.hidden).toBe(true);expect(doc.getElementById('stop-camera')!.hidden).toBe(true);
+ ui.camera(true);ui.tick(7999);expect(tips.hidden).toBe(true);ui.tick(8000);expect(tips.hidden).toBe(false);at=8100;ui.frame(Array.from({length:33},()=>({x:.5,y:.5,visibility:1})),true);ui.tick(at);expect(tips.hidden).toBe(true);dom.window.close();
+});

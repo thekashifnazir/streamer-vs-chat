@@ -54,12 +54,11 @@ Judges: [JUDGES.md](JUDGES.md) has a five-minute tour, what is live versus simul
 
 ### Stream it on your channel in 5 minutes
 
-1. Open **[/play in Chrome](https://streamervschat.kashifnazir.com/play)** and press **Connect with Twitch**. It requests chat-read access, `channel:bot` for optional bot results, and `clips:edit` for optional hosted clips.
-2. In OBS, add **Window Capture** of that Chrome window.
-3. Tick **Green background**, then add an OBS **Chroma Key** filter and crop the capture to the game.
-4. Keep your webcam as a normal OBS camera source below the game. After connecting, setup collapses to a one-line bar; **Expand** brings the controls back.
+Open **[/play in Chrome](https://streamervschat.kashifnazir.com/play)** and Connect Twitch, then choose how to go live and how to defend. Initial access is chat read, `channel:bot` for optional results, and `clips:edit` for optional clips.
 
-`/play` can post structured round results through the hosted bot and make confirmed clips when their hosted flags are enabled. Hosted Boss Forge and opt-in viewer memory are also available when their flags are enabled; the [local-server path](docs/DEVELOPMENT.md) remains supported. Five minutes is the setup guide, not a measured completion time.
+**Two ways to go live: Quick (this page, no OBS) / Advanced (OBS).** Quick asks to share this Chrome tab with tab audio and captures the fight stage, with an optional camera bubble. Only when you choose Go live does it request `channel:read:stream_key`; the key stays in browser memory. Twitch does not publicly document this WHIP ingest. **MEASURED 31 Oct:** Kash's prep test received HTTP 201, connected in under one second and appeared live on twitch.tv/kashruns; this is a prior test, not a guarantee for every browser/account. Advanced keeps the Mac/Windows OBS guide, green background and Chroma Key; keep your webcam as an OBS source. If quick streaming is unavailable or fails, use Advanced. You can also skip if already live.
+
+`/play` can post results, make confirmed clips, run Forge and remember viewers only when the corresponding hosted flags/permissions allow it. Memory is off each session; Forge starts off. The [local-server path](docs/DEVELOPMENT.md) remains supported. Two minutes is onboarding copy, not a measured setup time.
 
 ## Why it's different
 

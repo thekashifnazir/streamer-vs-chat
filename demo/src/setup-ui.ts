@@ -2,17 +2,18 @@ import {DEFAULT_BOSS,isDefaultBoss,type BossDef} from '../../shared/src/boss-def
 import type {CalibrationSnapshot} from '../../capture/src/calibration';
 import type {Landmark} from '../../capture/src/classifier';
 /** Presentation adapter: the original form controls remain the only settings state. */
-export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcamStart:()=>void;onWebcamCountdown?:()=>void;webcamFramed?:()=>boolean;now?:()=>number}){
+export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcamStart:()=>void;onWebcamCountdown?:()=>void;webcamFramed?:()=>boolean;now?:()=>number;keyboardRequiresClearSpace?:boolean;simplifiedCalibration?:boolean}){
  const get=<T extends HTMLElement>(id:string)=>root.getElementById(id) as T;
  const select=(id:string)=>get<HTMLSelectElement>(id);
  const space=get<HTMLInputElement>('clear-space'),noPunch=get<HTMLInputElement>('no-punch');
  const webcam=get('webcam-settings'),stage=get('stage'),video=get('camera'),preview=get('webcam-preview');
  let camera=false,ready=false,framed=false,restored=false;
  const countdown=root.createElement('div');countdown.id='webcam-countdown';countdown.className='webcam-countdown';countdown.setAttribute('role','status');countdown.hidden=true;stage.append(countdown);
- let due:number|null=null;
+ let due:number|null=null,noBodySince:number|null=null;
  const now=options.now??(()=>root.defaultView!.performance.now());
  function cancel(){due=null;countdown.hidden=true;}
  function tick(at:number){
+  const tips=root.getElementById('no-body-tips');if(tips)tips.hidden=!(camera&&noBodySince!==null&&at-noBodySince>=8000);
   if(due===null)return;
   if(!space.checked||!camera||!ready){cancel();return;}
   const seconds=Math.ceil((due-at)/1000);
@@ -25,10 +26,11 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  let commandKey='',latestCalibration:CalibrationSnapshot|null=null;
  const groups=()=>{for(const button of root.querySelectorAll<HTMLButtonElement>('[data-option-for]')){const selected=select(button.dataset.optionFor!).value===button.dataset.value;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));}};
  const sync=()=>{
+  if(options.simplifiedCalibration){get('start-calibration').hidden=!camera;get('stop-camera').hidden=!camera;}
   groups();const pose=select('input-source').value==='pose';get('open-webcam').hidden=!pose;get('open-webcam').textContent=camera&&ready?'START WEBCAM FIGHT':'Set up your webcam · about 30 s →';get('start-fight').hidden=pose;get('punch-chance').hidden=noPunch.checked;
   get('safety-card').classList.toggle('confirmed',space.checked);get('clear-space-label').textContent=space.checked?'✓ My space is clear':'Tap to confirm my space is clear';
-  const start=get<HTMLButtonElement>('start-fight');start.disabled=!space.checked;start.textContent=space.checked?'START FIGHT':'Tick “my space is clear” to start';
-  const webcamStart=get<HTMLButtonElement>('play-webcam');webcamStart.disabled=!(space.checked&&camera&&ready);webcamStart.textContent=webcamStart.disabled?'Finish the 5 steps to start':'START WEBCAM FIGHT';
+  const start=get<HTMLButtonElement>('start-fight');start.disabled=!(space.checked||!pose&&options.keyboardRequiresClearSpace===false);start.textContent=!start.disabled?'START FIGHT':'Tick “my space is clear” to start';
+  const webcamStart=get<HTMLButtonElement>('play-webcam');webcamStart.disabled=!(space.checked&&camera&&ready);webcamStart.textContent=webcamStart.disabled?(options.simplifiedCalibration?'Finish setup to start':'Finish the 5 steps to start'):'START WEBCAM FIGHT';
   get('webcam-distance-tip').textContent=select('posture').value==='seated'?'Seated: sit about 1 m further back than feels natural.':'Standing: give yourself room to raise your guard and lean to either side.';
   get('calibration-saved').hidden=!restored;
   get<HTMLButtonElement>('start-camera').disabled=!space.checked;get('camera-start-reason').hidden=space.checked;
@@ -39,7 +41,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  for(const id of ['start-difficulty','input-source','posture','clear-space','no-punch'])get(id).addEventListener('change',()=>{if(id==='input-source'||id==='posture'||id==='clear-space')cancel();sync();if(id==='input-source'||id==='posture')commands();});
  get('open-webcam').addEventListener('click',()=>{if(camera&&ready)begin();else open();});get('close-webcam').addEventListener('click',close);
  get('use-keyboard').addEventListener('click',()=>{select('input-source').value='keyboard';select('input-source').dispatchEvent(new Event('change'));close();});
- get('start-fight').addEventListener('click',()=>{if(!space.checked)return;if(select('input-source').value==='pose'){if(camera&&ready)begin();else open();return;}options.onStart();});
+ get('start-fight').addEventListener('click',()=>{if(!space.checked&&(select('input-source').value==='pose'||options.keyboardRequiresClearSpace!==false))return;if(select('input-source').value==='pose'){if(camera&&ready)begin();else open();return;}options.onStart();});
  get('play-webcam').addEventListener('click',begin);
  function commands(boss?:BossDef|null){
   const mode=select('input-source').value,posture=select('posture').value;
@@ -69,9 +71,10 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
   const titles=['Get in frame','Arms relaxed · hold still 3 s','Hands at your waist · hold still 3 s','Guard up, fists at face height · hold still 3 s','Lean left, then right · 1.5 s each'];
   get('webcam-step-label').textContent=`STEP ${index+1} OF 5`;get('webcam-instruction').textContent=snapshot.ready?'Ready to fight':titles[index]!;get('calibration-status').textContent='';get('calibration-status').hidden=true;get<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
   for(const item of root.querySelectorAll<HTMLElement>('[data-calibration-step]')){const n=Number(item.dataset.calibrationStep);item.classList.toggle('done',snapshot.ready||n<index);item.classList.toggle('active',!snapshot.ready&&n===index);}
+  if(options.simplifiedCalibration){const group=index<=2?0:index===3?1:2;get('webcam-step-label').textContent=snapshot.ready?'SETUP COMPLETE':`STEP ${group+1} OF 3`;for(const item of root.querySelectorAll<HTMLElement>('[data-calibration-group]')){const n=Number(item.dataset.calibrationGroup);item.classList.toggle('done',snapshot.ready||n<group);item.classList.toggle('active',!snapshot.ready&&n===group);}const instruction=root.querySelector<HTMLElement>('[data-group-instruction]');if(instruction)instruction.textContent=group===0?titles[index]!:'';}
   sync();
  }
- function frame(landmarks:Landmark[],isFramed:boolean){framed=isFramed;const chips=get('framing-chips');chips.hidden=!camera;chips.replaceChildren();for(const [label,indices]of [['Head',[0]],['Shoulders',[11,12]],['Left hand',[15]],['Right hand',[16]]] as const){const valid=indices.every(i=>{const p=landmarks[i];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});const chip=root.createElement('span');chip.className=valid?'framed':'missing';chip.textContent=`${valid?'✓':'✕'} ${label}`;chips.append(chip);}if(latestCalibration)calibration(latestCalibration);sync();}
+ function frame(landmarks:Landmark[],isFramed:boolean){framed=isFramed;const body=[0,11,12].every(i=>{const p=landmarks[i];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});if(body)noBodySince=null;else noBodySince??=now();const chips=get('framing-chips');chips.hidden=!camera;chips.replaceChildren();for(const [label,indices]of [['Head',[0]],['Shoulders',[11,12]],['Left hand',[15]],['Right hand',[16]]] as const){const valid=indices.every(i=>{const p=landmarks[i];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});const chip=root.createElement('span');chip.className=valid?'framed':'missing';chip.textContent=`${valid?'✓':'✕'} ${label}`;chips.append(chip);}if(latestCalibration)calibration(latestCalibration);sync();}
  sync();commands();
- return {sync,open,close,commands,calibration,frame,tick,cancel,camera(running:boolean){camera=running;if(!running)framed=false;get('camera-start-overlay').hidden=running;get('framing-chips').hidden=!running;sync();},restored(value:boolean){restored=value;sync();}};
+ return {sync,open,close,commands,calibration,frame,tick,cancel,camera(running:boolean){camera=running;if(!running)framed=false;noBodySince=running?now():null;if(options.simplifiedCalibration){get('start-calibration').hidden=!running;get('stop-camera').hidden=!running;}get('camera-start-overlay').hidden=running;get('framing-chips').hidden=!running;sync();},restored(value:boolean){restored=value;sync();}};
 }

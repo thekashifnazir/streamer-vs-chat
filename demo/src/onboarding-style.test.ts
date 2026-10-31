@@ -30,7 +30,7 @@ it.each(['../index.html','../play/index.html'])('keeps onboarding controls reada
   expect(getComputedStyle(document.getElementById('webcam-settings')!).color).toBe('rgb(232, 227, 238)');setup.close();
   const source=document.querySelector('.source-only')!;
   expect(getComputedStyle(source).position).toBe('absolute');
-  expect(getComputedStyle(document.querySelector('#onboarding-row')!).display).toBe('grid');
+  expect(getComputedStyle(document.querySelector('#onboarding-row')!).display).toBe(file.includes('/play/')?'block':'grid');
  }finally{dom.window.close();}
 });
 

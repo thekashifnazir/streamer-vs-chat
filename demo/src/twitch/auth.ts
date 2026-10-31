@@ -40,12 +40,12 @@ export function createBrowserAuth(options:{clientId:string;redirectUri:string;fe
    generation++;token=saved;account=null;restored=false;setLiveCredentials(true);const current=generation;
    try{await validate();if(current!==generation)return false;restored=true;return true;}catch{return false;}
   },
-  loginUrl(){
+  loginUrl(extraScopes:string[]=[]){
    if(!options.clientId)throw new Error('Twitch Client ID is not configured for this build.');
    const bytes=new Uint8Array(32);(options.randomBytes??(bytes=>crypto.getRandomValues(bytes)))(bytes);
    const state=Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('');if(!save(NONCE_KEY,state))throw new Error('Twitch authorization needs session storage enabled in this tab.');
    const url=new URL('https://id.twitch.tv/oauth2/authorize');
-   url.search=new URLSearchParams({client_id:options.clientId,redirect_uri:options.redirectUri,response_type:'token',scope:'user:read:chat channel:bot clips:edit',state}).toString();return url.href;
+   url.search=new URLSearchParams({client_id:options.clientId,redirect_uri:options.redirectUri,response_type:'token',scope:[...new Set(['user:read:chat','channel:bot','clips:edit',...extraScopes.filter(scope=>scope==='channel:read:stream_key')])].join(' '),state}).toString();return url.href;
   },
   async consumeCallback(href=location.href):Promise<boolean>{
    const url=new URL(href),hash=new URLSearchParams(url.hash.slice(1));

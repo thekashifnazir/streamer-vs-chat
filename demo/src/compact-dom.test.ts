@@ -12,6 +12,7 @@ it.each(['../index.html','../play/index.html'])('retains visible, dimensioned Ra
  const dom=new JSDOM(readFileSync(new URL(file,import.meta.url),'utf8'));
  try{
   const {document,getComputedStyle}=dom.window;
+  if(file.includes('/play/'))document.body.dataset.playStep='fight';
   const style=document.createElement('style');style.textContent=styles;document.head.append(style);
   const host=document.getElementById('game-hud')!;host.classList.add('rails-host');host.innerHTML=hudMarkup;
   const layout=mountStreamLayout({live:file.includes('/play/'),onEnd:()=>{}},document);

@@ -73,3 +73,8 @@ it('ignores stale validation success/failure and backend/Helix 401 after a newer
   expect(s.auth.account?.login).toBe('streamer');expect(s.auth.authenticated).toBe(true);expect([...s.data.values()]).toEqual(['new-token']);expect(hasLiveCredentials()).toBe(true);
  }
 });
+it('asks for the stream-key scope only in the explicit Go live upgrade',()=>{
+ const s=setup();expect(new URL(s.auth.loginUrl()).searchParams.get('scope')).not.toContain('channel:read:stream_key');
+ expect(new URL(s.auth.loginUrl(['channel:read:stream_key'])).searchParams.get('scope')).toBe('user:read:chat channel:bot clips:edit channel:read:stream_key');
+ expect(new URL(s.auth.loginUrl(['untrusted:scope'])).searchParams.get('scope')).not.toContain('untrusted');
+});
