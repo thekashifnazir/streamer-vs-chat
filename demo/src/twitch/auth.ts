@@ -1,19 +1,20 @@
 import {setLiveCredentials} from '../credentials';
 declare global {interface ImportMeta {readonly env:{readonly VITE_TWITCH_CLIENT_ID?:string}}}
-/** Browser-only implicit flow. Credentials survive reload only in this tab's sessionStorage. */
+/** Browser-only implicit flow. The token is remembered in localStorage (sessionStorage if blocked) until Disconnect; the OAuth nonce stays in this tab's sessionStorage. */
 export type TwitchAccount={id:string;login:string;expiresIn:number;scopes:string[]};
 export type NonceStorage=Pick<Storage,'getItem'|'setItem'|'removeItem'>;
 export class TwitchAuthError extends Error {constructor(){super('Twitch authorization expired or invalid. Connect again.');}}
 const NONCE_KEY='svc.twitch.oauth-state';
 const TOKEN_KEY='svc.twitch.access-token';
-export function createBrowserAuth(options:{clientId:string;redirectUri:string;fetch?:typeof fetch;storage?:NonceStorage;randomBytes?:(bytes:Uint8Array)=>Uint8Array;stripCallback?:(url:string)=>void}){
+export function createBrowserAuth(options:{clientId:string;redirectUri:string;fetch?:typeof fetch;storage?:NonceStorage;tokenStorage?:NonceStorage;randomBytes?:(bytes:Uint8Array)=>Uint8Array;stripCallback?:(url:string)=>void}){
  const request=options.fetch??globalThis.fetch.bind(globalThis);
  const storage=()=>options.storage??globalThis.sessionStorage;
- const read=(key:string)=>{try{return storage().getItem(key);}catch{return null;}};
- const remove=(key:string)=>{try{storage().removeItem(key);}catch{/* Storage restrictions must not block disconnect. */}};
- const save=(key:string,value:string)=>{try{storage().setItem(key,value);return true;}catch{return false;}};
+ const tokenStorage=()=>{if(options.tokenStorage)return options.tokenStorage;try{const local=globalThis.localStorage;local.getItem(TOKEN_KEY);return local;}catch{return storage();}};
+ const read=(key:string,store=storage)=>{try{return store().getItem(key);}catch{return null;}};
+ const remove=(key:string,store=storage)=>{try{store().removeItem(key);}catch{/* Storage restrictions must not block disconnect. */}};
+ const save=(key:string,value:string,store=storage)=>{try{store().setItem(key,value);return true;}catch{return false;}};
  let token:string|null=null,account:TwitchAccount|null=null,restored=false,generation=0;
- const clear=()=>{generation++;token=null;account=null;restored=false;remove(TOKEN_KEY);setLiveCredentials(false);};
+ const clear=()=>{generation++;token=null;account=null;restored=false;remove(TOKEN_KEY,tokenStorage);remove(TOKEN_KEY);setLiveCredentials(false);};
  async function validate():Promise<TwitchAccount>{
   const current=generation,credential=token;
   try{
@@ -35,7 +36,7 @@ export function createBrowserAuth(options:{clientId:string;redirectUri:string;fe
   clear,validate,
   async restore():Promise<boolean>{
    if(token&&account)return true;
-   const saved=read(TOKEN_KEY);
+   const saved=read(TOKEN_KEY,tokenStorage);
    if(!saved)return false;
    generation++;token=saved;account=null;restored=false;setLiveCredentials(true);const current=generation;
    try{await validate();if(current!==generation)return false;restored=true;return true;}catch{return false;}
@@ -60,7 +61,7 @@ export function createBrowserAuth(options:{clientId:string;redirectUri:string;fe
    const redirect=new URL(options.redirectUri);
    if(url.origin!==redirect.origin||url.pathname!==redirect.pathname)throw new TwitchAuthError();
    token=received;setLiveCredentials(true);const current=generation;
-   await validate();if(current!==generation)throw new TwitchAuthError();save(TOKEN_KEY,received);return true;
+   await validate();if(current!==generation)throw new TwitchAuthError();save(TOKEN_KEY,received,tokenStorage);return true;
   },
   async backendRequest(path:string,init:RequestInit={}):Promise<Response>{
    if(!token||!account)throw new TwitchAuthError();
@@ -84,7 +85,7 @@ export function createBrowserAuth(options:{clientId:string;redirectUri:string;fe
 }
 export type BrowserAuth=ReturnType<typeof createBrowserAuth>;
 let sharedAuth:BrowserAuth|undefined;
-/** One auth instance across same-document routes; /play explicitly validates a tab-stored token on reload. */
+/** One auth instance across same-document routes; /play explicitly validates a remembered token on reload. */
 export function getBrowserAuth(config?:Parameters<typeof createBrowserAuth>[0]):BrowserAuth{
  if(!sharedAuth){
   sharedAuth=createBrowserAuth(config??{clientId:import.meta.env.VITE_TWITCH_CLIENT_ID??'',redirectUri:`${location.origin}/`});
