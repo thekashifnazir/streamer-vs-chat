@@ -17,7 +17,7 @@ Simulated chat is never sent to a live Twitch channel.
 
 ## Two ways to go live
 
-**Quick (this page, no OBS):** open [/play](https://streamervschat.kashifnazir.com/play), Connect Twitch, then Go live. Grant the extra stream-key permission only when requested; share this Chrome tab with tab audio. The key remains in memory. Twitch's WHIP ingest is undocumented: **MEASURED 31 Oct**, Kash's prep test returned 201, connected in under one second and was visible on twitch.tv/kashruns. This build still needs Claude's real-browser verification. **Advanced (OBS):** expand the existing Mac/Windows guide, complete video/audio setup and press “Done, it's in OBS”. Skip is available if already live. Then choose Webcam (calibration, clear space and countdown) or Keyboard (no camera or checkbox).
+**Quick (this page, no OBS):** open [/play](https://streamervschat.kashifnazir.com/play), Connect Twitch, then Go live. Grant the extra stream-key permission only when requested; share this Chrome tab with tab audio. The key remains in memory. Twitch's WHIP ingest is undocumented: **MEASURED 31 Oct**, Kash's prep test returned 201, connected in under one second and was visible on twitch.tv/kashruns. In-app check of this build: not yet run in the deployed app (the 31 October test used a prep page). **Advanced (OBS):** expand the existing Mac/Windows guide, complete video/audio setup and press “Done, it's in OBS”. Skip is available if already live. Then choose Webcam (calibration, clear space and countdown) or Keyboard (no camera or checkbox).
 
 ## 2. Five-minute tour
 

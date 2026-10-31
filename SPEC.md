@@ -1,14 +1,14 @@
 # Streamer vs Chat: game spec and acceptance tests
 
-What Codex builds. The numbers are tuned by `spikes/defence-sim/sim.mjs` **[MEASURED in sim; player skill levels are INFERRED guesses]**. The pose facts come from `docs/spikes/pose/` and `docs/spikes/nologin-demo/`. Give Codex this file and its numbers instead of asking it to design the rules, which saves Plus messages.
+The spec the main Codex thread built from. Its starting numbers came from a defence simulation in the prep repo **[MEASURED in sim; player skill levels are INFERRED guesses]**, and its pose facts from the prep pose and no-login-demo spikes. Codex later changed numbers where the balance gate or live tests required it; those changes are recorded in the sections below.
 
-**In the entry repo:** paths under `spikes/` and `docs/spikes/` and PR numbers point at the prep repo and do not exist here. Don't look for them; every number they produced is copied into this file.
+Prep-repo paths and PR numbers are not part of this repository; every number they produced is copied into this file.
 
 ## 1. Core loop
 | Thing | Value |
 |---|---|
-| Beat | 2,400 ms. Chat voting is open for the whole beat |
-| Telegraph | "HANDS UP!" + the move name, 800 ms before the hit lands |
+| Beat | 3,000 ms on Medium (the default on capture, the demo and `/play`); 2,400 ms on Hard, the engine default. All four levels are in §13. Chat voting is open for the whole beat |
+| Telegraph | "HANDS UP!" + the move name, 1,000 ms before the hit lands on Medium; 800 ms on Hard (§13) |
 | Round | 75 s. KO ends it early. With no KO, the higher HP % wins; a tie goes to the streamer. Best of 3: each round resets both HP, hype and the super count; the scouting log carries over |
 | HP | streamer 100, boss **135** |
 | Low-HP mercy | streamer below 30 HP takes ×0.6 damage (HIT and CHIP) |
