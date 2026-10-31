@@ -25,5 +25,5 @@ it('countdown starts a framed live fight without pausing; transport loss is visi
  // Raised wrists produce a real classifier guard; paused input still reaches the hold detector.
  landmarks[15]!.y=.3;landmarks[16]!.y=.3;landmarks[13]!.y=.6;landmarks[14]!.y=.6;landmarks[23]!.y=.8;landmarks[24]!.y=.8;
  observed.options.onDisconnect('stream ended');await vi.advanceTimersByTimeAsync(1100);expect(observed.renders.at(-1)!.paused).toBe(false);clearInterval(frames);
- }finally{dom.window.dispatchEvent(new dom.window.Event('beforeunload'));dom.window.close();vi.unstubAllGlobals();vi.useRealTimers();}
+ }finally{dom.window.dispatchEvent(new dom.window.Event('pagehide'));dom.window.close();vi.unstubAllGlobals();vi.useRealTimers();}
 });

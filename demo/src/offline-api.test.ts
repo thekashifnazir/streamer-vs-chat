@@ -46,6 +46,6 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   expect(observed.hostedMount).not.toHaveBeenCalled();
   expect(fetch).not.toHaveBeenCalled();
  }finally{
-  dom.window.dispatchEvent(new dom.window.Event('beforeunload'));dom.window.close();vi.unstubAllGlobals();vi.useRealTimers();
+  dom.window.dispatchEvent(new dom.window.Event('pagehide'));dom.window.close();vi.unstubAllGlobals();vi.useRealTimers();
  }
 });

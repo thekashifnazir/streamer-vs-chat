@@ -4,6 +4,7 @@ import {mountDemoLanding} from './demo-landing';
 import {mountFightUi} from './fight-ui';
 import {showCameraError} from './camera-feedback';
 import {mountShareTools} from './share-tools';
+import {createLeaveGuard} from './leave-guard';
 import {mountFightSetup} from './setup-ui';
 import {createCalibrationProfiles} from '../../capture/src/calibration-profile';
 import {scoutPreviewConfig,SCOUT_PREVIEW_BADGE} from './scout-preview';
@@ -76,6 +77,8 @@ let metricsRound:string|null=null;
 let liveViewers=0;
 let showSessionSummary=false;
 let coldOpenAt:number|null=null;
+// Closing the tab ends a browser broadcast and loses the match; warn only while either is at stake.
+const leaveGuard=createLeaveGuard(window,()=>({live:hosted?.broadcasting===true,game,ended:showSessionSummary}));
 const streamLayout=mountStreamLayout({live:liveMode,onEnd:()=>{if(liveMode){el<HTMLButtonElement>('show-results').click();return;}showSessionSummary=true;if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}}});
 if(previewConfig)streamLayout.status(SCOUT_PREVIEW_BADGE);
 const playtest=new LocalPlaytestStats();
@@ -146,6 +149,7 @@ function paint() {
     crowdSize.disabled=!game.round.over;
     el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':game.bossDef?`${game.bossDef.name} · Follow each move’s defence cue. K guard · A/D ${posture.value==='seated'?'tilt':'lean'}${noPunch.checked?'':' · J bonus'}`:`Straight attacks → K guard · HOOK LEFT → D ${posture.value==='seated'?'tilt':'lean'} · HOOK RIGHT → A ${posture.value==='seated'?'tilt':'lean'} · SUPER → follow all three GUARD / LEAN steps${noPunch.checked?' · NO PUNCHES':''}`;
   }
+  leaveGuard.sync();
 }
 function drawCrowd(at:number) {
   if(liveMode||coldOpenAt!==null||!game||!crowd||game.round.over||game.paused)return;
@@ -322,7 +326,8 @@ const timer=window.setInterval(()=>{
   }
   drawCrowd(at);paint();
 },100);
-window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();playtest.dispose();});
+// pagehide, not beforeunload: a cancelled leave warning must not tear down the live stream or fight.
+window.addEventListener('pagehide',()=>{leaveGuard.dispose();window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();playtest.dispose();});
 el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
 el('back-to-setup').addEventListener('click',()=>fightUi?.end());
@@ -340,7 +345,7 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game)pauseHosted(reason);};
-  hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
