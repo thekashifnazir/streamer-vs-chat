@@ -218,3 +218,28 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .more-cards .demo-forge select{appearance:none;-webkit-appearance:none;box-sizing:border-box;padding:10px 40px 10px 12px;color:#f5f2fa;background:#0c0912 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23f5f2fa' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center;border:1px solid #746681;border-radius:6px}
 .hosted-flow .switch-row{display:flex;align-items:center;gap:10px;min-height:44px}
 .hosted-flow .defend-cards small{font-size:14px}
+
+/* 390/768 layout nits (a11y pass): avatar label below the figure, heading lines that don't
+   collide, and a phone results dialog whose NEXT ROUND and End fight fit without scrolling. */
+#keyboard-avatar>span{top:calc(100% + 4px);bottom:auto;left:50%;width:max-content;max-width:none;transform:translateX(-50%);white-space:nowrap;line-height:1.2}
+@media(max-width:760px){.how-heading h2{line-height:1.2}.how-heading h2>span,.how-heading h2>em{display:block}}
+@media(max-width:600px){
+ .round-results:not([hidden]){display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:4px 8px}
+ .round-results>*{flex:0 0 100%;margin:0}
+ .round-results h2{order:0;font-size:24px;line-height:1.2;margin:0}
+ .round-results [data-result-next]{order:1;flex:0 1 auto;margin:0}
+ .round-results [data-result-quit]{order:2;flex:0 1 auto;margin:0}
+ .round-results [data-result-countdown]{order:3;font-size:14px}
+ .round-results [data-result-countdown]:empty{display:none}
+ .round-results .plain-stats{order:4;gap:0 12px;font-size:14px}
+ .round-results .plain-stats p{margin:0}
+ .round-results [data-result-extras]{order:5}
+ #pause-screen:not([hidden]){display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:4px 8px}
+ #pause-screen>*{flex:0 0 100%;margin:0}
+ #pause-screen h2{font-size:24px;line-height:1.2;margin:0}
+ #pause-screen [data-pause-reason]{font-size:18px}
+ #pause-screen [data-guard-resume]{font-size:16px}
+ #pause-screen [data-pause=resume]{order:1;min-height:48px;margin:4px 0}
+ #pause-screen [data-pause=restart],#pause-screen [data-pause=quit]{order:2;flex:0 1 auto;margin:0}
+ #pause-screen p:not([data-pause-reason]):not([data-guard-resume]){order:3;font-size:14px}
+}
