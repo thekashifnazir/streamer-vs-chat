@@ -23,6 +23,10 @@ export type HudModes={seated:boolean;noPunch:boolean};
 const commands:[Move,string][]=[['JAB','!jab'],['HOOK_L','!left'],['HOOK_R','!right'],['COMBO','!combo'],['SUPER','!super']];
 export const defenceCue=(move:Move,seated=false)=>{const verb=seated?'TILT':'LEAN';return move==='HOOK_L'?`${verb} →`:move==='HOOK_R'?`← ${verb}`:move==='SUPER'?`${verb} ANY WAY`:'GUARD';};
 export const bossDefenceCue=(defence:import('../../shared/src/boss-def').BossDefence,seated=false)=>{const verb=seated?'TILT':'LEAN';return defence==='guard'?'GUARD':defence==='lean_left'?`← ${verb}`:defence==='lean_right'?`${verb} →`:`${verb} ANY WAY`;};
+/** The big telegraph word names the defence itself (player-side, like the move chip). */
+export const telegraphBanner=(defence:import('../../shared/src/boss-def').BossDefence,seated=false)=>{const verb=seated?'TILT':'LEAN';return defence==='guard'?'GUARD!':defence==='lean_left'?`${verb} LEFT!`:defence==='lean_right'?`${verb} RIGHT!`:`${verb} ANY WAY!`;};
+/** The spoken "hands up" line is for guard moves only, and at most once per round. */
+export const wantsHandsVoice=(state:GameState,attack:NonNullable<GameState['activeAttack']>)=>!(attack as {super_steps?:unknown[]}).super_steps?.length&&bossMove(state,attack.move).defence==='guard';
 const names:Record<Move,string>={JAB:'JAB',HOOK_L:'HOOK LEFT',HOOK_R:'HOOK RIGHT',COMBO:'COMBO',SUPER:'SUPER'};
 export function isTallySnapshot(value:unknown):value is TallySnapshot {
   if(!value||typeof value!=='object')return false;
@@ -84,7 +88,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b><b class="difficulty-tag" data-id="difficulty">HARD</b></span></div>
   <div class="super-ready-banner" data-id="super-ready" role="status" hidden>SUPER READY: chat type !s</div><div class="super-denied-banner" data-id="super-denied" role="status" hidden>!s needs 100% HYPE</div>
   <div class="finisher-banner" data-id="finisher-ready" role="status" hidden></div>
-  <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">HANDS UP!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><div class="super-steps" data-id="super-steps" aria-label="SUPER defence sequence" hidden></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
+  <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">GUARD!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><div class="super-steps" data-id="super-steps" aria-label="SUPER defence sequence" hidden></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
   <div class="health-bar" data-id="boss-bar" role="progressbar" aria-label="boss HP 135 / 135" aria-valuemin="0" aria-valuemax="135" aria-valuenow="135"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span data-id="super-command">→ !super/!s</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
@@ -188,8 +192,11 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   function once(key:string,play:()=>void){if(heard.has(key))return;heard.add(key);play();}
   function tryTelegraphSound(state:GameState,viewNow:number){
     const attack=state.activeAttack;
-    if(state.paused||state.round.over||!attack||attack.vetoed||viewNow<attack.at||viewNow>=attack.lands_at||!sound.canPlay('telegraph')||!sound.canPlay('handsVoice'))return;
-    once(`tell:${state.round.number}:${attack.beat}`,()=>{sound.play('telegraph');sound.play('handsVoice',true,true);});
+    if(state.paused||state.round.over||!attack||attack.vetoed||viewNow<attack.at||viewNow>=attack.lands_at)return;
+    // Every telegraph gets the short sting; the voice line is rationed so it never nags.
+    const voiceKey=`hands-voice:${state.round.number}`,voice=!heard.has(voiceKey)&&wantsHandsVoice(state,attack);
+    if(!sound.canPlay('telegraph')||voice&&!sound.canPlay('handsVoice'))return;
+    once(`tell:${state.round.number}:${attack.beat}`,()=>{sound.play('telegraph');if(voice){heard.add(voiceKey);sound.play('handsVoice',true,true);}});
   }
   function renderTally(message:TallySnapshot,superReady=false,exploit?:Move) {
     if(!isTallySnapshot(message))return;
@@ -257,7 +264,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     const telegraph=!!attack&&!attack.vetoed&&(state.clock.paused_at??state.now)<attack.lands_at&&!state.round.over;
     const counter=state.counter.open&&!state.round.over;
     el('telegraph').hidden=!(telegraph||sequence.visible||counter);el('telegraph').classList.toggle('super-sequence',sequence.visible);el('telegraph').classList.toggle('counter',counter&&!telegraph);
-    el('banner').textContent=sequence.visible?'SUPER!':telegraph?'HANDS UP!':'COUNTER HIT!';
+    el('banner').textContent=sequence.visible?'SUPER!':telegraph?telegraphBanner(activeDefence,modes.seated):'COUNTER HIT!';
     el('move').title=telegraph?moveName(attack!.move):'';
     el('move').textContent=sequence.visible?'SUPER':telegraph?moveName(attack!.move):modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=sequence.visible?sequence.current>=0?`STEP ${sequence.current+1} OF 3`:'SEQUENCE COMPLETE':telegraph?bossDefenceCue(activeDefence,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
     el('cue-icon').innerHTML=(telegraph||sequence.visible)&&activeDefence==='guard'?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':(telegraph||sequence.visible)?activeDefence==='lean_right'?'→':activeDefence==='lean_left'?'←':'↔':'';
@@ -270,7 +277,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('status').textContent=state.round.over?`${state.round.winner==='streamer'?'STREAMER':'CHAT'} WINS`:state.paused?'RESUME WHEN READY.':`GUARD STRAIGHTS.\n${modes.seated?'TILT':'LEAN'} FROM SWINGS.`;
     el('result').textContent=state.round.over?(state.match.winner?'MATCH COMPLETE':'NEXT ROUND WHEN READY'):'';
     if(!previous){
-      for(const entry of state.log.telegraphs)heard.add(`tell:${entry.round}:${entry.beat}`);
+      for(const entry of state.log.telegraphs){heard.add(`tell:${entry.round}:${entry.beat}`);if(wantsHandsVoice(state,entry))heard.add(`hands-voice:${entry.round}`);}
       for(const entry of state.log.resolved){heard.add(`hit:${entry.round}:${entry.beat}`);heard.add(`read-it:${entry.round}:${entry.beat}`);}
       for(const entry of state.log.rounds)heard.add(`round-end:${entry.number}`);
     }

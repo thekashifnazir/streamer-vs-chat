@@ -42,14 +42,14 @@
       </section>
     </div>
     <section class="demo-controls" aria-label="Demo settings and controls" hidden>
-      <p class="control-guide"><kbd>K</kbd> guard <kbd>A</kbd><kbd>D</kbd> <span id="guide-lean">lean</span> <span id="punch-guide"><kbd>J</kbd> bonus punch</span></p>
+      <p class="control-guide" id="key-guide"><kbd>K</kbd> guard <kbd>A</kbd><kbd>D</kbd> <span id="guide-lean">lean</span> <span id="punch-guide"><kbd>J</kbd> bonus punch</span></p><p class="control-guide pose-guide" id="pose-guide" hidden>Guard up · Lean left · Lean right · Punch for bonus</p>
       <label>Crowd <select id="crowd-size"><option value="0">0 · autopilot</option><option value="3">3 viewers</option><option value="50" selected>50 viewers</option><option value="500">500 viewers</option></select></label>
       <button id="stop-input" class="stop">Esc Pause</button><button id="back-to-setup" type="button">End fight</button>
       <button id="resume-input" hidden>Resume</button>
       <button id="next-round" hidden>Next round</button>
       <button id="restart" hidden>New match</button>
     </section>
-    <section id="how-to-play" class="how-to-play"><div class="how-heading"><div><p class="setup-eyebrow">HOW TO PLAY</p><h2><span>CHAT ATTACKS.</span> <em>YOU DEFEND.</em></h2></div><p>Chat votes the attack. You only need <strong>3 moves</strong> to answer it.</p></div><div id="attack-rows" class="defence-cards"></div><div class="bonus-strip bonus-moments"><strong>BONUS MOMENTS</strong><span id="bonus-super"><span class="chat-chip command-chip">!super <small>(!s)</small></span> Super when hype is full: 3 hits, follow the steps on screen.</span><span id="punch-chance"><kbd>J</kbd> COUNTER on screen? Punch back for bonus damage.</span><span><kbd>K</kbd> FINISHER READY? Hold guard for 1 s to finish the boss.</span></div><p class="chat-command-help source-only"></p></section>
+    <section id="how-to-play" class="how-to-play"><div class="how-heading"><div><p class="setup-eyebrow">HOW TO PLAY</p><h2><span>CHAT ATTACKS.</span> <em>YOU DEFEND.</em></h2></div><p>Chat votes the attack. You only need <strong>3 moves</strong> to answer it.</p></div><div id="attack-rows" class="defence-cards"></div><div class="bonus-strip bonus-moments"><strong>BONUS MOMENTS</strong><span id="bonus-super"><span class="chat-chip command-chip">!super <small>(!s)</small></span> Super when hype is full: 3 hits, follow the steps on screen.</span><span id="punch-chance"><kbd>J</kbd> COUNTER on screen? Punch back for bonus damage.</span><span id="finisher-chance"><kbd>K</kbd> FINISHER READY? Hold guard for 1 s to finish the boss.</span></div><p class="chat-command-help source-only"></p></section>
     <section class="playtest-panel" id="friend-tools" hidden><label><input id="playtest-opt-in" type="checkbox"> Count this local play-test</label><button id="export-playtest" disabled>Copy local stats</button><pre id="playtest-output" hidden></pre><button id="cold-open">Rehearse 5-second cold open</button><p id="cold-open-status" role="status"></p></section>
     <p id="demo-status" class="demo-status source-only" role="status">Connect your own Twitch channel. Keyboard and webcam use the same rules.</p>
     <section id="webcam-settings" class="webcam-settings webcam-view" hidden aria-label="Webcam setup">

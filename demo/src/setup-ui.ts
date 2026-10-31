@@ -1,6 +1,7 @@
 import {DEFAULT_BOSS,isDefaultBoss,type BossDef} from '../../shared/src/boss-def';
 import type {CalibrationSnapshot} from '../../capture/src/calibration';
 import type {Landmark} from '../../capture/src/classifier';
+import {superHelp} from './defence-copy';
 /** Presentation adapter: the original form controls remain the only settings state. */
 export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcamStart:()=>void;onWebcamCountdown?:()=>void;webcamFramed?:()=>boolean;now?:()=>number;keyboardRequiresClearSpace?:boolean;simplifiedCalibration?:boolean}){
  const get=<T extends HTMLElement>(id:string)=>root.getElementById(id) as T;
@@ -65,7 +66,9 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
    card.append(picture,title,when,chips,body);rows.append(card);
   }
   const superItem=get('bonus-super');superItem.replaceChildren();const anyMoves=moves.filter((move,index)=>standard?index===4:move.defence==='lean_any');superItem.hidden=anyMoves.length===0;
-  for(const move of anyMoves){superItem.append(chip(standard?'!super':move.command,standard?'!s':undefined),standard?' Super when hype is full: 3 hits, follow the steps on screen.':` ${move.label}: ${lean.toLowerCase()} either way.`);}
+  for(const move of anyMoves){superItem.append(chip(standard?'!super':move.command,standard?'!s':undefined),standard?superHelp({pose:mode==='pose',seated}):` ${move.label}: ${lean.toLowerCase()} either way.`);}
+  // Webcam players see the body move, never a key letter, on the bonus strip.
+  for(const [id,key,pose] of [['punch-chance','J','Punch'],['finisher-chance','K','Guard up']] as const){const item=root.getElementById(id),old=item?.querySelector('kbd,.pose-cue');if(!item||!old)continue;const cap=root.createElement(mode==='pose'?'span':'kbd');if(mode==='pose')cap.className='pose-cue';cap.textContent=mode==='pose'?pose:key;old.replaceWith(cap);}
  }
  function calibration(snapshot:CalibrationSnapshot){latestCalibration=snapshot;ready=snapshot.ready;const index= !snapshot.ready&&!framed?0:snapshot.stage==='idle'?0:snapshot.stage==='neutral'?1:snapshot.stage==='resting'?2:snapshot.stage==='guard'?3:4;
   const titles=['Get in frame','Arms relaxed · hold still 3 s','Hands at your waist · hold still 3 s','Guard up, fists at face height · hold still 3 s','Lean left, then right · 1.5 s each'];

@@ -26,8 +26,13 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   defenceOnly.checked=false;defenceOnly.dispatchEvent(new dom.window.Event('change'));
   const inputSource=dom.window.document.getElementById('input-source') as HTMLSelectElement;inputSource.value='pose';inputSource.dispatchEvent(new dom.window.Event('change'));
   expect(dom.window.document.getElementById('webcam-settings')!.hidden).toBe(true);
+  // Webcam play never shows key letters: the guide, bonus strip and SUPER/FINISHER help use body moves.
+  const doc=dom.window.document;expect(doc.getElementById('key-guide')!.hidden).toBe(true);expect(doc.getElementById('pose-guide')!.hidden).toBe(false);
+  expect(doc.getElementById('pose-guide')!.textContent).toBe('Guard up · Tilt left · Tilt right · Punch for bonus');
+  expect(doc.querySelectorAll('#finisher-chance kbd,#punch-chance kbd')).toHaveLength(0);expect(doc.querySelector('#finisher-chance .pose-cue')!.textContent).toBe('Guard up');
+  expect(doc.getElementById('bonus-super')!.textContent).toContain('Guard up, Tilt left or Tilt right');
   const cameraStop=dom.window.document.getElementById('stop-camera') as HTMLButtonElement;cameraStop.disabled=false;cameraStop.click();
-  expect(inputSource.value).toBe('keyboard');expect(dom.window.document.querySelector('[data-option-for="input-source"][data-value="keyboard"]')!.getAttribute('aria-pressed')).toBe('true');
+  expect(inputSource.value).toBe('keyboard');expect(dom.window.document.getElementById('key-guide')!.hidden).toBe(false);expect(dom.window.document.getElementById('pose-guide')!.hidden).toBe(true);expect(dom.window.document.querySelector('#finisher-chance kbd')!.textContent).toBe('K');expect(dom.window.document.querySelector('[data-option-for="input-source"][data-value="keyboard"]')!.getAttribute('aria-pressed')).toBe('true');
   expect(dom.window.document.getElementById('open-webcam')!.hidden).toBe(true);
   const level=dom.window.document.getElementById('start-difficulty') as HTMLSelectElement;level.value='hard';level.dispatchEvent(new dom.window.Event('change'));
   dom.window.document.getElementById('play-now')!.click();

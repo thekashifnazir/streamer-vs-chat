@@ -15,7 +15,7 @@ How these were checked:
 
 | Game event (spec) | Voice line (`voice/ready/`, new) | SFX / Kenney alternative (`sfx-ready/`) | Why this one | Level (RMS) |
 |---|---|---|---|---|
-| Telegraph `HANDS UP!` (t = 0 of the 0.8 s window) | `hands-up.wav` (0.600 s, ends inside the 800 ms window) | `hands-up.wav` (Kenney jingles_HIT03) | Sting starts in 19 ms; twoTone1 starts 112 ms late, a seventh of the reaction window. AI listen: "bright, brassy, punchy attack". Play the sting, or the sting with the voice on top; don't play the voice alone if it fetches late (preload both). | −18 sting / −17 voice |
+| Telegraph `HANDS UP!` (t = 0 of the 0.8 s window) | `hands-up.wav` (0.600 s, ends inside the 800 ms window) | `hands-up.wav` (Kenney jingles_HIT03) | Sting starts in 19 ms; twoTone1 starts 112 ms late, a seventh of the reaction window. AI listen: "bright, brassy, punchy attack". Play the sting, or the sting with the voice on top; don't play the voice alone if it fetches late (preload both). In play the sting marks every telegraph; the voice is only for guard moves, at most once per round (players found it grating on every beat and wrong on leans). | −18 sting / −17 voice |
 | BLOCK | `blocked.wav` | `block.wav` (impactPunch_medium_001) | Muffled low thud reads as "absorbed", unlike a hit. Suggestion (INFERRED): throttle the voice to once every 2 s so it doesn't talk over a fast exchange. | −18 / −17 |
 | PERFECT | `perfect.wav` | `perfect.wav` (impactBell_heavy_002) | A resonant bell clang is distinct from every punch sound. impactMetal_heavy_001 was rejected: thin, abrupt end. | −20 / −17 |
 | Counter damage on the boss | `counter.wav` | `counter.wav` + `counter-accent.wav` together | Bass thud plus a rising chime marks the reward moment. | −17 / −22 / −17 |

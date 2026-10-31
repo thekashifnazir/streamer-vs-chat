@@ -26,6 +26,7 @@ import { PoseClassifier } from '../../capture/src/classifier';
 import { createCalibration } from '../../capture/src/calibration';
 import { createSimulationSource } from './source';
 import { InputTutorial } from './tutorial';
+import { fightHelp, finisherHelp, poseGuide } from './defence-copy';
 import {startColdOpen,coldOpenStage} from './cold-open';
 import {mountStreamLayout} from './stream-layout';
 import {LocalPlaytestStats} from './playtest';
@@ -109,6 +110,13 @@ function updateTutorial() {
     item.classList.toggle('done',index<tutorial.step);item.classList.toggle('active',index===tutorial.step);
   }
 }
+/** Webcam players get body-move wording; the keycap guide is for keyboard play only. */
+function updateControlGuide() {
+  const pose=source.value==='pose',keys=document.getElementById('key-guide'),moves=document.getElementById('pose-guide');
+  if(!keys||!moves)return;
+  keys.hidden=pose;moves.hidden=!pose;
+  const text=poseGuide({seated:posture.value==='seated',noPunch:noPunch.checked});if(moves.textContent!==text)moves.textContent=text;
+}
 function updateModes() {
   const seated=posture.value==='seated';
   hud.setModes({seated,noPunch:noPunch.checked});
@@ -118,7 +126,7 @@ function updateModes() {
   el('tutorial-defence').textContent=seated?'Tilt':'Lean';
   el('tutorial-lean-label').textContent=seated?'Tilt left':'Lean left';
   setup.sync();setup.commands(game?game.bossDef:pendingBoss);
-  updateTutorial();
+  updateTutorial();updateControlGuide();
 }
 
 
@@ -130,7 +138,8 @@ function paint() {
   hud.setForge(forgeSnapshot,!game||game.round.over);
   setup.commands(game?game.bossDef:pendingBoss);
   hud.setMemory(hosted?.memoryView()??null);
-  document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef)+' · FINISHER READY: hold K (guard) for 1 s; no punches required.';
+  document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef)+' · '+finisherHelp(source.value==='pose');
+  updateControlGuide();
   hud.setBossReceipts(impactLedger.snapshot());hud.setSuperNotices(superNotices.snapshot());
   hud.render(game??createSelectedGame(difficulty,{seed,viewers:liveMode?0:Number(crowdSize.value),now:0,...(previewConfig?{scoutingConfig:previewConfig}:{})}),!liveMode);
   hud.setConnection(previewConfig?SCOUT_PREVIEW_BADGE:liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
@@ -147,7 +156,7 @@ function paint() {
     el('restart').hidden=false;
     el('resume-input').hidden=!game.paused||showSessionSummary||(liveMode&&!hosted?.ready);
     crowdSize.disabled=!game.round.over;
-    el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':game.bossDef?`${game.bossDef.name} · Follow each move’s defence cue. K guard · A/D ${posture.value==='seated'?'tilt':'lean'}${noPunch.checked?'':' · J bonus'}`:`Straight attacks → K guard · HOOK LEFT → D ${posture.value==='seated'?'tilt':'lean'} · HOOK RIGHT → A ${posture.value==='seated'?'tilt':'lean'} · SUPER → follow all three GUARD / LEAN steps${noPunch.checked?' · NO PUNCHES':''}`;
+    el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':fightHelp({pose:source.value==='pose',seated:posture.value==='seated',noPunch:noPunch.checked},game.bossDef?.name);
   }
   leaveGuard.sync();
 }
@@ -269,7 +278,7 @@ el('start-camera').addEventListener('click',async()=>{
 el('stop-camera').addEventListener('click',()=>{
   camera.stop();cameraRunning=false;poseFramed=false;setup.camera(false);video.hidden=true;avatar.hidden=false;calibration.reset();classifier.reset();setup.restored(false);
   el<HTMLButtonElement>('stop-camera').disabled=true;el<HTMLButtonElement>('start-calibration').disabled=true;
-  source.value='keyboard';keyboard.setEnabled(true);setup.sync();el('camera-status').textContent='Camera off. Keyboard selected.';
+  source.value='keyboard';keyboard.setEnabled(true);setup.sync();setup.commands(game?game.bossDef:pendingBoss);updateControlGuide();el('camera-status').textContent='Camera off. Keyboard selected.';
 });
 el('start-calibration').addEventListener('click',()=>{
   if(!cameraRunning||!safetyCleared())return;
@@ -280,7 +289,7 @@ source.addEventListener('change',()=>{
   if(source.value==='keyboard'){camera.stop();cameraRunning=false;poseFramed=false;video.hidden=true;avatar.hidden=false;setup.camera(false);}
   if(game)input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});
   keyboard.setEnabled(!game||source.value==='keyboard');
-  if(source.value==='pose')restoreCalibration();setup.sync();fightUi?.modes(source.value==='keyboard',noPunch.checked);
+  if(source.value==='pose')restoreCalibration();setup.sync();fightUi?.modes(source.value==='keyboard',noPunch.checked);setup.commands(game?game.bossDef:pendingBoss);updateControlGuide();
   source.blur();
 });
 clearSpace.addEventListener('change',()=>{
@@ -322,7 +331,7 @@ const timer=window.setInterval(()=>{
     // A one-attack rehearsal deliberately pauses after the actual outcome.
     if(game.log.resolved.length&&!game.paused)game=step(game,{kind:'control',action:'stop',by:'capture'},at);
     stage.classList.toggle('cold-open-tally',phase==='tally'||phase==='done');
-    el('cold-open-status').textContent=phase==='missed'?'No clean block. Retry and hold your guard.':phase==='done'?'5-second take complete: actual guard confirmed. Chat is SIMULATED.':phase==='tally'?'Show the chat tally · SIMULATED CHAT':phase==='blocked'?'BLOCKED! Actual defence confirmed.':'HANDS UP! Hold your actual guard.';
+    el('cold-open-status').textContent=phase==='missed'?'No clean block. Retry and hold your guard.':phase==='done'?'5-second take complete: actual guard confirmed. Chat is SIMULATED.':phase==='tally'?'Show the chat tally · SIMULATED CHAT':phase==='blocked'?'BLOCKED! Actual defence confirmed.':'GUARD! Hold your actual guard.';
   }
   drawCrowd(at);paint();
 },100);
