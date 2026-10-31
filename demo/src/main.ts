@@ -195,7 +195,7 @@ const keyboard=createKeyboard({emit:input,label:label=>{
 }});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
-const setup=mountFightSetup(document,{onStart:()=>{void hud.activateSound();if(game){startFight();return;}tutorialStarted=true;el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamStart:()=>{void hud.activateSound();source.value='pose';keyboard.setEnabled(false);startFight();}});
+const setup=mountFightSetup(document,{onStart:()=>{void hud.activateSound();if(game){startFight();return;}tutorialStarted=true;el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
 const calibration=createCalibration({onChange(snapshot){
   el('calibration-status').textContent=snapshot.message;
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
@@ -264,7 +264,7 @@ clearSpace.addEventListener('change',()=>{
   } else if(!game)updateTutorial();
   clearSpace.blur();
 });
-el('stop-input').addEventListener('click',()=>{keyboard.release();input({kind:'control',action:'stop',by:'capture'});});
+el('stop-input').addEventListener('click',()=>{setup.cancel();keyboard.release();input({kind:'control',action:'stop',by:'capture'});});
 el('resume-input').addEventListener('click',()=>{
   if(!clearSpace.checked){el('demo-status').textContent='Confirm your clear space before resuming inputs.';return;}
   input({kind:'control',action:'resume',by:'capture'});
@@ -284,6 +284,7 @@ noPunch.addEventListener('change',()=>{updateModes();noPunch.blur();});
 const timer=window.setInterval(()=>{
   const at=performance.now();
   if(cameraRunning&&at-lastFrameAt>=500){poseFramed=false;setup.frame([],false);}
+  setup.tick(at);
   if(!game)return;
   game=step(game,{kind:'advance'},at);
   if(source.value==='keyboard')game=step(game,{kind:'pose',...keyboard.physical,source:'keyboard',at},at);
@@ -300,7 +301,7 @@ const timer=window.setInterval(()=>{
 window.addEventListener('beforeunload',()=>{window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();playtest.dispose();void viewerMemory?.close();});
 el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
-el('back-to-setup').addEventListener('click',()=>{if(game)input({kind:'control',action:'stop',by:'capture'});streamLayout.expand();el('fight-setup').scrollIntoView?.({block:'start',behavior:'smooth'});});
+el('back-to-setup').addEventListener('click',()=>{setup.cancel();if(game)input({kind:'control',action:'stop',by:'capture'});streamLayout.expand();el('fight-setup').scrollIntoView?.({block:'start',behavior:'smooth'});});
 el('cold-open').addEventListener('click',()=>{
  if(liveMode)return;
  if(!clearSpace.checked){el('cold-open-status').textContent='Confirm clear space first.';return;}
@@ -321,7 +322,7 @@ if(liveMode){
     return game.votes[vote.user]===vote.move;
   },onRaid:event=>{if(game){game=step(game,event,performance.now());paint();}},onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!clearSpace.checked)return;input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{showSessionSummary=true;freeze();}});
   crowdSize.closest('label')!.hidden=true;
-  document.title='Streamer vs Chat · Try it on your channel';
+  document.title='Streamer vs Chat · Twitch play';
 
   el('demo-status').textContent='Connect your own Twitch channel. Keyboard and webcam use the same rules.';
 }

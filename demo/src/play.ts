@@ -1,5 +1,5 @@
 import {createHostedHealth} from './hosted-health';
-import {hostedOnboardingMarkup,updateHostedOnboarding,setHostedExtraNotice,updateHostedConnectionPill} from './hosted-onboarding';
+import {hostedOnboardingMarkup,mountObsSetup,updateHostedOnboarding,setHostedExtraNotice,updateHostedConnectionPill} from './hosted-onboarding';
 import {createHostedMemory} from './hosted-memory';
 import type {GameSummary} from '../../shared/src/highlights';
 import {createHostedForge} from './hosted-forge';
@@ -33,10 +33,10 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryCha
  let latestChat:{userId:string;displayName:string}|null=null;
  const syncBot=async()=>{await bot.initialize();refresh();};
  botToggle.addEventListener('change',()=>{botToggle.checked=bot.setEnabled(botToggle.checked);refresh();});
- const refresh=()=>{updateHostedConnectionPill(document,auth.authenticated,auth.account?.login,auth.restored);updateHostedOnboarding(panel,{connected:auth.authenticated,login:auth.account?.login,notice:connectionNotice||undefined,scopes:auth.account?.scopes??[],bot:{available:bot.available,capable:bot.capable,enabled:bot.enabled},obsReady:el<HTMLInputElement>('green-background').checked,clips:{available:clips.available,capable:clips.capable,enabled:clips.enabled},memory:{available:memory.available,capable:memory.capable,enabled:memory.enabled},forge:{available:forge.available,capable:forge.capable,enabled:forge.enabled}});};
+ const refresh=()=>{updateHostedConnectionPill(document,auth.authenticated,auth.account?.login,auth.restored);updateHostedOnboarding(panel,{connected:auth.authenticated,login:auth.account?.login,notice:connectionNotice||undefined,scopes:auth.account?.scopes??[],bot:{available:bot.available,capable:bot.capable,enabled:bot.enabled},obsReady:obs.ready,clips:{available:clips.available,capable:clips.capable,enabled:clips.enabled},memory:{available:memory.available,capable:memory.capable,enabled:memory.enabled},forge:{available:forge.available,capable:forge.capable,enabled:forge.enabled}});};
  el<HTMLInputElement>('hosted-clips-toggle').addEventListener('change',event=>{clips.setEnabled((event.target as HTMLInputElement).checked);refresh();});
  el<HTMLInputElement>('hosted-forge-toggle').addEventListener('change',event=>{forge.setEnabled((event.target as HTMLInputElement).checked);refresh();});
- el('show-obs').addEventListener('click',()=>{const steps=el('obs-instructions');steps.hidden=!steps.hidden;el('show-obs').setAttribute('aria-expanded',String(!steps.hidden));});
+ const obs=mountObsSetup(panel,refresh);
  const chat=createBrowserChat({auth,parseVote:options.parseVote,onRaid:options.onRaid,onChatMessage:message=>{latestChat={userId:message.userId,displayName:message.displayName};forge.onChat(message);memory.onChat(message);},now:()=>performance.now(),onChat:user=>{void metrics.observeChat(user);},onVote:vote=>{if(options.onVote(vote)){void metrics.acceptedVote(vote.user);memory.acceptedVote(vote,latestChat?.userId===vote.user?latestChat.displayName:'Viewer');}latestChat=null;},onControl:options.onControl,onViewers:options.onViewers,onStatus:message=>{
   report(message==='connected'?'LIVE · Twitch chat connected':message==='login-required'?'Reconnect: Twitch authorization expired':`Twitch: ${message}`);connected=auth.authenticated&&message==='connected';
   if(connected)options.onConnected?.();else options.onDisconnect();refresh();
@@ -61,7 +61,7 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryCha
   if(disposed)return;
   refresh();
   if(auth.authenticated)void start();
-  else{void syncBot();void clips.initialize().then(refresh);void forge.initialize().then(refresh);void syncMemory();report(history.state?.oauthError?'Reconnect: Twitch authorization was not accepted.':'Connect Twitch to begin the baseline count. No simulated chat runs on this page.');}
+  else{void syncBot();void clips.initialize().then(refresh);void forge.initialize().then(refresh);void syncMemory();report((history.state?.oauthError||new URLSearchParams(location.search).get('oauthError')==='1')?'Reconnect: Twitch authorization was not accepted.':'Connect Twitch to begin the baseline count. No simulated chat runs on this page.');}
  };
  void initialize();
  return {memoryView:()=>memory.view(),publicSummary:(summary:GameSummary)=>memory.publicSummary(summary),get forgeBusy(){return forge.busy;},observePhase:(reset=false)=>forge.observePhase(reset),get ready(){return connected&&auth.authenticated;},get hasToken(){return auth.hasToken;},metrics,observeGame:(state:GameState,hypeFull:boolean,reset=false)=>{bot.observeGame(state,hypeFull);clips.observeGame(state,reset);memory.observeGame(state,reset);},clipsSnapshot:()=>clips.snapshot(),startFight:()=>metrics.startFight(),endFight:()=>metrics.endFight(),dispose(){disposed=true;void memory.dispose();forge.dispose();clips.dispose();bot.dispose();chat.stop();metrics.dispose();}};

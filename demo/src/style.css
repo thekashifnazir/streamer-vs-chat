@@ -141,3 +141,7 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .webcam-start-overlay{z-index:2;overflow:auto;justify-content:safe center}
 #camera-start-reason,#camera-feedback{font-size:14px;line-height:1.4}
 @media(max-width:480px){.webcam-start-overlay{padding:12px;gap:10px}.webcam-start-overlay p{font-size:14px}.webcam-instructions{position:static}}
+
+.webcam-countdown{position:absolute;inset:12% 6%;z-index:12;display:grid;place-items:center;text-align:center;padding:24px;border:3px solid var(--yellow);border-radius:16px;background:#0c0912ed;color:var(--yellow);font:400 clamp(36px,6vw,112px)/1.2 Anton,Impact,sans-serif;pointer-events:none}
+.webcam-countdown[hidden]{display:none}
+.obs-platforms{display:flex;gap:8px}.obs-platforms button[aria-pressed=true]{background:var(--yellow);color:#0c0912}.obs-instructions{font-size:14px;padding:10px;margin:10px 0}.obs-instructions ol{padding-left:18px;line-height:1.5}.session-opt-in{display:block;font-size:14px;font-weight:400;color:var(--muted)}

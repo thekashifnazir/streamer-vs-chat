@@ -48,3 +48,9 @@ it('fetches health only once if no valid connection is restored',async()=>{
  setup(vi.fn<typeof fetch>(async()=>new Response(null,{status:401})));
  await vi.waitFor(()=>expect(bridge.initialize).toHaveBeenCalled());expect(fetch).toHaveBeenCalledOnce();
 });
+it('keeps an OAuth failure visible after a full navigation to /play',async()=>{
+ dom.window.history.replaceState(null,'','/play?oauthError=1');
+ const request=vi.fn<typeof fetch>(async()=>new Response(null,{status:401}));setup(request);
+ await vi.waitFor(()=>expect(dom.window.document.getElementById('connect-step-body')!.textContent).toBe('Reconnect: Twitch authorization was not accepted.'));
+ expect(bridge.start).not.toHaveBeenCalled();
+});
