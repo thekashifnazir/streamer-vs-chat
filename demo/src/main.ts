@@ -78,6 +78,8 @@ let metricsRound:string|null=null;
 let liveViewers=0;
 let showSessionSummary=false;
 let coldOpenAt:number|null=null;
+// The rehearsal runs in the compact stream view, which hides its result line and the Rehearse button.
+let coldOpenSettled=false;
 // Closing the tab ends a browser broadcast and loses the match; warn only while either is at stake.
 const leaveGuard=createLeaveGuard(window,()=>({live:hosted?.broadcasting===true,game,ended:showSessionSummary}));
 const streamLayout=mountStreamLayout({live:liveMode,onEnd:()=>{if(liveMode){el<HTMLButtonElement>('show-results').click();return;}showSessionSummary=true;if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}}});
@@ -338,6 +340,7 @@ const timer=window.setInterval(()=>{
     // A one-attack rehearsal deliberately pauses after the actual outcome.
     if(game.log.resolved.length&&!game.paused)game=step(game,{kind:'control',action:'stop',by:'capture'},at);
     stage.classList.toggle('cold-open-tally',phase==='tally'||phase==='done');
+    if((phase==='missed'||phase==='done')&&!coldOpenSettled){coldOpenSettled=true;streamLayout.expand();el('cold-open-status').scrollIntoView?.({block:'center',behavior:'smooth'});}
     el('cold-open-status').textContent=phase==='missed'?'No clean block. Retry and hold your guard.':phase==='done'?'5-second take complete: actual guard confirmed. Chat is SIMULATED.':phase==='tally'?'Show the chat tally · SIMULATED CHAT':phase==='blocked'?'BLOCKED! Actual defence confirmed.':'GUARD! Hold your actual guard.';
   }
   drawCrowd(at);paint();
@@ -351,7 +354,7 @@ el('cold-open').addEventListener('click',()=>{
  if(liveMode)return;
  if(!safetyCleared()){el('cold-open-status').textContent='Confirm clear space first.';return;}
  if(source.value==='pose'&&(!calibration.snapshot.ready||!cameraRunning)){el('cold-open-status').textContent='Start and calibrate the camera first, or choose Keyboard.';return;}
- fightUi?.showStage();playtest.endRound();const at=performance.now();coldOpenAt=at;crowd=null;showSessionSummary=false;
+ fightUi?.showStage();playtest.endRound();const at=performance.now();coldOpenAt=at;coldOpenSettled=false;crowd=null;showSessionSummary=false;
  void hud.activateSound();
  game=startColdOpen(at,seed++,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose);
  el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();stage.scrollIntoView?.({block:'start',behavior:'smooth'});stage.classList.remove('cold-open-tally');paint();
