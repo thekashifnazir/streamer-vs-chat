@@ -49,7 +49,7 @@ Capture now offers **Compare CPU / GPU** using your real camera, with warm-up an
 
 Open **[Try it on your channel](https://streamervschat.kashifnazir.com/play)**. This hosted mode runs entirely in your browser, using the same game reducer as the offline demo and local server. Connect with Twitch, confirm clear space, and start with keyboard or a calibrated webcam. Standing, seated and no-punch choices remain available.
 
-It requests **`user:read:chat`** to read messages from your own channel. It does not request chat-writing permission or post results to chat. OAuth uses the implicit flow; the token is removed from the URL immediately and kept only in this document's memory. Reloading or disconnecting signs you out; expired authorization shows Reconnect. LIVE mode never starts a simulated crowd. With no votes, the normal game-rule autopilot still chooses attacks.
+It first requests **`user:read:chat`**, plus `channel:bot` (optional round results posted by streamervschatbot) and `clips:edit` (optional clips); `channel:read:stream_key` is requested only if you choose Go live from the page. OAuth uses the implicit flow; the token is removed from the URL immediately and remembered on this computer until you Disconnect (details: [HOSTED.md](HOSTED.md)).
 
 For OBS:
 
