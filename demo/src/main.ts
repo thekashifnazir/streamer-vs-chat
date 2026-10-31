@@ -1,3 +1,4 @@
+import {showCameraError} from './camera-feedback';
 import {mountShareTools} from './share-tools';
 import {mountFightSetup} from './setup-ui';
 import {createCalibrationProfiles} from '../../capture/src/calibration-profile';
@@ -222,11 +223,12 @@ const camera=new PoseCamera(video,sample=>{
 },message=>{
   cameraRunning=false;poseFramed=false;setup.camera(false);lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};
   if(source.value==='pose')input(lastPose);
-  el('camera-status').textContent=message;
+  showCameraError(document,message);
 },{wasmLoaderPath:'/assets/pose/vision_wasm_internal.js',wasmBinaryPath:'/assets/pose/vision_wasm_internal.wasm',modelAssetPath:'/assets/pose/pose_landmarker_lite.task'});
 
 el('start-camera').addEventListener('click',async()=>{
-  if(!clearSpace.checked){el('camera-status').textContent='Check your clear space first.';return;}
+  if(!clearSpace.checked){setup.sync();el('camera-start-reason').scrollIntoView?.({block:'nearest'});return;}
+  el('camera-feedback').hidden=true;
   el<HTMLButtonElement>('start-camera').disabled=true;
   el('camera-status').textContent='Opening camera and loading the local lite model…';
   try {
@@ -235,8 +237,8 @@ el('start-camera').addEventListener('click',async()=>{
     if(cameraRunning&&!calibration.snapshot.ready)calibration.start(posture.value==='seated'?'seated':'standing',performance.now());
     el<HTMLButtonElement>('stop-camera').disabled=!cameraRunning;
     el<HTMLButtonElement>('start-calibration').disabled=!cameraRunning;
-  } catch(error){el('camera-status').textContent=`Camera unavailable: ${error instanceof Error?error.message:'permission denied'}. Keyboard still works.`;}
-  finally{el<HTMLButtonElement>('start-camera').disabled=false;}
+  } catch(error){showCameraError(document,error);}
+  finally{setup.sync();}
 });
 el('stop-camera').addEventListener('click',()=>{
   camera.stop();cameraRunning=false;poseFramed=false;setup.camera(false);video.hidden=true;avatar.hidden=false;calibration.reset();classifier.reset();setup.restored(false);
@@ -304,6 +306,7 @@ el('cold-open').addEventListener('click',()=>{
  if(!clearSpace.checked){el('cold-open-status').textContent='Confirm clear space first.';return;}
  if(source.value==='pose'&&(!calibration.snapshot.ready||!cameraRunning)){el('cold-open-status').textContent='Start and calibrate the camera first, or choose Keyboard.';return;}
  playtest.endRound();const at=performance.now();coldOpenAt=at;crowd=null;showSessionSummary=false;
+ void hud.activateSound();
  game=startColdOpen(at,seed++,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose);
  el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();stage.scrollIntoView?.({block:'start',behavior:'smooth'});stage.classList.remove('cold-open-tally');paint();
 });

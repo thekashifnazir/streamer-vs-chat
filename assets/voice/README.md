@@ -2,20 +2,20 @@
 
 Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan.
 
-Selected by Kash after listening on 28 October 2026. Source: the prep repository, `docs/assets/voice-elevenlabs-library/rex-thunder-deep-tough/ready/`, at commit `84ece4eb543fed649d1dab3f933aabbff0ab420d`. The 14 WAVs were copied byte-for-byte after updating that repository; filenames and runtime audio wiring are unchanged.
+Selected by Kash after listening on 28 October 2026. Source: the prep repository, `docs/assets/voice-elevenlabs-library/rex-thunder-deep-tough/ready/`, at commit `84ece4eb543fed649d1dab3f933aabbff0ab420d`. The 14 WAVs were copied byte-for-byte after updating that repository; original filenames remain as provenance masters. Runtime cues now use same-stem 96 kbps MP3 derivatives (FFmpeg libmp3lame, metadata stripped); no new synthesis or editing.
 
 ## Generation and provenance
 
 - Provider: ElevenLabs Voice Library. Voice: **Rex Thunder - Deep N Tough**, ID `mtrellq69YZsNwzUSyXh`.
 - Model: `eleven_v3`; generation output `mp3_44100_128`.
 - Source settings: stability 0.45, similarity boost 0.82, style 0.30, speaker boost on, varied seeds. Hands-up used faster synthesis/SoX tempo where needed to fit its cue.
-- Prep processing used its recorded SoX chain, silence trimming, -17 dBFS RMS target and -1 dBFS peak cap. Shipped files are 16-bit PCM mono at 44.1 kHz.
-- The prep QC report records 42/42 Rex takes passing transcript/duration checks. Only the 14 selected ready files ship here; alternative takes and synthesis tools remain in prep. No TTS request or key was used for this replacement.
+- Prep processing used its recorded SoX chain, silence trimming, -17 dBFS RMS target and -1 dBFS peak cap. The retained WAV masters are 16-bit PCM mono at 44.1 kHz; the browser build ships compressed MP3 cues only.
+- The prep QC report records 42/42 Rex takes passing transcript/duration checks. Only the selected ready takes are used here; alternative takes and synthesis tools remain in prep. No TTS request or key was used for this replacement.
 - These replace the previous locally generated takes; do not attribute the current recordings to that previous model or apply its model licence to them. MediaPipe still requires the separately retained Apache-2.0 notice.
 
 ## Shipped takes and measured duration
 
-Durations below were read from the copied WAV frame counts. `hands-up.wav` lasts 599.932 ms, leaving about 200 ms inside the 800 ms telegraph when played at t=0. Runtime cues still preload/decode these local files; no audio scheduling or game rules changed.
+Durations below were read from the copied WAV frame counts. `hands-up.wav` lasts 599.932 ms, leaving about 200 ms inside the 800 ms telegraph when played at t=0. Runtime MP3 cues are fetched and decoded on the first enabled START/rehearsal/sound interaction, never at HUD mount; decoded playback starts no network requests. The first normal beat leaves time for decoding before its telegraph. Browser playback/OBS listening remains a live check; no game rules changed.
 
 | File | Selected prep take | Duration |
 |---|---|---|
@@ -35,3 +35,5 @@ Durations below were read from the copied WAV frame counts. `hands-up.wav` lasts
 | `ready/weakness-found.wav` | `weakness-found_t1` | 1.504331 s |
 
 The paid Creator-plan provenance and selection are supplied by Kash. Source generation/QC metadata is in the prep repository's `docs/assets/voice-elevenlabs-library/levels.json`.
+
+Standalone `/overlay` additionally attempts audio activation during browser idle for OBS autoplay; demo and `/play` wait for interaction. Browser autoplay policy may still require activation.

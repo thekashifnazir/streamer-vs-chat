@@ -5,6 +5,7 @@ import { gzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { build } from 'vite';
 import { assertSimulationAllowed } from '../demo/src/safety.js';
+import { writeAssetHeaders } from './asset-headers.js';
 import { auditOfflineBuild } from './offline-check.js';
 
 export const projectRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -20,7 +21,7 @@ export async function buildDemo(options: {mock?:boolean} = {}) {
   await build({
     configFile:false, root:join(projectRoot,'demo'), publicDir:false, envDir:false, envPrefix:[], base:'/',
     define:{'import.meta.env.VITE_TWITCH_CLIENT_ID':JSON.stringify(process.env.VITE_TWITCH_CLIENT_ID??'')},
-    build:{assetsInlineLimit:file=>/\.wav$/i.test(file)?false:undefined,outDir:output,emptyOutDir:true,target:'es2022',manifest:true,rollupOptions:{input:{index:join(projectRoot,'demo/index.html'),play:join(projectRoot,'demo/play/index.html')}}},
+    build:{assetsInlineLimit:file=>/\.(?:wav|mp3|m4a|ogg)$/i.test(file)?false:undefined,outDir:output,emptyOutDir:true,target:'es2022',manifest:true,rollupOptions:{input:{index:join(projectRoot,'demo/index.html'),play:join(projectRoot,'demo/play/index.html')}}},
   });
   const poseOutput=join(output,'assets/pose');
   await mkdir(poseOutput,{recursive:true});
@@ -39,6 +40,7 @@ export async function buildDemo(options: {mock?:boolean} = {}) {
     ['assets/boss/README.md','boss-provenance.txt'],['capture/public/models/README.md','model-provenance.txt'],
   ])await copyFile(join(projectRoot,source!),join(credits,name!));
   for(const file of await readdir(join(projectRoot,'assets/licences')))if(file.startsWith('kenney-'))await copyFile(join(projectRoot,'assets/licences',file),join(credits,file));
+  await writeAssetHeaders(output);
   await auditOfflineBuild(output);
   let rawBytes=0;let gzipBytes=0;
   async function measure(directory:string) {

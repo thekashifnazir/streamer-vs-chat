@@ -12,7 +12,7 @@ vi.mock('./hosted-clips',()=>({createHostedClips:()=>({available:false,capable:f
 vi.mock('./hosted-forge',()=>({createHostedForge:()=>({available:false,capable:false,enabled:false,busy:false,initialize:bridge.initialize,setEnabled:()=>false,onChat:vi.fn(),observePhase:vi.fn(),dispose:vi.fn()})}));
 vi.mock('./hosted-memory',()=>({createHostedMemory:()=>({available:false,capable:false,enabled:false,initialize:bridge.initialize,setEnabled:()=>false,onChat:vi.fn(),acceptedVote:vi.fn(),observeGame:vi.fn(),finalize:vi.fn(),view:()=>null,publicSummary:(v:unknown)=>v,dispose:vi.fn()})}));
 let dom:JSDOM,ui:ReturnType<typeof mountHostedPlay>|undefined;
-beforeEach(()=>{vi.clearAllMocks();dom=new JSDOM(readFileSync(new URL('../play/index.html',import.meta.url),'utf8'),{url:'https://streamervschat.kashifnazir.com/play'});vi.stubGlobal('document',dom.window.document);vi.stubGlobal('location',dom.window.location);vi.stubGlobal('history',dom.window.history);});
+beforeEach(()=>{vi.clearAllMocks();vi.stubGlobal('fetch',vi.fn(async()=>Response.json({bot:false,clips:false,forge:false,memory:false})));dom=new JSDOM(readFileSync(new URL('../play/index.html',import.meta.url),'utf8'),{url:'https://streamervschat.kashifnazir.com/play'});vi.stubGlobal('document',dom.window.document);vi.stubGlobal('location',dom.window.location);vi.stubGlobal('history',dom.window.history);});
 afterEach(()=>{ui?.dispose();ui=undefined;dom.window.close();setLiveCredentials(false);vi.unstubAllGlobals();});
 function setup(request:typeof fetch){const data=new Map([['svc.twitch.access-token','tab-token']]);bridge.auth=createBrowserAuth({clientId:'client',redirectUri:'https://streamervschat.kashifnazir.com/',fetch:request,storage:{getItem:key=>data.get(key)??null,setItem:(key,value)=>{data.set(key,value);},removeItem:key=>{data.delete(key);}}});const onRaid=vi.fn();ui=mountHostedPlay({getState:()=>null,onVote:()=>false,onRaid,onControl:vi.fn(),onViewers:vi.fn(),onDisconnect:vi.fn(),onSummary:vi.fn(),betweenRounds:()=>true,onForgeAccepted:vi.fn(),onForgeSnapshot:vi.fn()});return{data,onRaid};}
 const valid={client_id:'client',user_id:'me',login:'streamer',scopes:['user:read:chat'],expires_in:3600};
@@ -33,4 +33,18 @@ it('cannot offer a new live fight after a backend 401 clears auth while the sock
  const s=setup(vi.fn<typeof fetch>(async input=>String(input).includes('/oauth2/validate')?Response.json(valid):new Response(null,{status:401})));
  await vi.waitFor(()=>expect(bridge.start).toHaveBeenCalledOnce());expect(ui!.ready).toBe(true);
  await expect(bridge.auth.backendRequest('/api/status')).rejects.toThrow();expect(s.data.size).toBe(0);expect(ui!.hasToken).toBe(false);expect(ui!.ready).toBe(false);
+});
+
+it('fetches health once on load and once after a validated connection, without remounting the static panel',async()=>{
+ const original=dom.window.document.querySelector('#hosted-onboarding-slot > .hosted-panel');
+ setup(vi.fn<typeof fetch>(async()=>Response.json(valid)));
+ await vi.waitFor(()=>expect(bridge.start).toHaveBeenCalledOnce());
+ await vi.waitFor(()=>expect(fetch).toHaveBeenCalledTimes(2));
+ expect(vi.mocked(fetch).mock.calls.every(([url])=>url==='/api/health')).toBe(true);
+ if(original)expect(dom.window.document.querySelector('#hosted-onboarding-slot > .hosted-panel')).toBe(original);
+ expect(dom.window.document.querySelectorAll('.hosted-panel')).toHaveLength(1);
+});
+it('fetches health only once if no valid connection is restored',async()=>{
+ setup(vi.fn<typeof fetch>(async()=>new Response(null,{status:401})));
+ await vi.waitFor(()=>expect(bridge.initialize).toHaveBeenCalled());expect(fetch).toHaveBeenCalledOnce();
 });

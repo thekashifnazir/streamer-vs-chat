@@ -1,3 +1,4 @@
+import {createHostedHealth,type HealthReader} from './hosted-health';
 import type {BrowserAuth} from './twitch/auth';
 import {ServerHighlightCoordinator,type ClipTransport,type HighlightEntry} from '../../shared/src/clips';
 import {highlightCandidates} from '../../shared/src/highlights';
@@ -16,7 +17,7 @@ export function browserClipTransport(auth:ClipAuth,userId:string):ClipTransport 
  };
 }
 /** Hosted-only observer; no token storage, local replay, or gameplay control. */
-export function createHostedClips(options:{auth:ClipAuth;fetch?:typeof fetch;onStatus:(message:string)=>void;onChange?:()=>void;onConfirmed?:(clipId:string)=>void;now?:()=>number}){
+export function createHostedClips(options:{auth:ClipAuth;fetch?:typeof fetch;getHealth?:HealthReader;onStatus:(message:string)=>void;onChange?:()=>void;onConfirmed?:(clipId:string)=>void;now?:()=>number}){
  const request=options.fetch??globalThis.fetch.bind(globalThis);
  let desired=true,disposed=false,available=false,coordinator:ServerHighlightCoordinator|null=null,accountId:string|null=null,observed:GameState|null=null,epoch=0;
  const announced=new Set<string>();
@@ -30,7 +31,7 @@ export function createHostedClips(options:{auth:ClipAuth;fetch?:typeof fetch;onS
  return {
   get enabled(){return desired&&capable()&&coordinator!==null;},get available(){return available;},get capable(){return capable();},
   setEnabled(value:boolean){desired=value;if(value&&!disposed&&capable()&&!coordinator)open(options.auth.account!.id);return desired&&capable()&&coordinator!==null;},
-  async initialize(){try{const response=await request('/api/health',{cache:'no-store'});available=response.ok&&(await response.json()).clips===true;}catch{available=false;}if(disposed)return;if(!capable()){close();report(!desired?'Hosted clips off.':available?'Reconnect to enable clips (clips:edit).':'Hosted clips are disabled on this host.');return;}if(!desired){report('Hosted clips off.');return;}const id=options.auth.account!.id;if(accountId===id&&coordinator)return;close();open(id);report('Hosted clips enabled · confirmed clips only.');},
+  async initialize(){try{available=(await (options.getHealth??createHostedHealth(request).get)()).clips;}catch{available=false;}if(disposed)return;if(!capable()){close();report(!desired?'Hosted clips off.':available?'Reconnect to enable clips (clips:edit).':'Hosted clips are disabled on this host.');return;}if(!desired){report('Hosted clips off.');return;}const id=options.auth.account!.id;if(accountId===id&&coordinator)return;close();open(id);report('Hosted clips enabled · confirmed clips only.');},
   observeGame(state:GameState,reset=false){const before=observed;observed=state;if(reset||before&&before.match.seed!==state.match.seed)epoch++;if(!before||reset||before.match.seed!==state.match.seed||!desired||!capable()||accountId!==options.auth.account?.id)return;for(const moment of highlightCandidates(before,state))coordinator?.enqueue({...moment,id:`m${epoch}:${moment.id}`});},
   snapshot():EndcardClip[]{if(!options.auth.authenticated||historyOwner!==options.auth.account?.id)return [];return entries().filter(entry=>entry.status==='confirmed'&&entry.clipId&&entry.url).sort((a,b)=>b.highlight.priority-a.highlight.priority||a.highlight.at-b.highlight.at).slice(0,3).map(entry=>({id:entry.clipId!,url:entry.url!,label:entry.highlight.kind.toUpperCase(),status:'confirmed'}));},
   entries,

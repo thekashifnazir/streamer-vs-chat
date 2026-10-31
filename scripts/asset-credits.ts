@@ -26,12 +26,12 @@ export function assetCredit(path: string, levels: Record<string, { source: strin
   if (path === 'assets/licences/Apache-2.0.txt') return ['Apache Software Foundation licence text retained for MediaPipe', 'Apache License 2.0 (notice text)'];
   if (/^assets\/licences\/kenney-.*-[Ll]icense\.txt$/.test(path)) return ['Original Kenney pack notice; pack named in the file', 'CC0 1.0 (notice text)'];
   if (path === 'assets/sfx-ready/levels.json') return ['Project source attribution, trim and level metadata for prepared SFX/music', 'Metadata; underlying audio CC0 1.0'];
-  if (path.startsWith('assets/sfx-ready/') && path.endsWith('.wav')) {
+  if (path.startsWith('assets/sfx-ready/') && /\.(wav|mp3)$/.test(path)) {
     const source = levels[path.split('/').at(-1)!.slice(0, -4)]?.source;
     if (!source) throw new Error(`Missing original SFX source for ${path}`);
     return [`\`${source}\``, 'CC0 1.0'];
   }
-  if (path.startsWith('assets/voice/ready/') && path.endsWith('.wav')) return [ANNOUNCER_PROVENANCE, 'Generated audio; see provenance'];
+  if (path.startsWith('assets/voice/ready/') && /\.(wav|mp3)$/.test(path)) return [ANNOUNCER_PROVENANCE, 'Generated audio; see provenance'];
   throw new Error(`Unclassified tracked asset: ${path}; add its verified provenance before generating credits`);
 }
 

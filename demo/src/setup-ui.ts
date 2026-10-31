@@ -17,6 +17,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
   const webcamStart=get<HTMLButtonElement>('play-webcam');webcamStart.disabled=!(space.checked&&camera&&ready&&framed);webcamStart.textContent=webcamStart.disabled?'Finish the 5 steps to start':'START WEBCAM FIGHT';
   get('webcam-distance-tip').textContent=select('posture').value==='seated'?'Seated: sit about 1 m further back than feels natural.':'Standing: give yourself room to raise your guard and lean to either side.';
   get('calibration-saved').hidden=!restored;
+  get<HTMLButtonElement>('start-camera').disabled=!space.checked;get('camera-start-reason').hidden=space.checked;
  };
  function open(){webcam.hidden=false;preview.prepend(video);root.body.classList.add('webcam-open');webcam.scrollIntoView?.({block:'start',behavior:'smooth'});}
  function close(){webcam.hidden=true;stage.prepend(video);root.body.classList.remove('webcam-open');get('fight-setup').scrollIntoView?.({block:'start',behavior:'smooth'});}

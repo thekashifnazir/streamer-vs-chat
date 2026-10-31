@@ -18,7 +18,7 @@ describe('tracked asset credits', () => {
   it('preserves the original source of every prepared audio file', () => {
     const levels = JSON.parse(readFileSync('assets/sfx-ready/levels.json', 'utf8'));
     for (const [name, entry] of Object.entries(levels) as [string, { source: string }][]) {
-      expect(assetCredit(`assets/sfx-ready/${name}.wav`, levels)).toEqual([`\`${entry.source}\``, 'CC0 1.0']);
+      for(const extension of ['wav','mp3'])expect(assetCredit(`assets/sfx-ready/${name}.${extension}`, levels)).toEqual([`\`${entry.source}\``, 'CC0 1.0']);
     }
   });
 

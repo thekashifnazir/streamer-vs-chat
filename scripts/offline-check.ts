@@ -26,6 +26,7 @@ export async function auditOfflineBuild(root:string):Promise<string[]> {
   async function visit(directory:string){for(const name of await readdir(directory)){const path=join(directory,name);if((await stat(path)).isDirectory())await visit(path);else files.push(relative(root,path).replaceAll('\\','/'));}}
   await visit(root);
   if(files.some(path=>/(^|\/)(\.env(?:\.|$)|tokens\.json|node_modules|\.git)/.test(path)))throw new Error('Credential/development files must not ship in the demo');
+  if(files.some(path=>/\.(wav|ogg)$/i.test(path)))throw new Error('Runtime audio must ship compressed as MP3 or AAC');
   const wasm=files.filter(path=>path.endsWith('.wasm'));
   if(wasm.length!==1||wasm[0]!=='assets/pose/vision_wasm_internal.wasm')throw new Error('Offline demo must ship exactly its single SIMD WASM binary');
   for(const path of ['index.html','assets/pose/vision_wasm_internal.js','assets/pose/pose_landmarker_lite.task'])if(!files.includes(path))throw new Error(`Missing offline asset: ${path}`);

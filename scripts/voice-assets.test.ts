@@ -11,6 +11,6 @@ function wavInfo(bytes:Buffer){
 it('retains the same 14 ready names as local PCM and fits hands-up inside the telegraph',()=>{
  const directory=new URL('../assets/voice/ready/',import.meta.url);
  const names=['blocked','chat-wins','counter','draw','final-round','fixed-it','hands-up','ko','perfect','round-1-fight','round-2','streamer-wins','super-incoming','weakness-found'].map(name=>`${name}.wav`).sort();
- expect(readdirSync(directory).sort()).toEqual(names);
+ expect(readdirSync(directory).filter(name=>name.endsWith('.wav')).sort()).toEqual(names);
  for(const name of names){const info=wavInfo(readFileSync(new URL(name,directory)));expect(info,name).toMatchObject({pcm:1,channels:1,sampleRate:44100,bits:16});expect(info.durationMs).toBeGreaterThan(0);if(name==='hands-up.wav')expect(info.durationMs).toBeLessThan(RULES.telegraph);}
 });

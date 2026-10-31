@@ -22,6 +22,10 @@ Original 2D art for the chat-piloted heavyweight boss in "Streamer vs Chat". It 
 | `a11y/` | Protanopia and deuteranopia simulations of the telegraph frames, at full size and phone size (390 px wide) |
 | `src/` | `boss.py` (drawing), `pack.py` (sheet + atlas), `preview.cjs` (HUD previews), `a11y.py` (colour-blind check), `frames.json` (names + ms) |
 
+## Browser delivery (Queue 13q)
+
+The runtime uses `boss-sheet@1x.webp`, encoded from the retained 4096 × 1315 PNG with `cwebp -q 88 -alpha_q 100 -m 6`. Frame rectangles, dimensions, alpha channel and atlas timings are unchanged; RGB is compressed. PNG: 2,867,378 bytes; WebP: 803,458 bytes. The image request begins when the HUD mounts. A small original vector silhouette remains visible while the sheet or atlas loads, or after a load failure, instead of a cleared blank canvas.
+
 ## Atlas
 
 The atlas uses the TexturePacker "JSON hash" layout, so PixiJS `Assets.load('boss-sheet@1x.json')` and Phaser `load.atlas` read it directly. For each frame it gives the `frame` rect on the sheet, the trim offset (`spriteSourceSize`), `sourceSize`, an `anchor`, the suggested `duration` in ms and a `note`. `animations` lists the frame order for each clip.

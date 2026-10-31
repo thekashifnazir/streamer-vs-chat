@@ -21,6 +21,7 @@ The table is generated from `git ls-files assets`: one row per tracked file, inc
 | `assets/boss/README.md` | Original Chat Golem art, atlas and provenance by Kashif Nazir; `assets/boss/README.md` | CC0 1.0 Universal |
 | `assets/boss/boss-sheet@1x.json` | Original Chat Golem art, atlas and provenance by Kashif Nazir; `assets/boss/README.md` | CC0 1.0 Universal |
 | `assets/boss/boss-sheet@1x.png` | Original Chat Golem art, atlas and provenance by Kashif Nazir; `assets/boss/README.md` | CC0 1.0 Universal |
+| `assets/boss/boss-sheet@1x.webp` | Original Chat Golem art, atlas and provenance by Kashif Nazir; `assets/boss/README.md` | CC0 1.0 Universal |
 | `assets/boss/boss-sheet@2x-0.json` | Original Chat Golem art, atlas and provenance by Kashif Nazir; `assets/boss/README.md` | CC0 1.0 Universal |
 | `assets/boss/boss-sheet@2x-0.png` | Original Chat Golem art, atlas and provenance by Kashif Nazir; `assets/boss/README.md` | CC0 1.0 Universal |
 | `assets/boss/boss-sheet@2x-1.json` | Original Chat Golem art, atlas and provenance by Kashif Nazir; `assets/boss/README.md` | CC0 1.0 Universal |
@@ -46,40 +47,66 @@ The table is generated from `git ls-files assets`: one row per tracked file, inc
 | `assets/licences/kenney-music-jingles-License.txt` | Original Kenney pack notice; pack named in the file | CC0 1.0 (notice text) |
 | `assets/licences/kenney-ui-audio-License.txt` | Original Kenney pack notice; pack named in the file | CC0 1.0 (notice text) |
 | `assets/licences/kenney-voiceover-pack-fighter-License.txt` | Original Kenney pack notice; pack named in the file | CC0 1.0 (notice text) |
+| `assets/sfx-ready/block.mp3` | `sfx/block-thud_kenney_impactPunch_medium_001.ogg` | CC0 1.0 |
 | `assets/sfx-ready/block.wav` | `sfx/block-thud_kenney_impactPunch_medium_001.ogg` | CC0 1.0 |
+| `assets/sfx-ready/counter-accent.mp3` | `sfx/counter-hit-accent_kenney_jingles_HIT00.ogg` | CC0 1.0 |
 | `assets/sfx-ready/counter-accent.wav` | `sfx/counter-hit-accent_kenney_jingles_HIT00.ogg` | CC0 1.0 |
+| `assets/sfx-ready/counter.mp3` | `sfx/counter-hit_kenney_impactPunch_heavy_004.ogg` | CC0 1.0 |
 | `assets/sfx-ready/counter.wav` | `sfx/counter-hit_kenney_impactPunch_heavy_004.ogg` | CC0 1.0 |
+| `assets/sfx-ready/dodge.mp3` | `sfx/dodge-whoosh_freesound_420668_SypherZent.mp3` | CC0 1.0 |
 | `assets/sfx-ready/dodge.wav` | `sfx/dodge-whoosh_freesound_420668_SypherZent.mp3` | CC0 1.0 |
+| `assets/sfx-ready/fight.mp3` | `sfx/round-start_kenney_vo_fight.ogg` | CC0 1.0 |
 | `assets/sfx-ready/fight.wav` | `sfx/round-start_kenney_vo_fight.ogg` | CC0 1.0 |
 | `assets/sfx-ready/final-round.wav` | `sfx/round-start_kenney_vo_final_round.ogg` | CC0 1.0 |
+| `assets/sfx-ready/hands-up.mp3` | `sfx/hands-up-sting_kenney_jingles_HIT03.ogg` | CC0 1.0 |
 | `assets/sfx-ready/hands-up.wav` | `sfx/hands-up-sting_kenney_jingles_HIT03.ogg` | CC0 1.0 |
+| `assets/sfx-ready/hit-taken.mp3` | `sfx/punch-hit_kenney_impactPunch_heavy_002.ogg` | CC0 1.0 |
 | `assets/sfx-ready/hit-taken.wav` | `sfx/punch-hit_kenney_impactPunch_heavy_002.ogg` | CC0 1.0 |
+| `assets/sfx-ready/hype-cheer.mp3` | `sfx/crowd-cheer_freesound_221567_AlaskaRobotics.mp3` | CC0 1.0 |
 | `assets/sfx-ready/hype-cheer.wav` | `sfx/crowd-cheer_freesound_221567_AlaskaRobotics.mp3` | CC0 1.0 |
+| `assets/sfx-ready/ko-bell.mp3` | `sfx/ko-bell_freesound_520998_Mateusz_Chenc.mp3` | CC0 1.0 |
 | `assets/sfx-ready/ko-bell.wav` | `sfx/ko-bell_freesound_520998_Mateusz_Chenc.mp3` | CC0 1.0 |
 | `assets/sfx-ready/levels.json` | Project source attribution, trim and level metadata for prepared SFX/music | Metadata; underlying audio CC0 1.0 |
+| `assets/sfx-ready/music-battle-loop.mp3` | `music/bed_oga_8-bit-battle-loop_Wolfgang_.ogg` | CC0 1.0 |
 | `assets/sfx-ready/music-battle-loop.wav` | `music/bed_oga_8-bit-battle-loop_Wolfgang_.ogg` | CC0 1.0 |
+| `assets/sfx-ready/perfect.mp3` | `sfx/perfect-clang_kenney_impactBell_heavy_002.ogg` | CC0 1.0 |
 | `assets/sfx-ready/perfect.wav` | `sfx/perfect-clang_kenney_impactBell_heavy_002.ogg` | CC0 1.0 |
+| `assets/sfx-ready/punch-bonus.mp3` | `sfx/punch-hit_kenney_impactPunch_heavy_000.ogg` | CC0 1.0 |
 | `assets/sfx-ready/punch-bonus.wav` | `sfx/punch-hit_kenney_impactPunch_heavy_000.ogg` | CC0 1.0 |
 | `assets/sfx-ready/round-1.wav` | `sfx/round-start_kenney_vo_round_1.ogg` | CC0 1.0 |
 | `assets/sfx-ready/round-2.wav` | `sfx/round-start_kenney_vo_round_2.ogg` | CC0 1.0 |
+| `assets/sfx-ready/super-charge.mp3` | `sfx/super-charge_kenney_powerUp1.ogg` | CC0 1.0 |
 | `assets/sfx-ready/super-charge.wav` | `sfx/super-charge_kenney_powerUp1.ogg` | CC0 1.0 |
+| `assets/sfx-ready/vote-tick.mp3` | `sfx/vote-tick_kenney_tick_002.ogg` | CC0 1.0 |
 | `assets/sfx-ready/vote-tick.wav` | `sfx/vote-tick_kenney_tick_002.ogg` | CC0 1.0 |
 | `assets/sfx-ready/you-lose.wav` | `sfx/result_kenney_vo_you_lose.ogg` | CC0 1.0 |
 | `assets/sfx-ready/you-win.wav` | `sfx/result_kenney_vo_you_win.ogg` | CC0 1.0 |
 | `assets/voice/README.md` | Project provenance and preparation documentation | Documentation; underlying asset terms listed here and in this file |
+| `assets/voice/ready/blocked.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/blocked.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/chat-wins.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/chat-wins.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/counter.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/counter.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/draw.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/final-round.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/final-round.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/fixed-it.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/fixed-it.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/hands-up.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/hands-up.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/ko.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/ko.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/perfect.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/perfect.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/round-1-fight.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/round-1-fight.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/round-2.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/round-2.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/streamer-wins.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/streamer-wins.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/super-incoming.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
+| `assets/voice/ready/weakness-found.mp3` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 | `assets/voice/ready/weakness-found.wav` | Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. | Generated audio; see provenance |
 <!-- asset-inventory:end -->
 

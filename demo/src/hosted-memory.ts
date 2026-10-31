@@ -1,3 +1,4 @@
+import {createHostedHealth,type HealthReader} from './hosted-health';
 import type {BrowserAuth} from './twitch/auth';
 import type {HostedChatMessage} from './twitch/eventsub';
 import type {GameState} from '../../shared/src/engine';
@@ -7,7 +8,7 @@ import {validateMemoryEvent,type MemoryEvent,type MemorySnapshot} from '../../sh
 import type {ViewerMemoryView} from '../../shared/src/viewer-memory';
 export const HOSTED_MEMORY_LABEL='Remember my viewers (stores Twitch IDs, names and vote counts for 90 days; viewers can type !forgetme)';
 /** Explicitly opted-in live observer. No storage, raw text retention, or reducer inputs. */
-export function createHostedMemory(options:{auth:Pick<BrowserAuth,'authenticated'|'account'|'backendRequest'>;getState:()=>GameState|null;fetch?:typeof fetch;sessionId?:string;onChange?:()=>void;onStatus?:(message:string)=>void;setInterval?:typeof globalThis.setInterval;clearInterval?:typeof globalThis.clearInterval}){
+export function createHostedMemory(options:{auth:Pick<BrowserAuth,'authenticated'|'account'|'backendRequest'>;getState:()=>GameState|null;fetch?:typeof fetch;getHealth?:HealthReader;sessionId?:string;onChange?:()=>void;onStatus?:(message:string)=>void;setInterval?:typeof globalThis.setInterval;clearInterval?:typeof globalThis.clearInterval}){
  const request=options.fetch??globalThis.fetch.bind(globalThis),schedule=options.setInterval??globalThis.setInterval,cancel=options.clearInterval??globalThis.clearInterval;
  const sessionId=options.sessionId??crypto.randomUUID();
  let available=false,enabled=false,disposed=false,generation=0,revision=0,epoch=0,seed:number|undefined,roundCursor=0,damageCursor=0,observed:GameState|null=null,finalized=false,combat=false;
@@ -51,7 +52,7 @@ export function createHostedMemory(options:{auth:Pick<BrowserAuth,'authenticated
  async function finalize(){if(!active()||finalized||!combat)return;finalized=true;enqueue({kind:'finalize',sessionId,mvpId:mvp()?.user??null});await flush();}
  return {
   get available(){return available;},get capable(){return available&&options.auth.authenticated&&!!options.auth.account?.id;},get enabled(){return active();},
-  async initialize(){try{const response=await request('/api/health',{cache:'no-store'});available=response.ok&&(await response.json()).memory===true;}catch{available=false;}if(disposed)return;if(!available)report('Viewer memory is disabled on this host.');},
+  async initialize(){try{available=(await (options.getHealth??createHostedHealth(request).get)()).memory;}catch{available=false;}if(disposed)return;if(!available)report('Viewer memory is disabled on this host.');},
   setEnabled,observeGame,snapshot,flush,finalize,
   onChat(message:HostedChatMessage){if(!active())return;const userId=message.userId;if(message.text.trim().split(/\s+/,1)[0]?.toLowerCase()==='!forgetme'){optOut.add(userId);names.delete(userId);credit.delete(userId);view=null;enqueue({kind:'forget',sessionId,userId});options.onChange?.();return;}if(optOut.has(userId))return;const event:MemoryEvent={kind:'chat-seen',sessionId,userId,displayName:message.displayName};if(!validateMemoryEvent(event))return;names.set(userId,message.displayName);while(names.size>5000)names.delete(names.keys().next().value!);enqueue(event);},
   acceptedVote(vote:ChatVote,displayName:string){if(!active()||vote.simulated||optOut.has(vote.user))return;const state=options.getState();if(!state||state.paused||state.round.over||state.votes[vote.user]!==vote.move)return;const beatId=`${epoch}:${state.round.number}:${state.clock.beat}`;const event:MemoryEvent={kind:'vote',sessionId,beatId,userId:vote.user,displayName,move:vote.move};if(!validateMemoryEvent(event))return;let voters=accepted.get(beatId);if(!voters){voters=new Set();accepted.set(beatId,voters);}voters.add(vote.user);while(accepted.size>32)accepted.delete(accepted.keys().next().value!);enqueue(event);},

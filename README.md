@@ -200,3 +200,5 @@ What the live tests and reviews caught, each fixed in the thread:
 ## Licence
 
 MIT for the code: see [LICENSE](LICENSE). Fonts, sounds, art and voice lines keep their own licences, listed per file in [CREDITS.md](CREDITS.md).
+
+Runtime asset delivery uses 96 kbps MP3 effects/announcer cues (loaded after an enabled sound interaction) and a compressed WebP Chat Golem sheet. Original WAV/PNG masters and provenance remain in the repository; see [sound notes](assets/SOUNDS.md), [voice notes](assets/voice/README.md) and [boss art](assets/boss/README.md).

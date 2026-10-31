@@ -61,3 +61,9 @@ Peaks above 0 dBFS on the Kenney impacts are decoder inter-sample overs, not aud
 | bed_oga_8-bit-battle-loop | 26.65 | −1.0 | −16.5 | 18 | 0 (loop edge 0.000) |
 | bed_oga_rpg-battle-loop | 59.12 | +2.8 | −11.3 | 31 | 6,687 |
 | bed_oga_head-in-the-sand | 38.40 | −9.0 | −24.7 | 0 | 0 (loop edge 2.03× RMS) |
+
+## Browser delivery (Queue 13q)
+
+The runtime's 26 SFX/music/announcer URLs use same-stem MP3 derivatives encoded from the retained ready WAV masters with `ffmpeg -i <master.wav> -map_metadata -1 -codec:a libmp3lame -b:a 96k <cue.mp3>`. Original levels, trims and provenance remain unchanged. Chrome and Safari support MP3; the demo ships no WAV/OGG runtime audio and never inlines audio. Audio fetch/decode starts on enabled sound interaction/START/rehearsal, not HUD mount. The 26 referenced WAV masters total 4,756,550 bytes; their MP3 derivatives total 667,254 bytes. These are file sizes, not a measured first-load network trace.
+
+Standalone `/overlay` additionally attempts audio activation during browser idle for OBS autoplay; demo and `/play` wait for interaction. Browser autoplay policy may still require activation.

@@ -1,3 +1,4 @@
+import {createHostedHealth} from './hosted-health';
 import {hostedOnboardingMarkup,updateHostedOnboarding,setHostedExtraNotice,updateHostedConnectionPill} from './hosted-onboarding';
 import {createHostedMemory} from './hosted-memory';
 import type {GameSummary} from '../../shared/src/highlights';
@@ -12,20 +13,21 @@ import {createBrowserChat} from './twitch/eventsub';
 import {PlayMetrics} from './metrics';
 import type {ChatVote,StreamerInput} from '@svc/shared';
 export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryChange?:()=>void;onConnected?:()=>void;onStatus?:(message:string)=>void;onGreen?:(checked:boolean)=>void;onVote:(vote:EngineVote)=>boolean;onRaid?:(event:Extract<EngineEvent,{kind:'raid'}>)=>void;onControl:(event:StreamerInput)=>void;onViewers:(count:number)=>void;onDisconnect:()=>void;onSummary:()=>void;onHighlightsChange?:()=>void;betweenRounds:()=>boolean;onForgeAccepted:(boss:BossDef|null)=>void;onForgeSnapshot:(view:ForgeSnapshot|null)=>void;parseVote?:(text:string,user:string,at:number)=>ChatVote|null}){
- const auth=getBrowserAuth(),metrics=new PlayMetrics();
+ const auth=getBrowserAuth(),metrics=new PlayMetrics(),health=createHostedHealth();
  let connected=false,connectionNotice='',disposed=false;
- const panel=document.createElement('section');panel.className='hosted-panel';
- panel.innerHTML=hostedOnboardingMarkup();
- const slot=document.getElementById('hosted-onboarding-slot');if(slot)slot.append(panel);else document.querySelector('main')!.prepend(panel);
+ const slot=document.getElementById('hosted-onboarding-slot');
+ const panel=slot?.querySelector<HTMLElement>('.hosted-panel')??document.createElement('section');panel.className='hosted-panel';
+ if(!panel.childElementCount)panel.innerHTML=hostedOnboardingMarkup();
+ if(!panel.isConnected){if(slot)slot.append(panel);else document.querySelector('main')!.prepend(panel);}
  const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
  const connect=el<HTMLButtonElement>('twitch-connect');
  const report=(message:string)=>{connectionNotice=/^(For Twitch login|This build|Reconnect)/.test(message)?message:'';options.onStatus?.(message);refresh();};
  const botToggle=el<HTMLInputElement>('bot-results-toggle');
- const bot=createHostedResults({auth,onStatus:message=>{setHostedExtraNotice(panel,'bot-results',message.startsWith('Reconnect to enable')?'':message);if(!message.startsWith('Reconnect to enable'))options.onStatus?.(message);refresh();}});
- const clips=createHostedClips({auth,onStatus:message=>{setHostedExtraNotice(panel,'hosted-clips',message.startsWith('Reconnect to enable')?'':message);if(!message.startsWith('Reconnect to enable'))options.onStatus?.(message);},onChange:options.onHighlightsChange,onConfirmed:id=>bot.postClip(id)});
- const forge=createHostedForge({auth,betweenRounds:options.betweenRounds,onAccepted:options.onForgeAccepted,onSnapshot:options.onForgeSnapshot,onStatus:message=>{setHostedExtraNotice(panel,'hosted-forge',auth.authenticated?message:'');if(auth.authenticated)options.onStatus?.(message);refresh();}});
+ const bot=createHostedResults({auth,getHealth:health.get,onStatus:message=>{setHostedExtraNotice(panel,'bot-results',message.startsWith('Reconnect to enable')?'':message);if(!message.startsWith('Reconnect to enable'))options.onStatus?.(message);refresh();}});
+ const clips=createHostedClips({auth,getHealth:health.get,onStatus:message=>{setHostedExtraNotice(panel,'hosted-clips',message.startsWith('Reconnect to enable')?'':message);if(!message.startsWith('Reconnect to enable'))options.onStatus?.(message);},onChange:options.onHighlightsChange,onConfirmed:id=>bot.postClip(id)});
+ const forge=createHostedForge({auth,getHealth:health.get,betweenRounds:options.betweenRounds,onAccepted:options.onForgeAccepted,onSnapshot:options.onForgeSnapshot,onStatus:message=>{setHostedExtraNotice(panel,'hosted-forge',auth.authenticated?message:'');if(auth.authenticated)options.onStatus?.(message);refresh();}});
  const memoryToggle=el<HTMLInputElement>('hosted-memory-toggle');
- const memory=createHostedMemory({auth,getState:options.getState,onChange:options.onMemoryChange,onStatus:message=>{setHostedExtraNotice(panel,'hosted-memory',message);}});
+ const memory=createHostedMemory({auth,getHealth:health.get,getState:options.getState,onChange:options.onMemoryChange,onStatus:message=>{setHostedExtraNotice(panel,'hosted-memory',message);}});
  const syncMemory=async()=>{await memory.initialize();refresh();};
  memoryToggle.addEventListener('change',()=>{memoryToggle.checked=memory.setEnabled(memoryToggle.checked);refresh();});
  let latestChat:{userId:string;displayName:string}|null=null;
@@ -42,7 +44,7 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryCha
   if(!auth.authenticated){connect.hidden=false;connect.textContent='Reconnect';}
  }});
  async function start(){
-  try{await chat.start();if(disposed||!auth.authenticated)return;void syncBot();void clips.initialize().then(refresh);void forge.initialize().then(refresh);void syncMemory();el('twitch-disconnect').hidden=!auth.hasToken;connect.hidden=auth.authenticated;refresh();if(!auth.authenticated)connect.textContent='Reconnect';}
+  try{await chat.start();if(disposed||!auth.authenticated)return;await health.refresh();if(disposed)return;void syncBot();void clips.initialize().then(refresh);void forge.initialize().then(refresh);void syncMemory();el('twitch-disconnect').hidden=!auth.hasToken;connect.hidden=auth.authenticated;refresh();if(!auth.authenticated)connect.textContent='Reconnect';}
   catch{connected=false;connect.hidden=false;connect.textContent='Reconnect';report('Reconnect to Twitch to read live chat.');options.onDisconnect();refresh();}
  }
  const login=()=>{if(!['https://streamervschat.kashifnazir.com','http://localhost:5173'].includes(location.origin)){report('For Twitch login open https://streamervschat.kashifnazir.com/play or http://localhost:5173/play (the registered redirect origins).');return;}try{location.assign(auth.loginUrl());}catch{report('This build needs VITE_TWITCH_CLIENT_ID. Ask the channel owner to configure the public Twitch client ID and rebuild.');}};
@@ -54,6 +56,7 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;onMemoryCha
  el('copy-results').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(await show());report('Counts-only results copied.');}catch{report('Copy unavailable. Select the JSON results shown below.');}});
  refresh();
  const initialize=async()=>{
+  void health.get();
   if(!auth.authenticated)await auth.restore();
   if(disposed)return;
   refresh();

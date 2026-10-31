@@ -1,10 +1,11 @@
+import {createHostedHealth,type HealthReader} from './hosted-health';
 import type {BrowserAuth} from './twitch/auth';
 import type {GameState} from '../../shared/src/engine';
 import type {ResultRoundData} from '../../shared/src/result-text';
 import {chatCommand} from '../../shared/src/chat-commands';
 export const BOT_POST_HINT="Bot can't post: reconnect to grant channel:bot, or make streamervschatbot a mod";
 /** Hosted-only observer. Delivery is best effort and never controls the game or chat transport. */
-export function createHostedResults(options:{auth:Pick<BrowserAuth,'account'|'authenticated'|'backendRequest'>;fetch?:typeof fetch;onStatus:(message:string)=>void;setInterval?:typeof globalThis.setInterval;clearInterval?:typeof globalThis.clearInterval}){
+export function createHostedResults(options:{auth:Pick<BrowserAuth,'account'|'authenticated'|'backendRequest'>;fetch?:typeof fetch;getHealth?:HealthReader;onStatus:(message:string)=>void;setInterval?:typeof globalThis.setInterval;clearInterval?:typeof globalThis.clearInterval}){
  const request=options.fetch??globalThis.fetch.bind(globalThis),schedule=options.setInterval??globalThis.setInterval,cancel=options.clearInterval??globalThis.clearInterval;
  let available=false,enabled=false,disposed=false,polling=false,timer:ReturnType<typeof setInterval>|undefined;
  let observed:GameState|null=null;
@@ -23,7 +24,7 @@ export function createHostedResults(options:{auth:Pick<BrowserAuth,'account'|'au
  }
  return {
   get enabled(){return enabled;},get available(){return available;},get capable(){return capable();},
-  async initialize(){try{const response=await request('/api/health',{cache:'no-store'});const data=response.ok?await response.json():{};available=data.bot===true;}catch{available=false;}if(disposed)return;setEnabled(capable());if(available&&!capable())report('Reconnect to enable bot results (channel:bot).');else if(!available)report('Bot results are disabled on this host.');},
+  async initialize(){try{available=(await (options.getHealth??createHostedHealth(request).get)()).bot;}catch{available=false;}if(disposed)return;setEnabled(capable());if(available&&!capable())report('Reconnect to enable bot results (channel:bot).');else if(!available)report('Bot results are disabled on this host.');},
   setEnabled,status,
   postClip(clipId:string){if(enabled&&!disposed&&options.auth.authenticated)void send({kind:'clip',clipId});},
   observeGame(state:GameState,hypeFull=false){
