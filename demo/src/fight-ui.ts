@@ -1,6 +1,13 @@
 import type {GameState} from '../../shared/src/engine';
 import {safeClipHref} from '../../overlay/src/summary';
 import {summarizeGame} from '../../shared/src/highlights';
+/** Round ends name the round; the match end names the match and its round score, winner first. */
+export function resultTitle(state:GameState,ended:boolean,roundWinner:string|null|undefined){
+ const champion=state.match.winner;
+ if(champion){const wins=state.match.round_wins;return `${champion==='streamer'?'YOU':'CHAT'} WON THE MATCH ${wins[champion]}–${wins[champion==='streamer'?'boss':'streamer']}`;}
+ if(ended&&!state.round.over)return 'Fight ended';
+ return `${roundWinner==='streamer'?'You won':'Chat won'} Round ${state.round.number}`;
+}
 /** Presentation/input controls only; all combat changes use existing caller actions. */
 export function mountFightUi(doc:Document,options:{offline:boolean;resume:()=>void;restart:()=>void;quit:()=>void;end:()=>void;next:()=>void;now?:()=>number}){
  const stage=doc.getElementById('stage')!,now=options.now??(()=>performance.now());
@@ -20,7 +27,7 @@ export function mountFightUi(doc:Document,options:{offline:boolean;resume:()=>vo
   if(!options.offline&&extraKey!==JSON.stringify(extras)){extraKey=JSON.stringify(extras);const extra=results.querySelector('[data-result-extras]')!;extra.replaceChildren();if(extras.mvp){const mvp=doc.createElement('p');mvp.textContent=`Chat MVP: ${extras.mvp}`;extra.append(mvp);}for(const clip of extras.clips??[]){const href=safeClipHref(clip.url);if(href){const link=doc.createElement('a');link.href=href;link.textContent=clip.label;link.target='_blank';link.rel='noopener noreferrer';extra.append(link);}}}
   results.hidden=false;const id=`${state.match.seed}:${state.round.number}:${ended}`;if(key===id)return;key=id;
   const summary=summarizeGame(state,state.round.number);matchDone=!!state.match.winner||ended;
-  results.querySelector('[data-result-title]')!.textContent=ended&&!state.round.over?'Fight ended':`${summary.winner==='streamer'?'You won':'Chat won'} Round ${state.round.number}`;
+  results.querySelector('[data-result-title]')!.textContent=resultTitle(state,ended,summary.winner);
   const stats=results.querySelector('.plain-stats')!;stats.replaceChildren();
   for(const text of [`${summary.stats.defended} defences`,`${Math.round(summary.stats.damageDealt)} damage dealt`,`${Math.round(summary.stats.damageTaken)} damage taken`]){const item=doc.createElement('p');item.textContent=text;stats.append(item);}
   results.querySelector('[data-result-next]')!.textContent=matchDone?'NEW MATCH':'NEXT ROUND';results.querySelector('[data-result-countdown]')!.textContent='';due=matchDone?null:now()+5000;tick();

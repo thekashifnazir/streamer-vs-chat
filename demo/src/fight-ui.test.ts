@@ -50,3 +50,15 @@ it('keeps Tab focus inside the aria-modal pause dialog',()=>{
  doc.getElementById('stop-input')!.focus();expect(tab()).toBe(true);expect(doc.activeElement).toBe(resume);
  ui.setPaused(false);doc.getElementById('stop-input')!.focus();expect(tab()).toBe(false);
 });
+it('titles the match end with the match result and round score; round ends keep the round title',()=>{
+ const round=(number:number,winner:'streamer'|'boss')=>({number,winner,reason:'ko',at:100*number,streamer_hp:winner==='streamer'?90:0,boss_hp:winner==='boss'?70:0,boss_max_hp:135,duration_ms:100} as any);
+ const {doc,ui}=setup(),title=()=>doc.querySelector('[data-result-title]')!.textContent;
+ let game=createGame({seed:1});game.round={...game.round,number:2,over:true,winner:'streamer'};game.match={...game.match,round_wins:{streamer:1,boss:1},winner:null};game.log.rounds=[round(1,'boss'),round(2,'streamer')];
+ ui.render(game);expect(title()).toBe('You won Round 2');expect(doc.querySelector('[data-result-next]')!.textContent).toBe('NEXT ROUND');
+ game={...game,round:{...game.round,number:3},match:{...game.match,round_wins:{streamer:2,boss:1},winner:'streamer'},log:{...game.log,rounds:[...game.log.rounds,round(3,'streamer')]}};
+ ui.render(game);expect(title()).toBe('YOU WON THE MATCH 2–1');expect(doc.querySelector('[data-result-next]')!.textContent).toBe('NEW MATCH');
+ const lost={...game,match:{...game.match,seed:2,round_wins:{streamer:0,boss:2},winner:'boss' as const},round:{...game.round,number:2,winner:'boss' as const},log:{...game.log,rounds:[round(1,'boss'),round(2,'boss')]}};
+ ui.render(lost);expect(title()).toBe('CHAT WON THE MATCH 2–0');
+ // End fight mid-round stays "Fight ended".
+ const live=createGame({seed:3});ui.render(live,true);expect(title()).toBe('Fight ended');
+});
