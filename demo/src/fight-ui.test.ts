@@ -31,3 +31,7 @@ it('gives pause Resume a large primary target and secondary exits',()=>{
  const{doc,dom}=setup();const style=doc.createElement('style');style.textContent=readFileSync(new URL('./style.css',import.meta.url),'utf8');doc.head.append(style);const computed=dom.window.getComputedStyle;
  expect(computed(doc.querySelector('[data-pause=resume]')!).minHeight).toBe('56px');expect(doc.querySelector('[data-pause=resume]')!.classList.contains('primary')).toBe(true);for(const action of ['restart','quit'])expect(computed(doc.querySelector(`[data-pause=${action}]`)!).minHeight).toBe('44px');
 });
+it('stacks the pause dialog above the round results so Resume stays reachable between rounds',()=>{
+ const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');const z=(selector:string)=>Number(new RegExp(`${selector.replace(/[.#]/g,'\\$&')}\\{[^}]*z-index:(\\d+)`).exec(css)?.[1]);
+ expect(z('#pause-screen')).toBeGreaterThan(z('.fight-dialog'));
+});
