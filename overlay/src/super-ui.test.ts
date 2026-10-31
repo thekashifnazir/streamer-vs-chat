@@ -35,3 +35,12 @@ it('gives locked SUPER a full-width wrapping status line at the36px floor',()=>{
  expect(hud).toContain('· HYPE ${Math.round(current?.hype??0)}%');expect(hud).toContain('CHAT VOTES FILL HYPE<br>MORE VOTERS = FASTER');
  expect(css).toContain('font:400 36px/1 Anton');
 });
+it('keeps the SUPER READY / denied banners clear of the telegraph callout and move chip',()=>{
+ const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+ const rule=css.match(/\.super-ready-banner,\.super-denied-banner\{([^}]*)\}/)![1]!;
+ expect(rule).toContain('top:auto');const bottom=Number(rule.match(/bottom:(\d+)px/)![1]);
+ // Telegraph: top 142 px, 140 px callout at 1.1 line height, move chip and SUPER steps below: ends by ~520 px.
+ // Banner: 44 px text + 24 px padding + 8 px border. It must start below that and sit above the finisher window banner (bottom 28 px, ~76 px tall).
+ const top=1080-bottom-76;expect(top).toBeGreaterThan(520);expect(bottom).toBeGreaterThanOrEqual(28+76+8);
+ expect(css).not.toMatch(/\.super-denied-banner\{top:/);
+});
