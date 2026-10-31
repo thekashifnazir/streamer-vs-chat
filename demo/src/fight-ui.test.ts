@@ -31,6 +31,12 @@ it('gives pause Resume a large primary target and secondary exits',()=>{
  const{doc,dom}=setup();const style=doc.createElement('style');style.textContent=readFileSync(new URL('./style.css',import.meta.url),'utf8');doc.head.append(style);const computed=dom.window.getComputedStyle;
  expect(computed(doc.querySelector('[data-pause=resume]')!).minHeight).toBe('56px');expect(doc.querySelector('[data-pause=resume]')!.classList.contains('primary')).toBe(true);for(const action of ['restart','quit'])expect(computed(doc.querySelector(`[data-pause=${action}]`)!).minHeight).toBe('44px');
 });
+it('clears the previous round countdown when the match ends',()=>{
+ const {doc,ui,time}=setup();const round=(number:number)=>({number,winner:'streamer',reason:'ko',at:100,streamer_hp:90,boss_hp:0,boss_max_hp:135,duration_ms:100} as any);
+ let game=createGame();game.round.over=true;game.log.rounds=[round(1)];ui.render(game);time(5000);ui.tick();expect(doc.querySelector('[data-result-countdown]')!.textContent).toBe('Next round in 0 s');
+ game=structuredClone(game);game.round.number=2;game.match.winner='streamer';game.log.rounds=[round(1),round(2)];ui.render(game);
+ expect(doc.querySelector('[data-result-next]')!.textContent).toBe('NEW MATCH');expect(doc.querySelector('[data-result-countdown]')!.textContent).toBe('');
+});
 it('stacks the pause dialog above the round results so Resume stays reachable between rounds',()=>{
  const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');const z=(selector:string)=>Number(new RegExp(`${selector.replace(/[.#]/g,'\\$&')}\\{[^}]*z-index:(\\d+)`).exec(css)?.[1]);
  expect(z('#pause-screen')).toBeGreaterThan(z('.fight-dialog'));

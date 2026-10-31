@@ -21,7 +21,7 @@ export function mountFightUi(doc:Document,options:{offline:boolean;resume:()=>vo
   results.querySelector('[data-result-title]')!.textContent=ended&&!state.round.over?'Fight ended':`${summary.winner==='streamer'?'You won':'Chat won'} Round ${state.round.number}`;
   const stats=results.querySelector('.plain-stats')!;stats.replaceChildren();
   for(const text of [`${summary.stats.defended} defences`,`${Math.round(summary.stats.damageDealt)} damage dealt`,`${Math.round(summary.stats.damageTaken)} damage taken`]){const item=doc.createElement('p');item.textContent=text;stats.append(item);}
-  results.querySelector('[data-result-next]')!.textContent=matchDone?'NEW MATCH':'NEXT ROUND';due=matchDone?null:now()+5000;tick();
+  results.querySelector('[data-result-next]')!.textContent=matchDone?'NEW MATCH':'NEXT ROUND';results.querySelector('[data-result-countdown]')!.textContent='';due=matchDone?null:now()+5000;tick();
  }
  function tick(){if(due===null||paused)return;const remaining=Math.max(0,Math.ceil((due-now())/1000));results.querySelector('[data-result-countdown]')!.textContent=`Next round in ${remaining} s`;if(!remaining){due=null;options.next();}}
  const pads=doc.createElement('section');pads.className='tap-pads';pads.setAttribute('aria-label','Touch keyboard controls');pads.innerHTML='<p>Best on a laptop with a webcam.</p><div>'+[['K','Guard'],['A','Lean left'],['D','Lean right'],['J','Punch']].map(([key,label])=>`<button type="button" data-tap="${key}"><kbd>${key}</kbd> ${label}</button>`).join('')+'</div>';doc.querySelector('.demo-controls')!.after(pads);
