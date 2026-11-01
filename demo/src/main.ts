@@ -287,7 +287,7 @@ const avatarPose=createKeyboardAvatar(avatar,{punchEnabled:()=>!noPunch.checked}
 const keyboard=createKeyboard({emit:input,label:avatarPose.label});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
-const setup=mountFightSetup(document,{keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,workout:()=>trainer.selected,onStart:()=>{void hud.activateSound();if(game||trainer.selected){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
+const setup=mountFightSetup(document,{onSkipPunches:()=>applyCalibration(calibration.skipPunches()),keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,workout:()=>trainer.selected,onStart:()=>{void hud.activateSound();if(game||trainer.selected){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
 fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{trainer.exit();updateModes();if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(trainer.active){trainer.exit();updateModes();}if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
 // Offline demo: the real voice coach (Boss Fight only), no request until the click; see coach-button.ts.
 const demoCoach=liveMode?null:mountDemoCornerCoach(document,{getState:()=>trainer.selected||trainer.active||coldOpenAt!==null?null:game,onActive:active=>fightUi?.hold(active)});
@@ -295,19 +295,22 @@ const demoCoach=liveMode?null:mountDemoCornerCoach(document,{getState:()=>traine
 if(!liveMode)mountLandingHistory(window,{away:()=>document.body.classList.contains('fight-started')||document.body.classList.contains('webcam-open'),midFight:()=>!showSessionSummary&&(trainer.running||(tutorialStarted&&!game)||(!!game&&!game.round.over&&!game.match.winner)),paused:()=>!!fightUi?.paused,pause:()=>{setup.cancel();keyboard.release();pauseWith('you pressed Back · Back again goes to the homepage');},home:()=>{setup.cancel();if(document.body.classList.contains('webcam-open'))setup.close(false);if(document.body.classList.contains('fight-started'))document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click();el('onboarding-row').scrollIntoView?.({block:'start'});}});
 /** Leave a rehearsal take for the landing page, keeping its result line on screen. */
 function leaveColdOpen(){clearColdOpen();game=null;crowd=null;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('cold-open-status').scrollIntoView?.({block:'center'});}
-const calibration=createCalibration({onChange(snapshot){
+// Setup ends with the optional punch step; its throws wait for the clear-space tick.
+const calibration=createCalibration({punches:true,punchesAllowed:safetyCleared,onChange(snapshot){
   el('calibration-status').textContent=snapshot.message;
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
   setup.calibration(snapshot);
 }});
-function restoreCalibration(){const mode=posture.value==='seated'?'seated':'standing',saved=profiles.load(mode);if(saved&&calibration.restore(saved,mode)){classifier.setCalibration(saved);setup.restored(true);}}
+function restoreCalibration(){const mode=posture.value==='seated'?'seated':'standing',saved=profiles.load(mode);if(saved&&calibration.restore(saved,mode)){classifier.setCalibration(saved);trainerMoves.setPunchThresholds(saved.punchThresholds);setup.restored(true);}}
+/** A finished calibration (all steps, or punches skipped) drives both detectors; punch thresholds are per player when measured. */
+function applyCalibration(calibrated:ReturnType<typeof calibration.update>){if(!calibrated.ready||calibrated.guardThreshold===null)return;classifier.setCalibration({guardThreshold:calibrated.guardThreshold,leanThresholds:calibrated.leanThresholds??undefined,guardReleaseBand:calibrated.guardReleaseBand??undefined,guardMedians:calibrated.guardMedians??undefined,neutralSwayP95:calibrated.neutralSwayP95??undefined,punchThresholds:calibrated.punchThresholds});trainerMoves.setPunchThresholds(calibrated.punchThresholds);}
 setup.calibration(calibration.snapshot);
 restoreCalibration();
 const camera=new PoseCamera(video,sample=>{
   lastFrameAt=performance.now();
   const before=calibration.snapshot;
   const calibrated=calibration.update(sample.landmarks,sample.at);
-  if(calibrated.ready&&!before.ready&&calibrated.guardThreshold!==null)classifier.setCalibration({guardThreshold:calibrated.guardThreshold,leanThresholds:calibrated.leanThresholds??undefined,guardReleaseBand:calibrated.guardReleaseBand??undefined,guardMedians:calibrated.guardMedians??undefined,neutralSwayP95:calibrated.neutralSwayP95??undefined});
+  if(calibrated.ready&&!before.ready)applyCalibration(calibrated);
   const result=classifier.update(sample.landmarks,sample.at);
   const framed=[0,11,12,15,16].every(index=>{const p=sample.landmarks[index];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});
   const seatedTooClose=posture.value==='seated'&&result.metrics&&result.metrics.shoulderWidth>.20;
@@ -330,7 +333,7 @@ const camera=new PoseCamera(video,sample=>{
 },{wasmLoaderPath:'/assets/pose/vision_wasm_internal.js',wasmBinaryPath:'/assets/pose/vision_wasm_internal.wasm',modelAssetPath:'/assets/pose/pose_landmarker_lite.task'});
 
 el('start-camera').addEventListener('click',async()=>{
-  if(!safetyCleared()){setup.sync();el('camera-start-reason').scrollIntoView?.({block:'nearest'});return;}
+  // The camera and calibration need no tick; the fight start and the punch step do (setup-ui, calibration punchesAllowed).
   el('camera-feedback').hidden=true;
   el<HTMLButtonElement>('start-camera').disabled=true;
   el('camera-status').textContent='Opening camera and loading the local lite model…';
@@ -349,7 +352,7 @@ el('stop-camera').addEventListener('click',()=>{
   source.value='keyboard';keyboard.setEnabled(true);setup.sync();setup.commands(game?game.bossDef:pendingBoss);updateControlGuide();el('camera-status').textContent='Camera off. Keyboard selected.';
 });
 el('start-calibration').addEventListener('click',()=>{
-  if(!cameraRunning||!safetyCleared())return;
+  if(!cameraRunning)return;
   setup.restored(false);classifier.reset();calibration.start(posture.value==='seated'?'seated':'standing',performance.now());
 });
 posture.addEventListener('change',()=>{setup.restored(false);poseFramed=false;calibration.reset();classifier.reset();lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};if(game&&source.value==='pose')input(lastPose);restoreCalibration();updateModes();posture.blur();});

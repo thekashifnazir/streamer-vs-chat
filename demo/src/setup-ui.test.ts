@@ -37,11 +37,16 @@ it('calibrated webcam start counts down while unframed, waits for framing and ke
 });
 it('checklist and progress display calibration stages and exact help messages',()=>{
  const {ui,byId,doc}=mount(),snapshot=createCalibration().snapshot;ui.camera(true);const points=Array.from({length:33},()=>({x:.5,y:.5,visibility:1})) as Landmark[];ui.frame(points,true);
- ui.calibration({...snapshot,stage:'resting',progress:.6,message:'Rest hands at your waist.'});expect(byId('webcam-step-label').textContent).toBe('STEP 1 OF 3');expect(byId<HTMLProgressElement>('calibration-progress').value).toBe(.6);expect(byId('calibration-status').hidden).toBe(true);expect(byId('webcam-instruction').textContent).toBe('Hands at your waist · hold still 3 s');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('1. Get in frame');expect(doc.querySelectorAll('.webcam-step')).toHaveLength(3);expect(doc.querySelectorAll('.webcam-step.done')).toHaveLength(0);expect(doc.querySelector('.webcam-step.active')?.getAttribute('data-calibration-group')).toBe('0');
- // The same 3 groups as /play; the 5 calibration stages stay as highlighted sub-steps.
+ ui.calibration({...snapshot,stage:'resting',progress:.6,message:'Rest hands at your waist.'});expect(byId('webcam-step-label').textContent).toBe('STEP 1 OF 5');expect(byId<HTMLProgressElement>('calibration-progress').value).toBe(.6);expect(byId('calibration-status').hidden).toBe(true);expect(byId('webcam-instruction').textContent).toBe('Hands at your waist · hold still 3 s');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('1. Get in frame');expect(doc.querySelectorAll('.webcam-step')).toHaveLength(5);expect(doc.querySelectorAll('.webcam-step.done')).toHaveLength(0);expect(doc.querySelector('.webcam-step.active')?.getAttribute('data-calibration-group')).toBe('0');
+ // The same 5 steps as /play; frame and the two still poses stay as highlighted sub-steps of step 1.
  expect(doc.querySelector('[data-calibration-step].active')!.textContent).toBe('hands at your waist, hold still 3 s');expect(doc.querySelectorAll('[data-calibration-step].done')).toHaveLength(2);
- ui.calibration({...snapshot,stage:'guard',progress:.2});expect(byId('webcam-step-label').textContent).toBe('STEP 2 OF 3');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('2. Guard up');
- ui.calibration({...snapshot,stage:'ready',ready:true,progress:1});expect(byId('webcam-step-label').textContent).toBe('SETUP COMPLETE');expect(doc.querySelectorAll('.webcam-step.done')).toHaveLength(3);
+ ui.calibration({...snapshot,stage:'guard',progress:.2});expect(byId('webcam-step-label').textContent).toBe('STEP 2 OF 5');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('2. Guard up');
+ // Kash, 1 Nov: lean left and lean right tick off on their own, then the optional punch step with its Skip link.
+ ui.calibration({...snapshot,stage:'lean-left',progress:.5});expect(byId('webcam-step-label').textContent).toBe('STEP 3 OF 5');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('3. Lean left');expect(byId('webcam-instruction').textContent).toBe('Lean left · hold 1.5 s');expect(byId('skip-punches').hidden).toBe(true);
+ ui.calibration({...snapshot,stage:'lean-right',progress:.5});expect(byId('webcam-step-label').textContent).toBe('STEP 4 OF 5');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('4. Lean right');expect(doc.querySelectorAll('.webcam-step.done')).toHaveLength(3);
+ ui.calibration({...snapshot,stage:'punches',progress:.5,punchesThrown:{L:true,R:false}});expect(byId('webcam-step-label').textContent).toBe('STEP 5 OF 5');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('5. Throw a punch with each hand');expect(byId('skip-punches').hidden).toBe(false);
+ expect(byId('webcam-instruction').textContent).toBe('Tick “My space is clear”, then throw a punch with each hand');byId<HTMLInputElement>('clear-space').checked=true;byId('clear-space').dispatchEvent(new Event('change'));expect(byId('webcam-instruction').textContent).toBe('Left punch ✓ · now your right');
+ ui.calibration({...snapshot,stage:'ready',ready:true,progress:1});expect(byId('webcam-step-label').textContent).toBe('SETUP COMPLETE');expect(doc.querySelectorAll('.webcam-step.done')).toHaveLength(5);expect(byId('skip-punches').hidden).toBe(true);
  expect(byId('calibration-saved').hidden).toBe(true);ui.restored(true);expect(byId('calibration-saved').hidden).toBe(false);
 });
 it('three defence cards match reducer mappings and custom bosses keep their own chips',()=>{
@@ -75,4 +80,12 @@ it.each(['index.html','play/index.html'])('%s: Crowd Trainer says WORKOUT on the
  change('input-source','pose');ui.camera(true);ui.calibration({...createCalibration().snapshot,ready:true,stage:'ready'});
  expect(byId('open-webcam').textContent).toBe('START WEBCAM WORKOUT');expect(byId('play-webcam').textContent).toBe('START WEBCAM WORKOUT');expect(byId('webcam-instruction').textContent).toBe('Ready to train');
  trainer=false;ui.sync();expect(byId('open-webcam').textContent).toBe('START WEBCAM FIGHT');expect(byId('play-webcam').textContent).toBe('START WEBCAM FIGHT');
+});
+it('the camera turns on without the clear-space tick; START waits for it, says so and lights the card (Kash, 1 Nov)',()=>{
+ const {ui,byId,change,onWebcamStart}=mount();change('input-source','pose');const start=byId<HTMLButtonElement>('play-webcam');
+ expect(byId<HTMLButtonElement>('start-camera').disabled).toBe(false);expect(byId('camera-start-reason').hidden).toBe(true);
+ ui.camera(true);ui.calibration({...createCalibration().snapshot,ready:true,stage:'ready'});
+ expect(start.disabled).toBe(true);expect(start.textContent).toBe('Tick “My space is clear” to start');expect(byId('safety-card').classList.contains('needs-tick')).toBe(true);
+ start.click();byId('open-webcam').click();ui.tick(1e9);expect(onWebcamStart).not.toHaveBeenCalled();expect(byId('webcam-countdown').hidden).toBe(true);
+ change('clear-space',true);expect(start.disabled).toBe(false);expect(byId('safety-card').classList.contains('needs-tick')).toBe(false);
 });

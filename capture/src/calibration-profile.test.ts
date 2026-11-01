@@ -3,7 +3,7 @@ import {expect,it} from 'vitest';
 import {createCalibration,type CalibrationSnapshot} from './calibration';
 import {createCalibrationProfiles,validateCalibrationSettings} from './calibration-profile';
 import {PoseClassifier,type Landmark} from './classifier';
-function ready(mode:'standing'|'seated'='standing'):CalibrationSnapshot{return {stage:'ready',ready:true,mode,message:'Ready',progress:1,guardThreshold:-1.2+.7*1.8,guardMedians:{neutral:-2.5,resting:-1.2,guard:.6},guardReleaseBand:.775,neutralSwayP95:.02,leanFloor:.3,leanPeaks:{L:.57,R:.88},leanThresholds:{L:.3,R:.48*.88}};}
+function ready(mode:'standing'|'seated'='standing'):CalibrationSnapshot{return {stage:'ready',ready:true,mode,message:'Ready',progress:1,guardThreshold:-1.2+.7*1.8,guardMedians:{neutral:-2.5,resting:-1.2,guard:.6},guardReleaseBand:.775,neutralSwayP95:.02,leanFloor:.3,leanPeaks:{L:.57,R:.88},leanThresholds:{L:.3,R:.48*.88},punchReach:null,punchThresholds:null,punchesThrown:{L:false,R:false}};}
 function setup(){const data=new Map<string,string>();const storage={getItem:(key:string)=>data.get(key)??null,setItem:(key:string,value:string)=>{data.set(key,value);},removeItem:(key:string)=>{data.delete(key);}};return{data,profiles:createCalibrationProfiles(()=>storage)};}
 it('persists only explicitly saved validated calibration numbers, separately for each posture',()=>{
  const {profiles,data}=setup();expect(profiles.load('standing')).toBeNull();expect(profiles.save({...ready(),message:'private message',landmarks:['private-image']} as CalibrationSnapshot)).toBe(true);
@@ -41,4 +41,12 @@ it('a profile saved under the older 60% lean fraction loads with thresholds re-d
  expect(validateCalibrationSettings(loaded,'standing')).not.toBeNull();
  // Peaks still bound the derivation: a corrupt peak is rejected rather than re-derived.
  data.set(key,JSON.stringify({...saved,settings:{...saved.settings,leanPeaks:{L:.1,R:1.37}}}));expect(profiles.load('standing')).toBeNull();
+});
+it('remembers the measured punch reach and re-derives per-side punch thresholds; older profiles keep the default',()=>{
+ const {profiles,data}=setup();expect(profiles.save({...ready(),punchReach:{L:1.6,R:2.4},punchThresholds:{L:.8,R:.9}})).toBe(true);
+ expect(profiles.load('standing')).toMatchObject({punchReach:{L:1.6,R:2.4},punchThresholds:{L:expect.closeTo(.8),R:.9}});
+ const key='svc.calibration.v1.standing',saved=JSON.parse(data.get(key)!);
+ data.set(key,JSON.stringify({...saved,settings:{...saved.settings,punchReach:{L:-1,R:2}}}));expect(profiles.load('standing')).toBeNull();
+ const {punchReach:_,punchThresholds:__,...older}=saved.settings;data.set(key,JSON.stringify({...saved,settings:older}));
+ expect(profiles.load('standing')).toMatchObject({punchReach:null,punchThresholds:null});
 });

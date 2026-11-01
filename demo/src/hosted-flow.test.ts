@@ -19,7 +19,7 @@ it('keyboard starts without the webcam safety checkbox; webcam retains it and al
  const dom=new JSDOM(readFileSync(new URL('../play/index.html',import.meta.url),'utf8'),{url:'https://game.example/play'}),doc=dom.window.document;vi.stubGlobal('Event',dom.window.Event);
  const onStart=vi.fn(),onWebcamStart=vi.fn();mountFightSetup(doc,{onStart,onWebcamStart,keyboardRequiresClearSpace:false,simplifiedCalibration:true});mountHostedFlow(doc);
  doc.querySelector<HTMLButtonElement>('[data-defend=keyboard]')!.click();expect(onStart).toHaveBeenCalledOnce();expect((doc.getElementById('clear-space') as HTMLInputElement).checked).toBe(false);
- doc.querySelector<HTMLButtonElement>('[data-defend=pose]')!.click();expect(doc.getElementById('webcam-settings')!.hidden).toBe(false);expect((doc.getElementById('play-webcam') as HTMLButtonElement).disabled).toBe(true);expect(doc.querySelectorAll('[data-calibration-group]')).toHaveLength(3);expect(doc.querySelectorAll('[data-calibration-step]')).toHaveLength(5);dom.window.close();vi.unstubAllGlobals();
+ doc.querySelector<HTMLButtonElement>('[data-defend=pose]')!.click();expect(doc.getElementById('webcam-settings')!.hidden).toBe(false);expect((doc.getElementById('play-webcam') as HTMLButtonElement).disabled).toBe(true);expect(doc.querySelectorAll('[data-calibration-group]')).toHaveLength(5);expect(doc.querySelectorAll('[data-calibration-step]')).toHaveLength(7);dom.window.close();vi.unstubAllGlobals();
 });
 it('step 3 reads mode, defence, then a visible extras row; PLAIN becomes Steady bars in More options and mirrors the HUD switch',()=>{
  const dom=new JSDOM(readFileSync(new URL('../play/index.html',import.meta.url),'utf8'),{url:'https://game.example/play'}),doc=dom.window.document;

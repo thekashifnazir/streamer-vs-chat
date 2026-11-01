@@ -17,7 +17,8 @@ it.each(['index.html','play/index.html'])('%s keeps camera safety and error feed
  const dom=new JSDOM(readFileSync(new URL(`../${page}`,import.meta.url),'utf8'));
  try{
  const doc=dom.window.document,ui=mountFightSetup(doc,{onStart:()=>{},onWebcamStart:()=>{}}),button=doc.getElementById('start-camera') as HTMLButtonElement;
- ui.open();expect(button.disabled).toBe(true);const reason=doc.getElementById('camera-start-reason')!;expect(reason.hidden).toBe(false);expect(reason.parentElement).toBe(button.parentElement);expect(doc.getElementById('close-webcam')).not.toBeNull();
+ // Kash, 1 Nov: the camera works straight away; only START waits for the clear-space tick (setup-ui.test).
+ ui.open();expect(button.disabled).toBe(false);const reason=doc.getElementById('camera-start-reason')!;expect(reason.hidden).toBe(true);expect(reason.parentElement).toBe(button.parentElement);expect(doc.getElementById('close-webcam')).not.toBeNull();
  const space=doc.getElementById('clear-space') as HTMLInputElement;space.checked=true;space.dispatchEvent(new dom.window.Event('change'));expect(button.disabled).toBe(false);expect(reason.hidden).toBe(true);expect(doc.querySelectorAll('#clear-space')).toHaveLength(1);
  expect(doc.body.textContent).toContain('Works best in Chrome.');
  const feedback=doc.getElementById('camera-feedback')!,scroll=vi.fn();feedback.scrollIntoView=scroll;showCameraError(doc,{name:'NotAllowedError',message:'raw exception'});expect(feedback.hidden).toBe(false);expect(feedback.textContent).toBe(cameraErrorMessage({name:'NotAllowedError'}));expect(feedback.parentElement).toBe(button.parentElement);expect(doc.getElementById('camera-status')!.textContent).toBe(feedback.textContent);expect(scroll).toHaveBeenCalledOnce();
@@ -40,4 +41,12 @@ it('points the camera prompt at the clear-space box on the webcam setup page its
  // The landing moves the safety box into the webcam setup view, next to the camera prompt.
  const doc=new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8')).window.document;mountDemoLanding(doc);
  expect(doc.getElementById('camera-start-reason')!.closest('.webcam-layout')!.contains(doc.getElementById('clear-space'))).toBe(true);
+});
+it('Skip punches stays clickable inside the pointer-transparent camera caption (1 Nov)',()=>{
+ const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+ for(const page of ['index.html','play/index.html']){
+  const dom=new JSDOM(readFileSync(new URL(`../${page}`,import.meta.url),'utf8'));
+  try{const doc=dom.window.document,style=doc.createElement('style');style.textContent=css;doc.head.append(style);mountFightSetup(doc,{onStart:()=>{},onWebcamStart:()=>{}});
+   const skip=doc.getElementById('skip-punches')!;expect(skip.closest('.webcam-instructions')).not.toBeNull();skip.hidden=false;expect(dom.window.getComputedStyle(skip).pointerEvents).toBe('auto');}finally{dom.window.close();}
+ }
 });

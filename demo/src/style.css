@@ -590,3 +590,10 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  .round-results .corner-coach{padding:6px 10px}.corner-coach:before{width:32px;height:32px;background-size:20px}.fight-dialog .corner-coach button{font-size:20px}.corner-coach small{font-size:12px}
 }
 /* ── end results ── */
+/* ── calib (1 Nov playtest): 5 webcam steps, Skip punches (its caption box ignores pointer events, the link must not), clear-space card lights up when it is the last thing before START ── */
+#webcam-settings #skip-punches{display:block;pointer-events:auto;position:relative;z-index:3;background:transparent;border-color:transparent;padding:6px 0;min-height:44px;color:var(--cyan);text-decoration:underline;font-size:15px}
+#webcam-settings #skip-punches[hidden]{display:none}
+#safety-card.needs-tick{outline:3px solid var(--yellow);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){#safety-card.needs-tick{animation:svc-needs-tick 1.2s ease-in-out 2}}
+@keyframes svc-needs-tick{50%{outline-color:transparent}}
+/* ── end calib ── */

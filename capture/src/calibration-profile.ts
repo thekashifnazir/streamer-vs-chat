@@ -1,10 +1,11 @@
 import {computeGuardReleaseBand,GUARD_METRIC,GUARD_MIN_ON,leanThresholdsFromPeaks} from './classifier';
+import {punchThresholdsFromReach} from './straight-punch';
 import type {CalibrationMode,CalibrationSnapshot} from './calibration';
 export const CALIBRATION_PROFILE_VERSION=1;
 export const CALIBRATION_MODEL='mediapipe-pose-landmarker-lite@0.10.32:sha256:59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a';
 // Bump this contract when accepted measurement/calibration rules change.
 export const CALIBRATION_CLASSIFIER=`${GUARD_METRIC}:anatomy-sway-asymmetric-v1`;
-export type CalibrationSettings={mode:CalibrationMode;guardThreshold:number;leanThresholds:{L:number;R:number};leanPeaks:{L:number;R:number};guardMedians:{neutral:number;resting:number;guard:number};guardReleaseBand:number;neutralSwayP95:number;leanFloor:number};
+export type CalibrationSettings={mode:CalibrationMode;guardThreshold:number;leanThresholds:{L:number;R:number};leanPeaks:{L:number;R:number};guardMedians:{neutral:number;resting:number;guard:number};guardReleaseBand:number;neutralSwayP95:number;leanFloor:number;punchReach:{L:number;R:number}|null;punchThresholds:{L:number;R:number}|null};
 const object=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
 const finite=(value:unknown,min:number,max:number):value is number=>typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max;
 const close=(a:number,b:number)=>Math.abs(a-b)<1e-8;
@@ -22,7 +23,11 @@ export function validateCalibrationSettings(value:unknown,mode:CalibrationMode):
  const leanPeaks={L:peaks.L as number,R:peaks.R as number},leanThresholds={L:thresholds.L as number,R:thresholds.R as number};
  const derived=leanThresholdsFromPeaks(leanPeaks,value.leanFloor);
  for(const side of ['L','R'] as const)if(leanPeaks[side]<value.leanFloor||!close(leanThresholds[side],derived[side]))return null;
- return {mode,guardThreshold:value.guardThreshold,guardReleaseBand:value.guardReleaseBand,guardMedians,leanPeaks,leanThresholds,neutralSwayP95:value.neutralSwayP95,leanFloor:value.leanFloor};
+ // The optional punch step stores each hand's measured reach; thresholds are always re-derived from it. A profile
+ // without one (older, or punches skipped) keeps the default punch threshold.
+ const reach=value.punchReach,punchReach=object(reach)&&finite(reach.L,.3,25)&&finite(reach.R,.3,25)?{L:reach.L,R:reach.R}:null;
+ if(reach!==undefined&&reach!==null&&!punchReach)return null;
+ return {mode,guardThreshold:value.guardThreshold,guardReleaseBand:value.guardReleaseBand,guardMedians,leanPeaks,leanThresholds,neutralSwayP95:value.neutralSwayP95,leanFloor:value.leanFloor,punchReach,punchThresholds:punchReach?punchThresholdsFromReach(punchReach):null};
 }
 /** Saved peaks are measurements; activation is derived from them, so a profile saved under an
  * older activation fraction re-derives its thresholds instead of forcing a fresh calibration. */

@@ -1,4 +1,5 @@
 import type { PoseState, PunchEvent } from '@svc/shared';
+import {StraightPunchDetector,STRAIGHT_PUNCH,type PunchThresholds} from './straight-punch';
 
 export type Landmark = { x: number; y: number; z?: number; visibility?: number };
 export const GUARD_METRIC = 'shoulder-normal-v1' as const;
@@ -32,7 +33,7 @@ export const LEAN_DWELL_MS = 170;
 export function leanThresholdsFromPeaks(peaks:LeanThresholds, floor:number):LeanThresholds {
   return {L:Math.max(floor,LEAN_THRESHOLD_FRACTION*peaks.L),R:Math.max(floor,LEAN_THRESHOLD_FRACTION*peaks.R)};
 }
-export type PoseCalibration = {guardThreshold:number;leanThresholds?:LeanThresholds;guardReleaseBand?:number;guardMedians?:GuardMedians;neutralSwayP95?:number};
+export type PoseCalibration = {guardThreshold:number;leanThresholds?:LeanThresholds;guardReleaseBand?:number;guardMedians?:GuardMedians;neutralSwayP95?:number;punchThresholds?:PunchThresholds|null};
 export type PoseMetrics = {
   g: number;
   tilt: number;
@@ -96,9 +97,6 @@ export function measurePose(landmarks: Landmark[]): PoseMetrics | null {
   };
 }
 
-type PunchTracker = { armed: boolean; peak: number; peakAt: number };
-const freshPunch = (): PunchTracker => ({ armed: false, peak: 0, peakAt: 0 });
-
 /** Stateful input classifier only; this never owns health, votes, or combat rules. */
 export class PoseClassifier {
   private guardThreshold = GUARD_MIN_ON;
@@ -110,12 +108,13 @@ export class PoseClassifier {
   private candidateSince = 0;
   private leanGateUntil = -Infinity;
   private lastAt = -Infinity;
-  private lastPunchAt = -Infinity;
-  private punches = { L: freshPunch(), R: freshPunch() };
+  // Bonus punches: see straight-punch.ts. The per-player thresholds come from the optional punch setup step.
+  private punch = new StraightPunchDetector();
+  private punchThresholds:PunchThresholds = {L:STRAIGHT_PUNCH.on,R:STRAIGHT_PUNCH.on};
   private punchesEnabled=true;
 
   constructor(calibration:PoseCalibration) { this.setCalibration(calibration); }
-  setCalibration({guardThreshold,leanThresholds={L:.5,R:.5},guardReleaseBand,guardMedians,neutralSwayP95=0}:PoseCalibration) {
+  setCalibration({guardThreshold,leanThresholds={L:.5,R:.5},guardReleaseBand,guardMedians,neutralSwayP95=0,punchThresholds}:PoseCalibration) {
     if(!Number.isFinite(guardThreshold))throw new Error('Guard calibration must be finite');
     if(![leanThresholds.L,leanThresholds.R].every(value=>Number.isFinite(value)&&value>=.3)) {
       throw new Error('Lean thresholds must be finite magnitudes of at least0.3');
@@ -123,6 +122,8 @@ export class PoseClassifier {
     const band=guardReleaseBand??(guardMedians?computeGuardReleaseBand(guardMedians):GUARD_HYSTERESIS);
     if(!Number.isFinite(band)||band<=0)throw new Error('Guard release band must be finite and positive');
     if(!Number.isFinite(neutralSwayP95)||neutralSwayP95<0)throw new Error('Neutral sway must be finite and nonnegative');
+    if(punchThresholds&&![punchThresholds.L,punchThresholds.R].every(value=>Number.isFinite(value)&&value>=.3))throw new Error('Punch thresholds must be finite magnitudes of at least0.3');
+    this.punchThresholds=punchThresholds?{L:punchThresholds.L,R:punchThresholds.R}:{L:STRAIGHT_PUNCH.on,R:STRAIGHT_PUNCH.on};
     const floor=Math.max(.3,1.5*neutralSwayP95);
     // A relaxed/waist pose must never become guard through a low calibration.
     this.guardThreshold=Math.max(GUARD_MIN_ON,guardThreshold);
@@ -132,16 +133,16 @@ export class PoseClassifier {
   }
   setPunchesEnabled(enabled:boolean) {
     if(this.punchesEnabled===enabled)return;
-    this.punchesEnabled=enabled;this.punches={L:freshPunch(),R:freshPunch()};this.lastPunchAt=-Infinity;
+    this.punchesEnabled=enabled;this.punch.reset();
   }
   setGuardThreshold(value:number) {
-    this.setCalibration({guardThreshold:value,leanThresholds:this.leanThresholds,guardReleaseBand:this.guardReleaseBand});
+    this.setCalibration({guardThreshold:value,leanThresholds:this.leanThresholds,guardReleaseBand:this.guardReleaseBand,punchThresholds:this.punchThresholds});
   }
-  reset() {
+  reset() { this.resetDefence(); this.punch.reset(); }
+  private resetDefence() {
     this.guard = false;
     this.lean = null; this.candidate = null; this.candidateSince = 0;
-    this.leanGateUntil = -Infinity; this.lastAt = -Infinity; this.lastPunchAt = -Infinity;
-    this.punches = { L: freshPunch(), R: freshPunch() };
+    this.leanGateUntil = -Infinity; this.lastAt = -Infinity;
   }
   update(landmarks: Landmark[], at: number): { state: PoseState; punches: PunchEvent[]; metrics: PoseMetrics | null } {
     if (!Number.isFinite(at)) throw new Error('Pose timestamp must be finite');
@@ -149,9 +150,11 @@ export class PoseClassifier {
     this.lastAt = at;
     const metrics = measurePose(landmarks);
     const punches: PunchEvent[] = [];
+    // Capture logs retain the observed peak time; server authority uses receive time.
+    if(this.punchesEnabled)for(const punch of this.punch.update(landmarks,at,this.punchThresholds))punches.push({ kind: 'punch', side: punch.side, at: punch.at, source: 'pose' });
     if (!metrics) {
-      // Lost tracking must never leave a defence latched on.
-      this.reset(); this.lastAt = at;
+      // Lost tracking must never leave a defence latched on. A punch that turns the shoulders edge-on keeps its peak.
+      this.resetDefence(); this.lastAt = at;
       return { state: { kind: 'pose', guard: false, lean: null, at, source: 'pose' }, punches, metrics };
     }
     if (metrics.punchExtended) this.leanGateUntil = at + 300;
@@ -165,21 +168,6 @@ export class PoseClassifier {
         if (this.candidate !== desired) { this.candidate = desired; this.candidateSince = at; }
         if (at - this.candidateSince >= LEAN_DWELL_MS) { this.lean = desired; this.candidate = null; }
       } else this.candidate = null;
-    }
-    if(this.punchesEnabled)for (const side of ['L', 'R'] as const) {
-      const extension = side === 'L' ? metrics.leftExtension : metrics.rightExtension;
-      const tracker = this.punches[side];
-      // Returning near the shoulder rearms the next peak; a held arm never repeats.
-      if (tracker.armed && extension > 1.6 && extension > tracker.peak) { tracker.peak = extension; tracker.peakAt = at; }
-      if (tracker.armed && tracker.peak > 1.6 && extension < tracker.peak - 0.1) {
-        if (at - this.lastPunchAt >= 200) {
-          // Capture logs retain the observed peak time; server authority uses receive time.
-          punches.push({ kind: 'punch', side, at: tracker.peakAt, source: 'pose' });
-          this.lastPunchAt = at;
-        }
-        tracker.armed = false; tracker.peak = 0;
-      }
-      if (extension < 1.2) { tracker.armed = true; tracker.peak = 0; }
     }
     // Engage at the calibrated upper threshold; retain a held guard through lean noise.
     // Tracking/framing loss still clears immediately, without a debounce delay.

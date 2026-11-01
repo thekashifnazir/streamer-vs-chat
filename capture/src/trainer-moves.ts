@@ -11,10 +11,12 @@ import type {Landmark} from './classifier';
 export const TRAINER_MOVES={
  // Baselines are medians over the recent past, so a brief punch or slip does not drag them along.
  baselineMs:2000,shoulderWindowMs:3000,
- punch:{on:.6,off:.3,fall:.12,dominance:.35,minGapMs:250},
+ // down/edgeY/tiltGate (1 Nov playtest fix, shared with Boss Fight's straight-punch.ts): a dropping hand, a hand resting at the
+ // bottom edge of the frame (tracking flips there) or a tilting torso is not a punch. Recorded false punches 32 -> 9, catches 41 -> 40.
+ punch:{on:.6,off:.3,fall:.12,dominance:.35,minGapMs:250,down:.3,edgeY:.85,tiltGate:.5},
  slip:{on:.55,off:.3,minGapMs:400,shoulders:.25,afterPunchMs:300},
 } as const;
-type Sample={at:number;lx:number;ly:number;rx:number;ry:number;nx:number;sx:number};
+type Sample={at:number;lx:number;ly:number;rx:number;ry:number;nx:number;sx:number;rawL:number;rawR:number;tilt:number};
 type Peak={armed:boolean;peak:number;peakAt:number;dominant:boolean;last:number};
 const median=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return sorted[sorted.length>>1]!;};
 const usable=(p:Landmark|undefined)=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&(p.visibility??1)>=.5;
@@ -23,6 +25,9 @@ export class TrainerMoveDetector {
  private widths:{at:number;w:number}[]=[];
  private punch:{L:Peak;R:Peak}={L:fresh(),R:fresh()};
  private slip={armed:true,last:-Infinity};
+ private thresholds:{L:number;R:number}|null=null;
+ /** Per-player thresholds from the punch setup step; null keeps the tuned default. */
+ setPunchThresholds(value:{L:number;R:number}|null){this.thresholds=value?{L:value.L,R:value.R}:null;}
  reset(){this.history=[];this.widths=[];this.punch={L:fresh(),R:fresh()};this.slip={armed:true,last:-Infinity};}
  update(landmarks:Landmark[],at:number):{punches:{side:'L'|'R';at:number}[];slips:{side:'L'|'R';at:number}[]}{
   const out={punches:[] as {side:'L'|'R';at:number}[],slips:[] as {side:'L'|'R';at:number}[]};
@@ -34,7 +39,7 @@ export class TrainerMoveDetector {
   const sorted=this.widths.map(item=>item.w).sort((a,b)=>a-b),width=sorted[Math.floor(sorted.length*.8)]!;
   if(width<.04)return out;
   const mx=(ls!.x+rs!.x)/2,my=(ls!.y+rs!.y)/2;
-  const sample:Sample={at,lx:(lw!.x-mx)/width,ly:(lw!.y-my)/width,rx:(rw!.x-mx)/width,ry:(rw!.y-my)/width,nx:nose!.x/width,sx:mx/width};
+  const sample:Sample={at,lx:(lw!.x-mx)/width,ly:(lw!.y-my)/width,rx:(rw!.x-mx)/width,ry:(rw!.y-my)/width,nx:nose!.x/width,sx:mx/width,rawL:lw!.y,rawR:rw!.y,tilt:(ls!.y-rs!.y)/width};
   const past=this.history.filter(item=>item.at>=at-TRAINER_MOVES.baselineMs);
   this.history=[...past,sample];
   if(past.length<5)return out;
@@ -42,9 +47,11 @@ export class TrainerMoveDetector {
   const e={L:Math.hypot(sample.lx-base('lx'),sample.ly-base('ly')),R:Math.hypot(sample.rx-base('rx'),sample.ry-base('ry'))};
   const shift=sample.nx-base('nx'),body=sample.sx-base('sx');
   const {punch,slip}=TRAINER_MOVES;
+  const tilting=Math.abs(sample.tilt-base('tilt'))>punch.tiltGate;
   for(const side of ['L','R'] as const){
    const tracker=this.punch[side],other=e[side==='L'?'R':'L'],value=e[side];
-   if(tracker.armed&&value>=punch.on&&value>tracker.peak){tracker.peak=value;tracker.peakAt=at;tracker.dominant=value-other>=punch.dominance;}
+   const blocked=tilting||(side==='L'?sample.ly-base('ly'):sample.ry-base('ry'))>punch.down||base(side==='L'?'rawL':'rawR')>punch.edgeY;
+   if(tracker.armed&&!blocked&&value>=(this.thresholds?.[side]??punch.on)&&value>tracker.peak){tracker.peak=value;tracker.peakAt=at;tracker.dominant=value-other>=punch.dominance;}
    if(tracker.armed&&tracker.peak>0&&value<tracker.peak-punch.fall){
     if(tracker.dominant&&tracker.peakAt-tracker.last>=punch.minGapMs){out.punches.push({side,at:tracker.peakAt});tracker.last=tracker.peakAt;}
     tracker.armed=false;tracker.peak=0;

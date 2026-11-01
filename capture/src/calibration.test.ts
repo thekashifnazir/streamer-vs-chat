@@ -214,3 +214,21 @@ test('neutral sway uses p95 rather than maximum and discards samples from interr
   expect(calibration.snapshot.neutralSwayP95).toBeCloseTo(.1);
   expect(calibration.snapshot.leanFloor).toBe(.3);
 });
+function punchFrame(side:'L'|'R',out:number){const points=frame(.6),index=side==='L'?15:16;points[index]={...points[index]!,y:points[index]!.y-out*.18};return points;}
+test('the optional punch step measures one punch with each hand, waits for the clear-space tick and sets per-side thresholds',()=>{
+  let clear=false;const calibration=createCalibration({punches:true,punchesAllowed:()=>clear});
+  guardCalibration(calibration);leans(calibration);
+  expect(calibration.snapshot).toMatchObject({stage:'punches',ready:false,leanPeaks:{L:expect.closeTo(.57),R:expect.closeTo(.88)}});
+  hold(calibration,frame(.6),12500,600);calibration.update(punchFrame('L',1.6),13200);calibration.update(frame(.6),13300);
+  expect(calibration.snapshot.message).toContain('My space is clear');expect(calibration.snapshot.punchesThrown).toEqual({L:false,R:false});
+  clear=true;hold(calibration,frame(.6),13400,600);calibration.update(punchFrame('L',1.6),14100);calibration.update(punchFrame('L',.4),14200);
+  expect(calibration.snapshot).toMatchObject({stage:'punches',punchesThrown:{L:true,R:false},progress:.5});expect(calibration.snapshot.message).toContain('RIGHT');
+  hold(calibration,frame(.6),14300,600);calibration.update(punchFrame('R',1.4),15000);calibration.update(frame(.6),15100);
+  expect(calibration.snapshot).toMatchObject({stage:'ready',ready:true,punchReach:{L:expect.closeTo(1.6),R:expect.closeTo(1.4)},punchThresholds:{L:expect.closeTo(.8),R:expect.closeTo(.7)}});
+});
+test('punches can be skipped; without the option setup ends after the leans as before',()=>{
+  const calibration=createCalibration({punches:true});guardCalibration(calibration);leans(calibration);
+  expect(calibration.snapshot.stage).toBe('punches');calibration.skipPunches();
+  expect(calibration.snapshot).toMatchObject({stage:'ready',ready:true,punchReach:null,punchThresholds:null});expect(calibration.snapshot.message).toContain('Punches skipped');
+  const plain=createCalibration();guardCalibration(plain);leans(plain);expect(plain.snapshot.stage).toBe('ready');plain.skipPunches();expect(plain.snapshot.ready).toBe(true);
+});
