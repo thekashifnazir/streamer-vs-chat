@@ -274,3 +274,18 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  .offline-demo-page #demo-intro>.landing-loop{grid-column:2;grid-row:1/span 5;margin:0;max-width:none}
  .offline-demo-page #demo-intro>#demo-more-options{grid-column:1/-1}
 }
+/* Phones and touch screens: the scaled HUD's SOUND and PLAIN controls are real 44x44 px touch
+   targets. Sizes are divided by the demo scale, so a 1920x1080 stream overlay is unchanged. */
+@media(max-width:760px),(pointer:coarse){
+ #game-hud .rails-hud footer .hud-options button[data-id=sound]{min-width:calc(44px / var(--demo-hud-scale,1));min-height:calc(44px / var(--demo-hud-scale,1))}
+ /* /play shows PLAIN and the connection line too. Stacking two 44 px rows under the connection
+    line would push it into the status card, so SOUND shares a row with the connection line and
+    PLAIN takes the bottom row, flush with the rail's bottom edge. */
+ #game-hud .rails-hud:not(.memory-on):not(.offline-demo) .rail.streamer footer{grid-template-columns:auto minmax(0,1fr);bottom:0}
+ #game-hud .rails-hud:not(.memory-on):not(.offline-demo) .rail.streamer footer>.hud-options{display:contents}
+ #game-hud .rails-hud:not(.memory-on):not(.offline-demo) .rail.streamer footer button[data-id=sound]{grid-column:1;grid-row:2}
+ #game-hud .rails-hud:not(.memory-on):not(.offline-demo) .rail.streamer footer>.connection{grid-column:2;grid-row:2;align-self:center}
+ #game-hud .rails-hud:not(.memory-on):not(.offline-demo) .rail.streamer footer .hud-options label{grid-column:1/-1;grid-row:3}
+ #game-hud .rails-hud:not(.memory-on):not(.offline-demo) .rail.streamer footer>.calm-badge{grid-column:1/-1;grid-row:1}
+ #game-hud .rails-hud footer .hud-options input[data-id=plain]{width:calc(44px / var(--demo-hud-scale,1));height:calc(44px / var(--demo-hud-scale,1));min-width:calc(44px / var(--demo-hud-scale,1));min-height:calc(44px / var(--demo-hud-scale,1))}
+}
