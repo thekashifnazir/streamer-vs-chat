@@ -42,3 +42,11 @@ it('points the camera prompt at the clear-space box on the webcam setup page its
  const doc=new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8')).window.document;mountDemoLanding(doc);
  expect(doc.getElementById('camera-start-reason')!.closest('.webcam-layout')!.contains(doc.getElementById('clear-space'))).toBe(true);
 });
+it('Skip punches stays clickable inside the pointer-transparent camera caption (1 Nov)',()=>{
+ const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+ for(const page of ['index.html','play/index.html']){
+  const dom=new JSDOM(readFileSync(new URL(`../${page}`,import.meta.url),'utf8'));
+  try{const doc=dom.window.document,style=doc.createElement('style');style.textContent=css;doc.head.append(style);mountFightSetup(doc,{onStart:()=>{},onWebcamStart:()=>{}});
+   const skip=doc.getElementById('skip-punches')!;expect(skip.closest('.webcam-instructions')).not.toBeNull();skip.hidden=false;expect(dom.window.getComputedStyle(skip).pointerEvents).toBe('auto');}finally{dom.window.close();}
+ }
+});
