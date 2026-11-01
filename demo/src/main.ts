@@ -381,7 +381,7 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game)pauseWith(reason);};
-  hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onCoach:active=>fightUi?.hold(active),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;

@@ -289,3 +289,5 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  #game-hud .rails-hud:not(.memory-on):not(.offline-demo) .rail.streamer footer>.calm-badge{grid-column:1/-1;grid-row:1}
  #game-hud .rails-hud footer .hud-options input[data-id=plain]{width:calc(44px / var(--demo-hud-scale,1));height:calc(44px / var(--demo-hud-scale,1));min-width:calc(44px / var(--demo-hud-scale,1));min-height:calc(44px / var(--demo-hud-scale,1))}
 }
+/* Corner coach (/play, HOSTED_COACH only): one small block inside the round-results and pause dialogs. */
+.corner-coach{margin:8px auto;max-width:36em}.corner-coach button{border:2px solid var(--cyan)}.corner-coach.coach-live button{background:var(--cyan);color:#0c0912;font-weight:700}.corner-coach p{margin:4px 0;font-size:.75em;min-height:1.4em}.corner-coach small{display:block;font-size:.6em;opacity:.8}

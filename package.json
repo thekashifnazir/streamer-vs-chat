@@ -36,5 +36,8 @@
     "vitest": "^5.0.5",
     "wrangler": "^4.154.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@elevenlabs/client": "1.28.0"
+  }
 }
