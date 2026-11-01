@@ -31,6 +31,7 @@ export function assetCredit(path: string, levels: Record<string, { source: strin
     if (!source) throw new Error(`Missing original SFX source for ${path}`);
     return [`\`${source}\``, 'CC0 1.0'];
   }
+  if (/^assets\/landing\/gameplay-loop-SIMULATED(?:-poster)?\.(?:webm|mp4|webp)$/.test(path)) return ['Original footage of this game: screen capture of its own offline demo (simulated chat), cut from b-roll clip 03-lean-dodge-SIMULATED', 'Project footage, same terms as this repository; shows the CC0 Chat Golem art and OFL fonts credited here'];
   if (path.startsWith('assets/voice/ready/') && /\.(wav|mp3)$/.test(path)) return [ANNOUNCER_PROVENANCE, 'Generated audio; see provenance'];
   throw new Error(`Unclassified tracked asset: ${path}; add its verified provenance before generating credits`);
 }

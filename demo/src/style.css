@@ -259,3 +259,18 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .offline-demo-page .demo-controls.between-rounds .control-guide{display:none}
 .offline-demo-page .demo-controls select{-webkit-appearance:none;appearance:none;min-height:44px;padding-right:32px;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 @media(max-width:600px){.offline-demo-page.stream-compact>main>.demo-controls.between-rounds{flex-wrap:wrap;height:auto;overflow:visible}}
+/* Landing gameplay loop: below PLAY NOW on phones, beside the hero text on desktop. The box keeps
+   its 16:9 size before the poster arrives, so nothing shifts. */
+.landing-loop{margin:20px auto 0;max-width:640px;width:100%}
+.landing-loop video{display:block;width:100%;height:auto;aspect-ratio:16/9;border:1px solid #2a2238;border-radius:10px;background:#0c0912}
+.landing-loop figcaption{margin-top:10px;font-size:14px;line-height:1.5;color:#c8bfd6}
+.offline-demo-page #demo-more-options:not([open]){margin-top:0;margin-bottom:0}
+.offline-demo-page #demo-intro h1{text-wrap:balance}
+.loop-badge{display:inline-block;margin-right:6px;padding:1px 8px;border-radius:4px;background:#ffdc43;color:#0c0912;font-weight:800;letter-spacing:1px}
+@media(min-width:1000px){
+ .offline-demo-page #onboarding-row{max-width:min(1280px,var(--content-width,1160px))}
+ .offline-demo-page #demo-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);column-gap:36px;align-content:center;align-items:center}
+ .offline-demo-page #demo-intro>*{grid-column:1}
+ .offline-demo-page #demo-intro>.landing-loop{grid-column:2;grid-row:1/span 5;margin:0;max-width:none}
+ .offline-demo-page #demo-intro>#demo-more-options{grid-column:1/-1}
+}

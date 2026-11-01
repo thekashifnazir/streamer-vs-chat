@@ -22,6 +22,13 @@ describe('tracked asset credits', () => {
     }
   });
 
+  it('credits the landing gameplay loop as original simulated-chat footage of this game', () => {
+    for (const file of ['gameplay-loop-SIMULATED.webm', 'gameplay-loop-SIMULATED.mp4', 'gameplay-loop-SIMULATED-poster.webp']) {
+      expect(assetCredit(`assets/landing/${file}`, {})[0]).toContain('simulated chat');
+    }
+    expect(() => assetCredit('assets/landing/other.mp4', {})).toThrow('Unclassified tracked asset');
+  });
+
   it('requires explicit provenance for new assets rather than inventing a licence', () => {
     expect(() => assetCredit('assets/new-unknown.png', {})).toThrow('Unclassified tracked asset');
     expect(() => assetCredit('assets/sfx-ready/unknown.wav', {})).toThrow('Missing original SFX source');

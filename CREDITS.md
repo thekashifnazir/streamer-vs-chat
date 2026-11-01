@@ -4,6 +4,7 @@
 - **Anton / Barlow Condensed / Bungee / Russo One / Inter:** SIL Open Font License 1.1. Original notices are retained in `assets/fonts/` and identified per file below.
 - **Prepared SFX/music:** CC0 sources documented in `assets/SOUNDS.md`: Kenney sound packs; Freesound 420668 by SypherZent, 520998 by Mateusz_Chenc, 221567 by AlaskaRobotics; OpenGameArt “8-Bit Battle Loop” by Wolfgang_. Original Kenney notices are in `assets/licences/`.
 - Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan. Source, model and take notes: `assets/voice/README.md`.
+- **Landing gameplay loop** (`assets/landing/gameplay-loop-SIMULATED.*`): original footage of this game: a screen capture of its own offline demo with simulated chat (31 Oct 2026 b-roll), cut to 7.9 s, no audio. It shows the Chat Golem art and fonts credited on this page.
 - **MediaPipe Tasks Vision 0.10.32:** Google/MediaPipe Authors, Apache-2.0 as declared by the pinned npm package. License text is retained in `assets/licences/Apache-2.0.txt`. Official lite model source/checksum: `capture/public/models/README.md`.
 
 The demo build includes this file and the relevant notices under `/credits/`. No prep-repository implementation code is included.
@@ -39,6 +40,9 @@ The table is generated from `git ls-files assets`: one row per tracked file, inc
 | `assets/fonts/anton-OFL.txt` | Original font copyright and licence notice | SIL Open Font License 1.1 (notice text) |
 | `assets/fonts/barlowcondensed-OFL.txt` | Original font copyright and licence notice | SIL Open Font License 1.1 (notice text) |
 | `assets/fonts/inter-OFL.txt` | Original font copyright and licence notice | SIL Open Font License 1.1 (notice text) |
+| `assets/landing/gameplay-loop-SIMULATED-poster.webp` | Original footage of this game: screen capture of its own offline demo (simulated chat), cut from b-roll clip 03-lean-dodge-SIMULATED | Project footage, same terms as this repository; shows the CC0 Chat Golem art and OFL fonts credited here |
+| `assets/landing/gameplay-loop-SIMULATED.mp4` | Original footage of this game: screen capture of its own offline demo (simulated chat), cut from b-roll clip 03-lean-dodge-SIMULATED | Project footage, same terms as this repository; shows the CC0 Chat Golem art and OFL fonts credited here |
+| `assets/landing/gameplay-loop-SIMULATED.webm` | Original footage of this game: screen capture of its own offline demo (simulated chat), cut from b-roll clip 03-lean-dodge-SIMULATED | Project footage, same terms as this repository; shows the CC0 Chat Golem art and OFL fonts credited here |
 | `assets/licences/Apache-2.0.txt` | Apache Software Foundation licence text retained for MediaPipe | Apache License 2.0 (notice text) |
 | `assets/licences/kenney-digital-audio-License.txt` | Original Kenney pack notice; pack named in the file | CC0 1.0 (notice text) |
 | `assets/licences/kenney-game-icons-license.txt` | Original Kenney pack notice; pack named in the file | CC0 1.0 (notice text) |
