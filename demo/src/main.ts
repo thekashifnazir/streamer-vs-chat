@@ -144,7 +144,7 @@ function updateModes() {
   el('punch-guide').hidden=noPunch.checked;
   el('guide-lean').textContent=seated?'tilt':'lean';
   el('tutorial-defence').textContent=seated?'Tilt':'Lean';
-  el('tutorial-lean-label').textContent=seated?'Tilt left':'Lean left';
+  el('tutorial-lean-label').textContent=`${seated?'Tilt':'Lean'} left${noPunch.checked?'':' and right'}`;el('tutorial-lean-key2').hidden=noPunch.checked;
   setup.sync();setup.commands(game?game.bossDef:pendingBoss);
   el('back-to-setup').textContent=trainer.selected?'End workout':'End fight';
   updateTutorial();updateControlGuide();

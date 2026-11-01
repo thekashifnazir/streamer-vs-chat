@@ -13,6 +13,8 @@ test('three keyboard inputs finish the tutorial without login or a timer', () =>
   tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:100});
   expect(tutorial.step).toBe(1);
   tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:200});
+  expect(tutorial.step).toBe(1);
+  tutorial.input({kind:'pose',guard:false,lean:'R',source:'keyboard',at:250});
   expect(tutorial.input({kind:'punch',side:'L',source:'keyboard',at:300})).toBe(true);
 });
 
@@ -53,6 +55,7 @@ test('no-punch can be selected after the first two tutorial defences',()=>{
   const tutorial=new InputTutorial();
   tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:0});
   tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});
+  tutorial.input({kind:'pose',guard:false,lean:'R',source:'keyboard',at:150});
   tutorial.setNoPunch(true);
   expect(tutorial.input({kind:'pose',guard:false,lean:'R',source:'keyboard',at:200})).toBe(true);
 });
@@ -74,8 +77,8 @@ test.each(['../index.html','../play/index.html'])('keeps pre-start copy above th
   // An unsolicited pre-start input must render through the same status path.
   status.textContent=tutorial.status(false);expect(status.textContent).toBe('Press START FIGHT above to begin.');
   status.textContent=tutorial.status(true);expect(status.textContent).toContain('press K to guard (1 of 3)');
-  tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:0});status.textContent=tutorial.status(true);expect(status.textContent).toContain('press A to lean left (2 of 3)');
-  tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});status.textContent=tutorial.status(true);expect(status.textContent).toContain('press J to punch (3 of 3)');
+  tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:0});status.textContent=tutorial.status(true);expect(status.textContent).toContain('press A and D to lean left and right (2 of 3)');
+  tutorial.input({kind:'pose',guard:false,lean:'L',source:'keyboard',at:100});tutorial.input({kind:'pose',guard:false,lean:'R',source:'keyboard',at:150});status.textContent=tutorial.status(true);expect(status.textContent).toContain('press J to punch (3 of 3)');
   tutorial.setNoPunch(true);status.textContent=tutorial.status(true);expect(status.textContent).toContain('press D to lean right (3 of 3)');
   const main=readFileSync(new URL('./main.ts',import.meta.url),'utf8');expect(main).toContain('if(!game)updateTutorial();');expect(main).toContain("el('tutorial-status').textContent=tutorial.status(tutorialStarted)");expect(main).not.toContain('Check “My space is clear” below');
  }finally{dom.window.close();}

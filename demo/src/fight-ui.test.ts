@@ -15,12 +15,12 @@ it('routes held K/A/D and J tap pads through keyboard events and releases on can
  const {doc,dom,ui}=setup();ui.modes(true,false);const events:string[]=[];for(const type of ['keydown','keyup'])dom.window.addEventListener(type,event=>events.push(`${event.type}:${(event as KeyboardEvent).code}`));
  const guard=doc.querySelector<HTMLElement>('[data-tap=K]')!;guard.dispatchEvent(new dom.window.Event('pointerdown',{cancelable:true}));guard.dispatchEvent(new dom.window.Event('pointercancel'));expect(events).toEqual(['keydown:KeyK','keyup:KeyK']);ui.modes(true,true);expect(doc.querySelector<HTMLElement>('[data-tap=J]')!.hidden).toBe(true);ui.modes(false,true);expect(doc.querySelector<HTMLElement>('.tap-pads')!.hidden).toBe(true);
 });
-it('shows plain round results and advances once after 5s, freezing the countdown in pause',()=>{
+it('shows plain round results and waits for NEXT ROUND instead of advancing on a timer',()=>{
  const {doc,ui,actions,time}=setup();let game=createGame();game.round.over=true;game.log.rounds=[{number:1,winner:'streamer',reason:'ko',at:100,streamer_hp:90,boss_hp:0,boss_max_hp:135,duration_ms:100} as any];ui.render(game);expect(doc.querySelector('[data-result-title]')!.textContent).toBe('You won Round 1');expect(doc.querySelectorAll('.plain-stats p')).toHaveLength(3);for(const jargon of ['MVP','REACTED','!forgetme','AUTOPILOT','Stats only'])expect(doc.getElementById('round-results')!.textContent).not.toContain(jargon);
- time(2000);ui.setPaused(true);time(12000);ui.tick();expect(actions.next).not.toHaveBeenCalled();ui.setPaused(false);time(14999);ui.tick();expect(actions.next).not.toHaveBeenCalled();time(15000);ui.tick();ui.tick();expect(actions.next).toHaveBeenCalledOnce();expect(doc.getElementById('playtest-opt-in')!.closest('#round-results')).not.toBeNull();
+ expect(doc.querySelector('[data-result-countdown]')!.textContent).toBe('Next round starts when you press NEXT ROUND');time(2000);ui.setPaused(true);time(12000);ui.tick();ui.setPaused(false);time(600000);ui.tick();expect(actions.next).not.toHaveBeenCalled();expect(doc.getElementById('playtest-opt-in')!.closest('#round-results')).not.toBeNull();
 });
 it('practice text names the next move and never consumes a game beat',()=>{
- const tutorial=new InputTutorial(),game=createGame({difficulty:'hard'});expect(tutorial.status(true)).toContain('Practice: press K to guard (1 of 3)');tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:100});expect(tutorial.status(true)).toContain('press A to lean left (2 of 3)');expect(game.round.elapsed_ms).toBe(0);expect(step(game,{kind:'advance'},0).difficulty).toBe('hard');
+ const tutorial=new InputTutorial(),game=createGame({difficulty:'hard'});expect(tutorial.status(true)).toContain('Practice: press K to guard (1 of 3)');tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:100});expect(tutorial.status(true)).toContain('press A and D to lean left and right (2 of 3)');expect(game.round.elapsed_ms).toBe(0);expect(step(game,{kind:'advance'},0).difficulty).toBe('hard');
 });
 
 it('keeps hosted NEXT ROUND available and only renders verified clip links',()=>{
@@ -33,7 +33,7 @@ it('gives pause Resume a large primary target and secondary exits',()=>{
 });
 it('clears the previous round countdown when the match ends',()=>{
  const {doc,ui,time}=setup();const round=(number:number)=>({number,winner:'streamer',reason:'ko',at:100,streamer_hp:90,boss_hp:0,boss_max_hp:135,duration_ms:100} as any);
- let game=createGame();game.round.over=true;game.log.rounds=[round(1)];ui.render(game);time(5000);ui.tick();expect(doc.querySelector('[data-result-countdown]')!.textContent).toBe('Next round in 0 s');
+ let game=createGame();game.round.over=true;game.log.rounds=[round(1)];ui.render(game);time(10000);ui.tick();expect(doc.querySelector('[data-result-countdown]')!.textContent).toBe('Next round starts when you press NEXT ROUND');
  game=structuredClone(game);game.round.number=2;game.match.winner='streamer';game.log.rounds=[round(1),round(2)];ui.render(game);
  expect(doc.querySelector('[data-result-next]')!.textContent).toBe('NEW MATCH');expect(doc.querySelector('[data-result-countdown]')!.textContent).toBe('');
 });

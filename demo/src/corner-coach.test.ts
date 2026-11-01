@@ -92,13 +92,13 @@ describe('/play coach button',()=>{
   const p=page(true);await p.mounted.initialize();await p.mounted.initialize();expect(p.doc.querySelectorAll('#round-results .corner-coach,#pause-screen .corner-coach')).toHaveLength(2);expect(p.load).not.toHaveBeenCalled();
   p.mounted.dispose();expect(p.doc.querySelector('.corner-coach')).toBeNull();
  });
- it('holds the next-round countdown while a session runs and releases it on end',async()=>{
+ it('never auto-advances while a session runs and ends the session when the next round starts',async()=>{
   const p=page(true),ended=vi.fn(async()=>{});p.load.mockImplementation(async()=>{const real=await import('./corner-coach');return {...real,createCornerCoach:options=>real.createCornerCoach({...options,requestMic:async()=>{},startSession:async start=>{start.onConnect();return {endSession:ended};}})};});
   await p.mounted.initialize();p.ui.render(p.state);
   p.doc.querySelector<HTMLButtonElement>('#round-results .corner-coach button')!.click();await vi.waitFor(()=>expect(p.doc.querySelector('#round-results .corner-coach button')!.getAttribute('aria-pressed')).toBe('true'));
-  expect(p.backendRequest).toHaveBeenCalledWith('/api/coach/token',{method:'POST'});expect(p.doc.querySelector('[data-result-countdown]')!.textContent).toBe('Next round when your corner talk ends');
+  expect(p.backendRequest).toHaveBeenCalledWith('/api/coach/token',{method:'POST'});expect(p.doc.querySelector('[data-result-countdown]')!.textContent).toBe('Next round starts when you press NEXT ROUND');
   p.time(20000);p.ui.tick();expect(p.actions.next).not.toHaveBeenCalled();
   p.state.round.over=false;p.mounted.observe();expect(ended).toHaveBeenCalledOnce();expect(p.doc.querySelector('#round-results .corner-coach button')!.textContent).toBe('Talk to your corner');
-  p.time(24999);p.ui.tick();expect(p.actions.next).not.toHaveBeenCalled();p.time(25000);p.ui.tick();expect(p.actions.next).toHaveBeenCalledOnce();
+  p.time(600000);p.ui.tick();expect(p.actions.next).not.toHaveBeenCalled();
  });
 });

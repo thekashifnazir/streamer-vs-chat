@@ -20,7 +20,7 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   await import('./main');
   const posture=dom.window.document.querySelector<HTMLButtonElement>('[data-option-for="posture"][data-value="seated"]')!;posture.click();
   expect((dom.window.document.getElementById('posture') as HTMLSelectElement).value).toBe('seated');
-  expect(dom.window.document.getElementById('tutorial-lean-label')!.textContent).toBe('Tilt left');
+  expect(dom.window.document.getElementById('tutorial-lean-label')!.textContent).toBe('Tilt left and right');
   const defenceOnly=dom.window.document.getElementById('no-punch') as HTMLInputElement;defenceOnly.checked=true;defenceOnly.dispatchEvent(new dom.window.Event('change'));
   expect(dom.window.document.getElementById('tutorial-last-key')!.textContent).toBe('D');expect(dom.window.document.getElementById('punch-chance')!.hidden).toBe(true);
   defenceOnly.checked=false;defenceOnly.dispatchEvent(new dom.window.Event('change'));
@@ -40,7 +40,7 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{code:'KeyK'}));
   expect(dom.window.document.getElementById('pause-screen')!.hidden).toBe(false);expect(dom.window.document.getElementById('tutorial-status')!.textContent).toContain('(1 of 3)');
   dom.window.document.querySelector<HTMLButtonElement>('[data-pause=resume]')!.click();
-  for(const code of ['KeyK','KeyA','KeyJ'])dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{code}));
+  for(const code of ['KeyK','KeyA','KeyD','KeyJ'])for(const type of ['keydown','keyup'])dom.window.dispatchEvent(new dom.window.KeyboardEvent(type,{code}));
   const doc2=dom.window.document,crowdSelect=doc2.getElementById('crowd-size') as HTMLSelectElement,crowdLabel=crowdSelect.closest('label')!;
   const last=()=>observed.renders.at(-1) as {round:{over:boolean;number:number};viewers:number};
   await vi.advanceTimersByTimeAsync(1000);
