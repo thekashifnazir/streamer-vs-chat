@@ -20,6 +20,7 @@ import { createRailsHud } from '../../overlay/src/hud';
 import { step as engineStep, type GameState } from '../../shared/src/engine';
 import {parseChatVote} from '@svc/shared';
 import type { PoseState, StreamerInput } from '@svc/shared';
+import type {Difficulty} from '../../shared/src/tempo';
 import { createKeyboard } from '../../capture/src/keyboard';
 import { createKeyboardAvatar } from './keyboard-avatar';
 import { PoseCamera } from '../../capture/src/camera';
@@ -32,6 +33,7 @@ import {startColdOpen,coldOpenStage} from './cold-open';
 import {mountStreamLayout} from './stream-layout';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
+import {mountTrainer,defaultCueSound} from './trainer-ui';
 
 const impactLedger=createBossImpactLedger('browser');
 const superNotices=createSuperNotices();
@@ -87,7 +89,7 @@ let coldOpenPausedAt:number|null=null;
 function clearColdOpen(){coldOpenAt=null;coldOpenPausedAt=null;stage.classList.remove('cold-open-tally');}
 // Closing the tab ends a browser broadcast and loses the match; warn only while either is at stake.
 const leaveGuard=createLeaveGuard(window,()=>({live:hosted?.broadcasting===true,game,ended:showSessionSummary}));
-const streamLayout=mountStreamLayout({live:liveMode,onEnd:()=>{if(liveMode){el<HTMLButtonElement>('show-results').click();return;}showSessionSummary=true;if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}}});
+const streamLayout=mountStreamLayout({live:liveMode,onEnd:()=>{if(trainer.running){trainer.stop();return;}if(liveMode){el<HTMLButtonElement>('show-results').click();return;}showSessionSummary=true;if(game){game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());paint();}}});
 if(previewConfig)streamLayout.status(SCOUT_PREVIEW_BADGE);
 const playtest=new LocalPlaytestStats();
 if(!liveMode)mountShareTools(document);
@@ -192,6 +194,7 @@ function startFight() {
   if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Connect Twitch and wait for LIVE before starting.';return;}
   if(!safetyCleared()){el('tutorial-status').textContent='Tick “my space is clear” above before starting.';return;}
   if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before starting.';setup.open();return;}
+  if(trainer.selected){startTrainer();return;}
   fightUi?.setPaused(false);tutorialStarted=false;hud.setPractice(false);fightUi?.showStage();
   hosted?.endFight();showSessionSummary=false;clearColdOpen();
   const at=performance.now();
@@ -209,13 +212,20 @@ function startFight() {
   game=step(game,source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);
   paint();
 }
+/** Crowd Trainer: same setup, safety and pause path; its own pure reducer instead of the boss engine. */
+function startTrainer() {
+  fightUi?.setPaused(false);tutorialStarted=false;hud.setPractice(false);fightUi?.showStage();clearColdOpen();game=null;crowd=null;showSessionSummary=false;
+  el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();stage.scrollIntoView?.({block:'start',behavior:'smooth'});
+  keyboard.setEnabled(source.value==='keyboard');classifier.setPunchesEnabled(true);
+  const at=performance.now();trainer.start(at);trainer.input(source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);paint();
+}
 let pauseReason='Esc';
 const guardResume=createGuardResume(()=>input({kind:'control',action:'resume',by:'capture'}));
 /** Pause with a reason shown on the stage. Both / and /play use it; only /play has Twitch reasons. */
 function pauseWith(reason:string){pauseReason=reason;guardResume.reset();input({kind:'control',action:'stop',by:'capture'});pauseReason='Esc';}
 window.addEventListener('keydown',event=>{if(liveMode&&event.code==='Escape'&&!event.repeat&&fightUi?.paused){event.stopImmediatePropagation();event.preventDefault();input({kind:'control',action:'resume',by:'capture'});}},true);
 function input(event:StreamerInput) {
-  if(event.kind==='control'&&['stop','pause','veto'].includes(event.action)&&(tutorialStarted||game)&&!showSessionSummary){guardResume.reset();fightUi?.setPaused(true,pauseReason,source.value==='pose');pauseReason='Esc';if(coldOpenAt!==null)coldOpenPausedAt??=performance.now();}
+  if(event.kind==='control'&&['stop','pause','veto'].includes(event.action)&&(tutorialStarted||game||trainer.running)&&!showSessionSummary){guardResume.reset();fightUi?.setPaused(true,pauseReason,source.value==='pose');pauseReason='Esc';if(coldOpenAt!==null)coldOpenPausedAt??=performance.now();}
   if(event.kind!=='control'&&fightUi?.paused)return;
   // Resume after a finished rehearsal take returns to the landing page; mid-take it resumes the take.
   if(event.kind==='control'&&event.action==='resume'&&coldOpenAt!==null&&(!game||game.log.resolved.length>0||(coldOpenPausedAt??performance.now())-coldOpenAt>=5000)){leaveColdOpen();return;}
@@ -227,6 +237,7 @@ function input(event:StreamerInput) {
     if(!game)updateTutorial();
     return;
   }
+  if(trainer.running){trainer.input(event,at);if(event.kind==='control'&&event.action==='resume'&&!trainer.paused)fightUi?.setPaused(false);return;}
   if(!game) {
     if(event.kind==='control'){if(event.action==='resume')fightUi?.setPaused(false);return;}
     if(!tutorialStarted||source.value==='pose')return;
@@ -244,12 +255,13 @@ function input(event:StreamerInput) {
   if(event.kind==='control'&&event.action==='resume'&&!game.paused){fightUi?.setPaused(false);if(coldOpenAt!==null&&coldOpenPausedAt!==null){coldOpenAt+=at-coldOpenPausedAt;coldOpenPausedAt=null;}}
   drawCrowd(at);paint();
 }
+const trainer=mountTrainer(document,{live:liveMode,stage,difficulty:()=>difficulty.value as Difficulty,keyboard:()=>source.value==='keyboard',viewers:()=>Number(crowdSize.value),liveTokenLoaded:()=>hosted?.hasToken??false,onCue:cue=>hud.playSound(defaultCueSound(cue)),onAgain:()=>{trainer.exit();el('start-fight').click();},onExit:()=>document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click(),onDone:()=>{fightUi?.setPaused(false);updateModes();}});
 const avatarPose=createKeyboardAvatar(avatar,{punchEnabled:()=>!noPunch.checked});
 const keyboard=createKeyboard({emit:input,label:avatarPose.label});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
-const setup=mountFightSetup(document,{keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,onStart:()=>{void hud.activateSound();if(game){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
-fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
+const setup=mountFightSetup(document,{keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,onStart:()=>{void hud.activateSound();if(game||trainer.selected){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
+fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{trainer.exit();updateModes();if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(trainer.active){trainer.exit();updateModes();}if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
 /** Leave a rehearsal take for the landing page, keeping its result line on screen. */
 function leaveColdOpen(){clearColdOpen();game=null;crowd=null;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('cold-open-status').scrollIntoView?.({block:'center'});}
 const calibration=createCalibration({onChange(snapshot){
@@ -345,6 +357,7 @@ const timer=window.setInterval(()=>{
   const tickAt=performance.now();
   if(cameraRunning&&tickAt-lastFrameAt>=500){poseFramed=false;guardResume.reset();setup.frame([],false);}
   setup.tick(tickAt);fightUi?.tick();
+  if(trainer.running)trainer.tick(performance.now());
   if(!game)return;
   // Either tick can start the fight (end of the webcam countdown) or the next round at a later
   // performance.now(); stepping that game with tickAt would run the reducer's clock backwards.
@@ -380,12 +393,12 @@ if(!liveMode){const {mountDemoForge}=await import('./forge');const panel=el('dem
 if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
-  const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game)pauseWith(reason);};
-  hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>parseChatVote(text,user,at,false,game?.bossDef),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game||trainer.running)pauseWith(reason);};
+  hosted=mountHostedPlay({getState:()=>game,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>trainer.selected?null:parseChatVote(text,user,at,false,game?.bossDef),onChatMessage:message=>trainer.chat(message),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
-  },onRaid:event=>{if(game){game=step(game,event,performance.now());paint();}},onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!safetyCleared())return;if(event.kind==='control'&&['stop','pause','veto'].includes(event.action))pauseReason=event.by==='capture'?'stream ended':'chat requested a pause';input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{showSessionSummary=true;freeze();}});
+  },onRaid:event=>{if(game){game=step(game,event,performance.now());paint();}},onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!safetyCleared())return;if(event.kind==='control'&&['stop','pause','veto'].includes(event.action))pauseReason=event.by==='capture'?'stream ended':'chat requested a pause';input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{if(trainer.running){trainer.stop();return;}showSessionSummary=true;freeze();}});
   crowdSize.closest('label')!.hidden=true;
   document.title='Streamer vs Chat · Twitch play';
 
