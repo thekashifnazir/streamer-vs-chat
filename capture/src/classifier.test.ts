@@ -53,23 +53,43 @@ describe('raw landmark classifier', () => {
     expect(c.update(frame(-.7),600+LEAN_DWELL_MS-1).state.lean).toBe(null);
     expect(c.update(frame(-.7),600+LEAN_DWELL_MS).state.lean).toBe('R');
   });
+  // Punch detector: straight-punch.ts. It needs a short resting history before a wrist excursion counts.
+  const rest=(c:PoseClassifier,until=200)=>{for(let t=0;t<=until;t+=33)c.update(frame(),t);};
   it('emits a bonus punch at the observed peak only after retraction and rearms on return', () => {
-    const c=new PoseClassifier({guardThreshold:0});
-    c.update(frame(),0);
-    expect(c.update(frame(0,1.8),100).punches).toEqual([]);
-    expect(c.update(frame(0,2),120).punches).toEqual([]);
-    expect(c.update(frame(0,1.8),140).punches).toEqual([{kind:'punch',side:'L',at:120,source:'pose'}]);
-    expect(c.update(frame(0,2),400).punches).toEqual([]);
-    expect(c.update(frame(0,1.7),420).punches).toEqual([]);
-    c.update(frame(),440); c.update(frame(0,2),460);
-    expect(c.update(frame(),480).punches).toHaveLength(1);
+    const c=new PoseClassifier({guardThreshold:0});rest(c);
+    expect(c.update(frame(0,1.8),233).punches).toEqual([]);
+    expect(c.update(frame(0,2),266).punches).toEqual([]);
+    expect(c.update(frame(0,1.8),300).punches).toEqual([{kind:'punch',side:'L',at:266,source:'pose'}]);
+    expect(c.update(frame(0,2),333).punches).toEqual([]);
+    expect(c.update(frame(0,1.7),366).punches).toEqual([]);
+    c.update(frame(),400); c.update(frame(0,2),600);
+    expect(c.update(frame(),633).punches).toHaveLength(1);
   });
   it('uses a200ms global refractory across arms', () => {
-    const c=new PoseClassifier({guardThreshold:0});
-    c.update(frame(),0); c.update(frame(0,2),100);
-    expect(c.update(frame(0,1.7),120).punches).toHaveLength(1);
-    c.update(frame(0,.6,2),150);
-    expect(c.update(frame(),180).punches).toEqual([]);
+    const c=new PoseClassifier({guardThreshold:0});rest(c);
+    c.update(frame(0,2),233);
+    expect(c.update(frame(0,1.7),266).punches).toHaveLength(1);
+    c.update(frame(0,.6,2),300);
+    expect(c.update(frame(),333).punches).toEqual([]);
+  });
+  it('a straight punch at the camera counts without the arm lengthening past 1.6 widths', () => {
+    // Guard at the chin, then the fist rises and drifts out in front of the face: 2D extension stays near 1.
+    const c=new PoseClassifier({guardThreshold:0}),guard=(dy=0,dx=0)=>{const lm=frame();lm[15]={x:.62+dx,y:.42+dy,visibility:1};lm[16]={x:.38,y:.42,visibility:1};return lm;};
+    for(let t=0;t<=200;t+=33)c.update(guard(),t);
+    expect(measurePose(guard(-.15,.04))!.leftExtension).toBeLessThan(1.6);
+    c.update(guard(-.15,.04),233);
+    expect(c.update(guard(-.05),266).punches).toEqual([{kind:'punch',side:'L',at:233,source:'pose'}]);
+  });
+  it('a guard raise, a lean with guard up and a dropped hand are not punches', () => {
+    const c=new PoseClassifier({guardThreshold:0}),both=(dy:number,tilt=0)=>{const lm=frame(tilt);lm[15]={x:.62,y:lm[11]!.y+dy,visibility:1};lm[16]={x:.38,y:lm[12]!.y+dy,visibility:1};return lm;};
+    for(let t=0;t<=200;t+=33)c.update(both(.3),t);
+    const punches=[];for(let t=233;t<=1500;t+=33)punches.push(...c.update(t<600?both(-.08):t<1100?both(-.08,.9):both(.35),t).punches);
+    expect(punches).toEqual([]);
+  });
+  it('per-player thresholds from the punch setup step lower or raise the bar per side', () => {
+    const c=new PoseClassifier({guardThreshold:0,punchThresholds:{L:1.5,R:.7}});rest(c);
+    c.update(frame(0,1.8),233);expect(c.update(frame(),266).punches).toEqual([]);
+    expect(()=>new PoseClassifier({guardThreshold:0,punchThresholds:{L:.1,R:.7}})).toThrow();
   });
   it('clears stale lean and pending dwell after a camera gap over250ms', () => {
     const c=new PoseClassifier({guardThreshold:-1});

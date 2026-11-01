@@ -38,9 +38,9 @@ describe('Crowd Trainer moves on Kash’s recorded drills (1 Nov, Logitech)',()=
   expect(count(left,'punch','L')).toBeGreaterThanOrEqual(6);expect(count(left,'punch','R')).toBeLessThanOrEqual(1);
   expect(count(right,'punch','R')).toBe(5);expect(count(right,'punch','L')).toBe(0);
  });
- it('catches far more straight punches than the Boss Fight extension gate, which stays unchanged',()=>{
+ it('Boss Fight now catches the same punches: its old 1.6-width extension gate caught 0 of 5 right and 4 of 6 left (straight-punch.ts)',()=>{
   const right=section('right punches'),left=section('left punches');
-  expect(count(right,'old-punch','R')).toBe(0);expect(count(left,'old-punch','L')).toBe(4);
+  expect(count(right,'old-punch','R')).toBe(5);expect(count(left,'old-punch','L')).toBeGreaterThanOrEqual(6);expect(count(left,'old-punch','R')).toBeLessThanOrEqual(1);
  });
  it('finds one-twos in order',()=>{
   expect(oneTwos(section('one-twos'))).toBeGreaterThanOrEqual(2);expect(count(section('one-twos'),'punch')).toBeGreaterThanOrEqual(7);
