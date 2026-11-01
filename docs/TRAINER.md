@@ -2,7 +2,7 @@
 
 A second game mode for fitness and boxing streams. Chat calls the combo, like a coach calling numbers in a boxing class. You throw it on webcam or keyboard. Boss Fight is unchanged.
 
-Open it with the **Crowd Trainer** button on the setup screen, or go straight in with `?mode=trainer` (for example `/?mode=trainer` for the offline demo). The offline demo uses SIMULATED chat and says so on screen. `/play` uses your real Twitch chat.
+Open it with the **Crowd Trainer** card under **CHOOSE YOUR FIGHT** on the homepage (the start button then reads **TRY THE WORKOUT**) or in step 3 of `/play`, or go straight in with `?mode=trainer` (for example `/?mode=trainer` for the offline demo). The offline demo uses SIMULATED chat and says so on screen. `/play` uses your real Twitch chat.
 
 ## Chat commands
 
@@ -28,16 +28,18 @@ Mods and the broadcaster can use `!pause` and `!resume` (same as Boss Fight) and
 
 | Token | Meaning | Webcam | Keyboard |
 |---|---|---|---|
-| `1` | Lead hand punch (your left; your right with **Southpaw** on) | which hand extended | `F` |
-| `2` | Rear hand punch (your right; your left with Southpaw) | which hand extended | `J` |
-| `S` | Slip: a lean to either side | lean starts | `A` or `D` |
-| `G` | Guard up, held 0.5 s | both fists at face height | hold `K` |
+| `1` | Lead hand punch (your left; your right with **Southpaw** on) | which hand extended | `1` or `F` |
+| `2` | Rear hand punch (your right; your left with Southpaw) | which hand extended | `2` or `J` |
+| `S` | Slip: a lean to either side | lean starts | `S`, `A` or `D` |
+| `G` | Guard up, held 0.5 s | both fists at face height | hold `G` or `K` |
+
+`F` and `J` are always your physical left and right hand; the digits follow the stance, so with Southpaw `1` is `J`. Before round 1 a **Your keys** card (keyboard) or **Your moves** card (webcam) waits: the clock and chat start once you press each move once, or press **Skip**; on webcam, click **I'm ready** or hold your guard for 1 s. Each combo chip shows its key (keyboard) or move (webcam).
 
 A front webcam cannot see depth, so the game never claims a punch type (jab, cross, hook). It only reads which hand punched. Punch side comes from MediaPipe's anatomical landmarks on the raw, unmirrored frame, so `1` is your own left hand for an orthodox stance even though the preview is mirrored (READ: `capture/src/classifier.ts` uses raw indices and `test/pose/README.md` scores anatomical `left_punch`/`right_punch`).
 
 On webcam, Trainer uses its own detector (`capture/src/trainer-moves.ts`); Boss Fight thresholds are unchanged. Straight punches at the camera barely lengthen the arm in 2D, so the Boss Fight gate (arm longer than 1.6 shoulder widths) missed most of Kash's recorded punches. The Trainer detector looks for a quick move of one wrist away from where it rests, measured against the recent shoulder width, and reads a slip as the head and shoulders shifting sideways while no hand is out. A Boss Fight lean onset also counts as a slip; the two are merged so one slip counts once.
 
-Measured on Kash's 1 Nov drill clip (MEASURED, replay test `test/pose/trainer-moves.test.ts`, Logitech webcam, 30 fps, his 31 Oct calibration):
+Measured on Kash's 1 Nov drill clip (MEASURED, replay test `test/pose/trainer-moves.test.ts`, Logitech webcam, 30 fps, Kash's 31 Oct calibration):
 
 | Drill | Trainer detector | Boss Fight gate |
 |---|---|---|
@@ -49,7 +51,7 @@ Measured on Kash's 1 Nov drill clip (MEASURED, replay test `test/pose/trainer-mo
 | Guard holds (2) | 0 punches, 0 slips | guard 2 |
 | One-two-slip / one-two-guard (6 one-twos) | 5 complete one-twos in order | 1 L, 1 R |
 
-`1` is the player's own left hand: in the raw camera frame his LEFT punches move MediaPipe landmark 15 (left wrist) and his SLIP RIGHT registers lean R.
+`1` is the player's own left hand: in the raw camera frame Kash's LEFT punches move MediaPipe landmark 15 (left wrist) and their SLIP RIGHT registers lean R.
 
 In Trainer, `J` is the right hand (in Boss Fight it is the bonus punch). `K`, `A` and `D` keep their Boss Fight meaning.
 
@@ -76,4 +78,4 @@ At the end a workout card shows combos clean / partial / missed, punches thrown 
 - `shared/src/trainer.ts`: pure reducer, no clock calls. Combo menu, timing constants, draw, matching, summary.
 - `shared/src/trainer-commands.ts`: chat parser, used only in Trainer mode.
 - `demo/src/trainer-ui.ts`: mode choice, stage overlay, rest screen and summary card. `demo/src/trainer-sim.ts`: SIMULATED voters for the offline demo.
-- Audio hook: `onTrainerCue(listener)` in `demo/src/trainer-ui.ts` receives `combo-12` … `combo-2s2`, `round-start`, `rest`, `ten-seconds`, `time`, `clean`, `partial`, `missed`, `faster`, `slower`, `workout-done`. By default they play the existing sound effects; recorded coach lines can subscribe to the same ids.
+- Audio hook: `onTrainerCue(listener)` in `demo/src/trainer-ui.ts` receives `combo-12` … `combo-2s2`, `round-start`, `rest`, `ten-seconds`, `time`, `clean`, `partial`, `missed`, `faster`, `slower`, `workout-done`. The recorded coach voice (chosen with the Boss/Coach voice picker) calls each combo from these ids; bells stay for round start, rest and time ([voice bank](../assets/voice/bank/README.md)).

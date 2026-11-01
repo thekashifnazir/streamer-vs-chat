@@ -27,7 +27,7 @@ Requires Node **22.12+** and npm. Install with `npm ci`. Twitch development also
 npm run demo
 ```
 
-Open **http://localhost:4173/**. Choose standing or seated and optional no-punch mode on the start screen. Confirm your clear space, then press **K → A → J** through the three-step tutorial (**K → A → D** in no-punch mode). Keyboard works immediately; optional webcam mode reuses the accepted lite CPU classifier and calibration. Select 0/3/50/500 simulated viewers, use seated or no-punch mode, and play best of three. Sound starts off. Esc or STOP freezes the game; Resume continues it.
+Open **http://localhost:4173/**. The homepage leads with **PLAY ON YOUR TWITCH STREAM** (`/play`); the demo is the **Try it now · fake chat, no login** box. Pick **Webcam** (the default on a computer; 5 setup steps) or **Keyboard**, then press **TRY THE DEMO**. **Options** holds difficulty, Defence only (no-punch) and sound. The keyboard practice is **K**, then **A** and **D**, then **J** (**K → A → D** in no-punch mode). Webcam mode reuses the accepted lite CPU classifier and calibration. Between rounds, choose 0/3/50/500 simulated viewers; each round waits for **NEXT ROUND**. Sound turns on at TRY THE DEMO; M mutes. Esc or STOP freezes the game; Resume continues it.
 
 ```sh
 npm run build:demo
@@ -37,9 +37,9 @@ Produces `dist-demo/` with all runtime assets, one SIMD WASM binary, the vendore
 
 ## Play-test and record a cold open
 
-Share **https://streamervschat.kashifnazir.com/** with friends. The offline demo has an optional **Count this local play-test** checkbox and **Copy local stats** button. Consent starts a fresh local sample; withdrawing clears it. JSON contains votes/min, unique anonymous simulated participants and rounds, labelled simulated. These are play-test counts, not evidence of live chat engagement. Hosted `/play` keeps its separate real-chat counts export.
+Share **https://streamervschat.kashifnazir.com/** with friends. The offline demo counts play-test stats locally from page load (in memory, no network, nothing stored), and **Copy my stats** is always enabled. The JSON has votes seen, rounds played and won, defences and damage, and is labelled simulated. These are play-test counts, not evidence of live chat engagement. Hosted `/play` keeps its separate real-chat counts export.
 
-**Rehearse 5-second cold open** starts one JAB with visibly simulated chat. Hold K or a calibrated webcam guard: the reducer must actually block it before BLOCKED! is shown. The shot starts with GUARD!, shows the actual defence, then highlights the tally. The rehearsal pauses after the first outcome; New match returns to normal play. Record the five seconds with OBS. A missed block is labelled a failed take. See [cold-open shot plan](COLD-OPEN.md).
+**Rehearse 5-second cold open** (on `/play`; on the homepage the MORE TO TRY block that holds it is hidden since 1 November) starts one JAB with visibly simulated chat. Hold K or a calibrated webcam guard: the reducer must actually block it before BLOCKED! is shown. The shot starts with GUARD!, shows the actual defence, then highlights the tally. The rehearsal pauses after the first outcome; New match returns to normal play. Record the five seconds with OBS. A missed block is labelled a failed take. See [cold-open shot plan](COLD-OPEN.md).
 
 FX are presentation only: hit-stop and rail shake never pause combat, pose input, votes or telegraphs. `?fx=calm` removes shake and replaces slams with fades; reduced-motion preference also enables calm automatically. Sound starts off in the demo; OBS requests sound on, subject to browser autoplay permission. M toggles mute.
 

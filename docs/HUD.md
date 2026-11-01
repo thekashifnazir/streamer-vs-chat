@@ -53,7 +53,7 @@ Downscaled every HUD to 400×225 (about a phone's inline Twitch player) and look
 - B's first chevrons were too small at phone size; I made them 170 px and the `LEAN` label 76 px (now in the shot).
 
 ## Framing (measured on Kash's webcam)
-These are Kash's figures from a real clip: 1280x720, low camera, waist-up, hips out of frame. They are MEASURED on his side, and the rail maths below is INFERRED from them. The clip is 16:9 like the 1920x1080 overlay, so the frame fractions carry over. B's rails cover x < 0.245 and x > 0.755. Body edge = shoulder midpoint ± half the shoulder width, and the mirror image of any range is 1 − x.
+These are Kash's figures from a real clip: 1280x720, low camera, waist-up, hips out of frame. They are MEASURED on Kash's side, and the rail maths below is INFERRED from them. The clip is 16:9 like the 1920x1080 overlay, so the frame fractions carry over. B's rails cover x < 0.245 and x > 0.755. Body edge = shoulder midpoint ± half the shoulder width, and the mirror image of any range is 1 − x.
 
 | Pose | Shoulder midpoint | Shoulder width | Full-lean midpoint | Body edges at full lean | Under a rail? |
 |---|---|---|---|---|---|
