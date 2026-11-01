@@ -5,7 +5,7 @@ const CONTROLS:Control[]=[{id:'posture',key:'posture'},{id:'no-punch',key:'noPun
 // A ?mode= link also holds for this tab (sessionStorage), so Crowd Trainer survives the Twitch login round trip on /play.
 export const VISIT_MODE_KEY=`${PREFS_PREFIX}visit-mode`;
 /** Loads saved setup choices into the existing controls, saves later changes, and adds a Reset settings link. URL values win for the visit. */
-export function bindSetupPrefs(doc:Document,options:{store:PrefsStore;search:string;setup:{readonly difficultyByHand:boolean;resetDifficulty():void};sound?:{get():boolean;set(on:boolean):void;target:EventTarget};plain?:HTMLInputElement|null;visit?:()=>Storage|null|undefined}){
+export function bindSetupPrefs(doc:Document,options:{store:PrefsStore;search:string;/** Page defaults under anything saved, e.g. the landing's webcam-first input on a computer. */defaults?:Partial<Prefs>;setup:{readonly difficultyByHand:boolean;resetDifficulty():void};sound?:{get():boolean;set(on:boolean):void;target:EventTarget};plain?:HTMLInputElement|null;visit?:()=>Storage|null|undefined}){
  const {store,setup,sound,plain}=options,Event=doc.defaultView!.Event;
  const get=<T extends HTMLElement>(id:string)=>doc.getElementById(id) as T|null;
  const read=(control:Control):Prefs[Control['key']]|undefined=>{const element=get<HTMLInputElement&HTMLSelectElement>(control.id);if(!element)return undefined;return typeof PREF_FIELDS[control.key].fallback==='boolean'?element.checked:control.key==='crowd'?Number(element.value) as Prefs['crowd']:element.value as Prefs['input'];};
@@ -29,7 +29,7 @@ export function bindSetupPrefs(doc:Document,options:{store:PrefsStore;search:str
  }
  const url=urlPrefs(options.search);let visit:Partial<Prefs>={};
  try{const session=options.visit?.();if(url.mode)session?.setItem(VISIT_MODE_KEY,url.mode);else visit=cleanPrefs({mode:session?.getItem(VISIT_MODE_KEY)});}catch{/* Blocked session storage: the link holds until the next page load. */}
- apply({...store.load(),...visit,...url});
+ apply({...defaultPrefs(),...cleanPrefs(options.defaults),...store.stored(),...visit,...url});
  const save=(patch:Partial<Prefs>)=>{if(!applying)store.save(patch);};
  for(const control of CONTROLS)get(control.id)?.addEventListener('change',()=>{const value=read(control);if(value!==undefined)save({[control.key]:value});});
  // Clicking the already-selected level still counts as a choice, but fires no change event.
@@ -44,7 +44,7 @@ export function bindSetupPrefs(doc:Document,options:{store:PrefsStore;search:str
  const row=doc.createElement('p');row.className='reset-settings-row';row.innerHTML='<button id="reset-settings" type="button" class="text-button">Reset settings</button> <span role="status"></span>';
  more?.append(row);
  row.querySelector('button')!.addEventListener('click',()=>{
-  // Keyboard/webcam stays as it is so a running camera is not switched off; the next visit starts on keyboard.
+  // Keyboard/webcam stays as it is so a running camera is not switched off; the next visit starts on the page default.
   store.reset();forgetVisit();const defaults=defaultPrefs();apply({...defaults,input:(read(CONTROLS.at(-1)!) as Prefs['input']|undefined)??defaults.input});setup.resetDifficulty();
   row.querySelector('[role=status]')!.textContent='Settings reset.';
  });

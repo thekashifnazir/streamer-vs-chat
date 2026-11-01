@@ -4,14 +4,14 @@ import {afterEach,expect,it,vi} from 'vitest';
 import {mountFightSetup} from './setup-ui';
 import {mountDemoLanding} from './demo-landing';
 import {mountHostedFlow} from './hosted-flow';
-import {createPrefs,PREFS_KEY} from './prefs';
+import {createPrefs,PREFS_KEY,type Prefs} from './prefs';
 import {bindSetupPrefs,VISIT_MODE_KEY} from './setup-prefs';
 import {mountTrainer} from './trainer-ui';
 const windows:JSDOM[]=[];
 afterEach(()=>{for(const dom of windows)dom.window.close();windows.length=0;vi.unstubAllGlobals();});
 function memoryStorage():Storage{const data=new Map<string,string>();return {get length(){return data.size;},key:i=>[...data.keys()][i]??null,getItem:key=>data.get(key)??null,setItem:(key,value)=>{data.set(key,String(value));},removeItem:key=>{data.delete(key);},clear:()=>data.clear()};}
 /** One page load: fresh DOM, the same storage. */
-function load(storage:Storage,{page='index.html',search='',trainer:withTrainer=false,session}:{page?:'index.html'|'play/index.html';search?:string;trainer?:boolean;session?:Storage}={}){
+function load(storage:Storage,{page='index.html',search='',trainer:withTrainer=false,session,defaults}:{page?:'index.html'|'play/index.html';search?:string;trainer?:boolean;session?:Storage;defaults?:Partial<Prefs>}={}){
  const dom=new JSDOM(readFileSync(new URL(`../${page}`,import.meta.url),'utf8'));windows.push(dom);vi.stubGlobal('Event',dom.window.Event);
  const doc=dom.window.document;if(page==='index.html')mountDemoLanding(doc);else mountHostedFlow(doc);
  // Same order as main.ts: Trainer mounts its mode choice before the preferences bind.
@@ -19,7 +19,7 @@ function load(storage:Storage,{page='index.html',search='',trainer:withTrainer=f
  const setup=mountFightSetup(doc,{onStart:vi.fn(),onWebcamStart:vi.fn(),now:()=>0,simplifiedCalibration:page!=='index.html',workout:()=>!!trainer?.selected});
  const label=doc.createElement('label'),plain=doc.createElement('input');plain.type='checkbox';label.append(plain);doc.body.append(label);
  const target=new dom.window.EventTarget();let on=true;const sound={get:()=>on,set:(value:boolean)=>{on=value;target.dispatchEvent(new dom.window.Event('rails-sound-change'));},target};
- const prefs=bindSetupPrefs(doc,{store:createPrefs(()=>storage),search,setup,sound,plain,visit:()=>session});
+ const prefs=bindSetupPrefs(doc,{store:createPrefs(()=>storage),search,setup,sound,plain,visit:()=>session,defaults});
  const byId=<T extends HTMLElement>(id:string)=>doc.getElementById(id) as T;
  const value=(id:string)=>byId<HTMLSelectElement>(id).value;
  const click=(selector:string)=>doc.querySelector<HTMLButtonElement>(selector)!.click();
@@ -96,4 +96,12 @@ it('/play: a ?mode=trainer link survives the Twitch login round trip in this tab
  back.click('[data-trainer-mode=boss]');expect(session.getItem(VISIT_MODE_KEY)).toBeNull();expect(load(storage,{page,trainer:true,session}).trainer.mode).toBe('boss');
  // A new tab has no link held: the saved choice applies.
  expect(load(storage,{page,trainer:true,session:memoryStorage()}).trainer.mode).toBe('boss');
+});
+it('a page default (the landing\'s webcam-first input) applies only until the visitor saves a choice; ?input= still wins',()=>{
+ const storage=memoryStorage(),first=load(storage,{defaults:{input:'pose'}});
+ expect(first.value('input-source')).toBe('pose');expect(first.value('start-difficulty')).toBe('easy');expect(storage.getItem(PREFS_KEY)).toBeNull();
+ first.click('#demo-keyboard');expect(first.value('input-source')).toBe('keyboard');
+ const second=load(storage,{defaults:{input:'pose'}});expect(second.value('input-source')).toBe('keyboard');expect(second.value('start-difficulty')).toBe('medium');
+ expect(load(memoryStorage(),{defaults:{input:'pose'},search:'?input=keyboard'}).value('input-source')).toBe('keyboard');
+ expect(load(memoryStorage()).value('input-source')).toBe('keyboard');
 });

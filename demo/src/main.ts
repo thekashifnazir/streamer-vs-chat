@@ -1,6 +1,7 @@
 import {createGuardResume} from './hosted-pause';
 import {createSelectedGame,difficultyLabel} from './difficulty-choice';
-import {mountDemoLanding} from './demo-landing';
+import {defaultLandingInput,mountDemoLanding} from './demo-landing';
+import {mountLandingHistory} from './landing-history';
 import {mountFightUi} from './fight-ui';
 import {showCameraError} from './camera-feedback';
 import {mountShareTools} from './share-tools';
@@ -288,6 +289,8 @@ const setup=mountFightSetup(document,{keyboardRequiresClearSpace:false,simplifie
 fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{trainer.exit();updateModes();if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(trainer.active){trainer.exit();updateModes();}if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
 // Offline demo: the real voice coach (Boss Fight only), no request until the click; see coach-button.ts.
 const demoCoach=liveMode?null:mountDemoCornerCoach(document,{getState:()=>trainer.selected||trainer.active||coldOpenAt!==null?null:game,onActive:active=>fightUi?.hold(active)});
+// Offline demo: browser Back returns to the homepage hero instead of leaving the site; mid-round it pauses first.
+if(!liveMode)mountLandingHistory(window,{away:()=>document.body.classList.contains('fight-started')||document.body.classList.contains('webcam-open'),midFight:()=>!showSessionSummary&&(trainer.running||(tutorialStarted&&!game)||(!!game&&!game.round.over&&!game.match.winner)),paused:()=>!!fightUi?.paused,pause:()=>{setup.cancel();keyboard.release();pauseWith('you pressed Back · Back again goes to the homepage');},home:()=>{setup.cancel();if(document.body.classList.contains('webcam-open'))setup.close(false);if(document.body.classList.contains('fight-started'))document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click();el('onboarding-row').scrollIntoView?.({block:'start'});}});
 /** Leave a rehearsal take for the landing page, keeping its result line on screen. */
 function leaveColdOpen(){clearColdOpen();game=null;crowd=null;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('cold-open-status').scrollIntoView?.({block:'center'});}
 const calibration=createCalibration({onChange(snapshot){
@@ -438,8 +441,8 @@ if(liveMode){
   // connected streamer never sees step 1's Connect Twitch flash before step 2.
   await Promise.race([hosted.settled,new Promise(resolve=>setTimeout(resolve,2500))]);
 }
-// Setup choices survive a reload (localStorage, guarded); URL values win for the visit.
-bindSetupPrefs(document,{store:createPrefs(()=>window.localStorage),visit:()=>window.sessionStorage,search:location.search,setup,sound:{get:()=>hud.soundRequested(),set:on=>{void hud.setSoundRequested(on);},target:host},plain:host.querySelector<HTMLInputElement>('[data-id=plain]')});
+// Setup choices survive a reload (localStorage, guarded); URL values win for the visit. The demo starts on webcam on a computer unless a choice is saved.
+bindSetupPrefs(document,{store:createPrefs(()=>window.localStorage),visit:()=>window.sessionStorage,search:location.search,...(liveMode?{}:{defaults:{input:defaultLandingInput(window)}}),setup,sound:{get:()=>hud.soundRequested(),set:on=>{void hud.setSoundRequested(on);},target:host},plain:host.querySelector<HTMLInputElement>('[data-id=plain]')});
 // After hosted flow has moved the Sound switch into its options, so the picker sits beside it.
 // Before game sound starts, ▶ plays through a plain audio element (still only with Sound on).
 const soundLabel=streamSound?.closest('label');

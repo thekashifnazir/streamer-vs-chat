@@ -343,8 +343,8 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
    Boss art is frames of the CC0 boss sheet the HUD already loads (assets/boss), cut by --fx/--fy/--fw/--fh in sheet pixels.
    Desktop: two columns. Under 1000 px both columns dissolve (display:contents) so phones get wordmark, PLAY NOW, modes, clip. */
 .offline-demo-page .boss-frame,#landing-modes [data-trainer-mode]::before{background:url('../../assets/boss/boss-sheet@1x.webp') no-repeat;background-size:calc(4096 / var(--fw) * 100%) calc(1315 / var(--fh) * 100%);background-position:calc(var(--fx) / (4096 - var(--fw)) * 100%) calc(var(--fy) / (1315 - var(--fh)) * 100%);aspect-ratio:var(--fw) / var(--fh)}
-.offline-demo-page:not(.fight-started):not(.webcam-open) .demo-header .wordmark{display:none}.offline-demo-page:not(.fight-started):not(.webcam-open) .demo-header{justify-content:flex-end;border-bottom:0;background:transparent}
-.offline-demo-page #onboarding-row{margin-top:12px}
+.offline-demo-page:not(.fight-started):not(.webcam-open) .demo-header{display:none}
+.offline-demo-page #onboarding-row{margin-top:24px}
 .offline-demo-page #demo-intro{position:relative;display:flex;flex-direction:column;gap:18px;height:auto;padding:0;border:0;border-radius:0;background:none;text-align:left}
 .offline-demo-page #demo-intro>.landing-main,.offline-demo-page #demo-intro>.landing-side{display:contents}
 .landing-mast{position:relative}
@@ -352,7 +352,7 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .landing-mark>span{display:block}.landing-mark .mark-streamer{color:var(--yellow)}
 .landing-mark b{display:inline-grid;place-items:center;width:1.05em;height:1.05em;margin:.04em .08em .04em 0;border-radius:50%;background:var(--pink);color:#f5f2fa;font-weight:400;font-size:.55em;line-height:1;vertical-align:.35em;transform:rotate(-8deg)}
 .landing-boss{--fx:1540;--fy:0;--fw:364;--fh:443;position:absolute;z-index:2;right:-5%;bottom:-8px;height:84%;filter:drop-shadow(6px 6px 0 #0c0912)}
-.offline-demo-page #demo-intro .landing-lede{margin:0;max-width:32ch;font:700 21px/1.3 Barlow,'Arial Narrow',sans-serif;color:#e8e3ee}
+.offline-demo-page #demo-intro .landing-lede{margin:0;max-width:34ch;font:600 20px/1.4 system-ui,sans-serif;color:#f5f2fa}
 #landing-modes .trainer-mode-choice{margin:0}
 #landing-modes .trainer-mode-choice h3{margin:6px 0 10px;font:400 26px/1 Anton,Impact,sans-serif;letter-spacing:.3px;color:#f5f2fa}
 #landing-modes .option-group{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -360,47 +360,57 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 #landing-modes [data-trainer-mode]::before{content:'';position:absolute;left:50%;bottom:100px;height:176px;transform:translateX(-50%);transition:transform .3s}
 #landing-modes [data-trainer-mode=boss]::before{--fx:2105;--fy:479;--fw:384;--fh:416}
 #landing-modes [data-trainer-mode=trainer]::before{--fx:768;--fy:902;--fw:375;--fh:407}
-#landing-modes [data-trainer-mode] small{display:block;margin-top:6px;font:700 17px/1.15 Barlow,'Arial Narrow',sans-serif;text-transform:none;color:#c2bdcd}
+#landing-modes [data-trainer-mode] small{display:block;margin-top:6px;font:500 15px/1.3 system-ui,sans-serif;text-transform:none;color:#e8e3ee}
 #landing-modes [data-trainer-mode]:hover{border-color:#7a6a96}#landing-modes [data-trainer-mode]:hover::before{transform:translateX(-50%) scale(1.04)}
 #landing-modes [data-trainer-mode].selected{border-color:var(--yellow);background:linear-gradient(to top,var(--yellow) 0 var(--plate-h),transparent var(--plate-h)),repeating-linear-gradient(135deg,#3a2a12 0 14px,#33240f 14px 28px);color:#0c0912}
-#landing-modes [data-trainer-mode].selected small{color:#3a2f1a}
+#landing-modes [data-trainer-mode].selected small{color:#2b2112}
 #landing-modes [data-trainer-mode].selected::after{content:'✓ Picked';position:absolute;top:10px;left:10px;padding:5px 9px;border-radius:4px;background:var(--yellow);color:#0c0912;font:900 16px/1 Barlow,sans-serif;text-transform:none}
 #landing-modes .trainer-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;justify-items:stretch}
-#landing-modes .trainer-options label{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-height:64px;padding:10px 12px;box-sizing:border-box;border:1px solid #3a2f4d;border-radius:8px;background:#15101e;font:700 15px/1.2 Barlow,'Arial Narrow',sans-serif;cursor:pointer}
+#landing-modes .trainer-options label{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-height:72px;padding:12px 14px;box-sizing:border-box;border:1px solid #4a3d60;border-radius:8px;background:#15101e;font:400 15px/1.35 system-ui,sans-serif;color:#e8e3ee;cursor:pointer}
 #landing-modes .trainer-options label:has(:checked){border-color:var(--pink)}
-#landing-modes .trainer-options strong{font-size:18px;font-weight:900}
+#landing-modes .trainer-options strong{font-size:17px;font-weight:600;color:#fff}
 #landing-modes .trainer-options input[role=switch]{order:2;appearance:none;-webkit-appearance:none;position:relative;width:46px;height:28px;margin:0;border:0;border-radius:999px;background:#3a2f4d;cursor:pointer;transition:background .2s}
 #landing-modes .trainer-options input[role=switch]::before{content:'';position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#c2bdcd;transition:transform .2s}
 #landing-modes .trainer-options input[role=switch]:checked{background:var(--pink)}#landing-modes .trainer-options input[role=switch]:checked::before{transform:translateX(18px);background:#fff}
 .offline-demo-page #demo-intro #landing-loop{position:relative;margin:0;max-width:none;padding:10px;box-sizing:border-box;border:1px solid #7a6a96;border-radius:12px;background:#07050b}
 .offline-demo-page #landing-loop video{border:0;border-radius:4px;background:#07050b}
-.offline-demo-page #landing-loop figcaption{margin:10px 4px 0;font:700 16px/1.3 Barlow,'Arial Narrow',sans-serif;color:#c2bdcd}
+.offline-demo-page #landing-loop figcaption{margin:10px 4px 0;font:500 15px/1.35 system-ui,sans-serif;color:#e8e3ee}
 .offline-demo-page #landing-loop .loop-badge{position:absolute;left:22px;top:22px;margin:0;padding:6px 10px;border-radius:4px;font:900 17px/1 Barlow,sans-serif;letter-spacing:.5px}
 .landing-play{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:stretch}
+/* Primary path: your real Twitch stream. Secondary: the fake-chat demo in its own labelled box, webcam first. */
+.landing-live{display:flex;flex-direction:column;gap:8px}
+.offline-demo-page #demo-intro .landing-twitch{display:flex;align-items:center;justify-content:center;gap:14px;min-height:92px;padding:10px 20px;box-sizing:border-box;border-radius:8px;background:#9146ff;color:#fff;font:400 clamp(30px,3vw,46px)/1 Anton,Impact,sans-serif;letter-spacing:.3px;text-decoration:none;box-shadow:0 6px 0 #5c16c5;transition:transform .12s,box-shadow .12s}
+.offline-demo-page #demo-intro .landing-twitch:hover{transform:translateY(-2px);box-shadow:0 8px 0 #5c16c5}.offline-demo-page #demo-intro .landing-twitch:active{transform:translateY(4px);box-shadow:0 2px 0 #5c16c5}
+.offline-demo-page #demo-intro .landing-twitch:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+.landing-twitch svg{width:.9em;height:.9em;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.twitch-label{display:flex;flex-direction:column;align-items:center;text-align:center}.twitch-phone{display:none;margin-top:6px;font:600 14px/1.2 system-ui,sans-serif;letter-spacing:0}
+.offline-demo-page #demo-intro .landing-live-note{margin:0;font:400 15px/1.4 system-ui,sans-serif;color:#e8e3ee}
+.landing-try{display:flex;flex-direction:column;gap:12px;padding:14px 16px;border:1px solid #4a3d60;border-radius:10px;background:#15101e}
+.landing-try-head{display:flex;justify-content:space-between;align-items:center;gap:6px 16px;flex-wrap:wrap}
+.offline-demo-page #demo-intro .landing-try-title{margin:0;font:400 16px/1.3 system-ui,sans-serif;color:#e8e3ee;letter-spacing:0;text-align:left}.landing-try-title b{color:var(--yellow);font-weight:700}
+.for-trainer,.trainer-mode .landing-input .for-boss{display:none}.trainer-mode .landing-input .for-trainer{display:inline}
 .landing-input{display:flex;flex-direction:column;gap:6px}
-.offline-demo-page .landing-input button{display:flex;align-items:center;gap:10px;flex:1;min-height:52px;margin:0;padding:6px 14px;border:2px solid #3a2f4d;border-radius:6px;background:transparent;color:#c2bdcd;font:900 19px/1.05 Barlow,'Arial Narrow',sans-serif;text-align:left;cursor:pointer}
-.landing-input button small{display:block;font-size:15px;font-weight:700}
-.offline-demo-page .landing-input button[aria-pressed=true]{border-color:#f5f2fa;color:#f5f2fa;background:#ffffff14}
-.landing-input svg,.landing-links svg,#play-now>svg{width:1.3em;height:1.3em;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.offline-demo-page #demo-intro #play-now{display:flex;align-items:center;justify-content:center;gap:16px;width:100%;min-height:100px;margin:0;padding:8px 20px;border:0;border-radius:8px;background:var(--yellow);color:#0c0912;font:400 clamp(40px,3.8vw,58px)/1 Anton,Impact,sans-serif;box-shadow:0 6px 0 #b8941a;cursor:pointer;transition:transform .12s,box-shadow .12s}
-.offline-demo-page #demo-intro #play-now:hover{transform:translateY(-2px);box-shadow:0 8px 0 #b8941a}.offline-demo-page #demo-intro #play-now:active{transform:translateY(4px);box-shadow:0 2px 0 #b8941a}
+.offline-demo-page .landing-input button{display:flex;align-items:center;gap:10px;flex:1;min-height:56px;margin:0;padding:6px 14px;border:2px solid #4a3d60;border-radius:6px;background:transparent;color:#e8e3ee;font:700 17px/1.2 system-ui,sans-serif;text-align:left;cursor:pointer}
+.landing-input button small{display:block;margin-top:2px;font-size:14px;font-weight:400}
+.offline-demo-page .landing-input button[aria-pressed=true]{border-color:var(--yellow);color:#fff;background:#ffdc4314}
+.landing-input svg,#play-now>svg{width:1.3em;height:1.3em;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.offline-demo-page #demo-intro #play-now{display:flex;align-items:center;justify-content:center;gap:16px;width:100%;min-height:100px;margin:0;padding:8px 20px;border:3px solid var(--yellow);border-radius:8px;background:transparent;color:var(--yellow);font:400 clamp(32px,2.9vw,44px)/1 Anton,Impact,sans-serif;cursor:pointer;transition:transform .12s,background .12s}
+.offline-demo-page #demo-intro #play-now:hover{transform:translateY(-2px);background:#ffdc431f}.offline-demo-page #demo-intro #play-now:active{transform:translateY(2px)}
 #play-now>svg{width:.62em;height:.62em}
 .play-label{display:flex;flex-direction:column;align-items:center}.play-sep{display:none}
-.play-sub{margin-top:5px;font:900 18px/1 Barlow,'Arial Narrow',sans-serif;letter-spacing:.6px}.play-sub::before{content:'WITH '}
-.landing-row{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.play-sub{margin-top:6px;font:700 14px/1 system-ui,sans-serif;letter-spacing:.8px}.play-sub::before{content:'WITH '}
 .offline-demo-page #demo-intro .landing-links{justify-content:flex-start;gap:16px}
-.landing-links a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;box-sizing:border-box;border:2px solid var(--cyan);border-radius:6px;color:var(--cyan);font:900 18px/1.1 Barlow,'Arial Narrow',sans-serif;text-decoration:none}
+.landing-links a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;box-sizing:border-box;border:2px solid var(--cyan);border-radius:6px;color:var(--cyan);font:700 16px/1.2 system-ui,sans-serif;text-decoration:none}
 .landing-links a:hover{background:#2ef2ff1a}
-.offline-demo-page #demo-intro .landing-options{margin:0;font:700 18px/1.2 Barlow,'Arial Narrow',sans-serif;color:#c2bdcd}
+.offline-demo-page #demo-intro .landing-options{margin:0;font:400 15px/1.3 system-ui,sans-serif;color:#e8e3ee}
 .offline-demo-page #demo-intro #demo-options{min-height:44px;padding:0 4px;border:0;background:transparent;color:#f5f2fa;font:inherit;text-decoration:underline;cursor:pointer}
-.offline-demo-page #demo-intro .landing-real-note{margin:-6px 0 0;max-width:none;font:700 15px/1.35 Barlow,'Arial Narrow',sans-serif;opacity:1;color:#c2bdcd;text-align:left}
 .offline-demo-page #demo-intro #demo-more-options{max-width:none;margin:0}
 .landing-how{display:flex;align-items:stretch;overflow:hidden;border:1px solid #3a2f4d;border-radius:8px;background:#15101e}
 .offline-demo-page #demo-intro .landing-how h2{display:grid;place-items:center;margin:0;padding:0 22px;background:var(--pink);color:#0c0912;font:400 26px/1 Anton,Impact,sans-serif;letter-spacing:.3px;text-align:center}
 .landing-how ol{display:flex;flex:1;margin:0;padding:0;list-style:none}
 .landing-how li{flex:1;display:flex;align-items:center;gap:12px;padding:14px 20px}.landing-how li+li{border-left:1px solid #3a2f4d}
 .landing-how b{font:400 38px/1 Anton,Impact,sans-serif;color:var(--yellow)}
-.landing-how li>span{font:700 17px/1.2 Barlow,'Arial Narrow',sans-serif;color:#c2bdcd}.landing-how strong{display:block;font-size:20px;font-weight:900;color:#f5f2fa}
+.landing-how li>span{font:400 15px/1.35 system-ui,sans-serif;color:#e8e3ee}.landing-how strong{display:block;margin-bottom:2px;font-size:17px;font-weight:700;color:#fff}
 .offline-demo-page .landing-how .how-trainer,.offline-demo-page.trainer-mode .landing-how .how-boss{display:none}.offline-demo-page.trainer-mode .landing-how .how-trainer{display:flex}
 @media(min-width:1000px){
  .offline-demo-page #onboarding-row{width:calc(100% - 48px);max-width:1400px}
@@ -409,23 +419,28 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  .offline-demo-page #demo-intro>.landing-main{grid-column:1}.offline-demo-page #demo-intro>.landing-side{grid-column:2}.offline-demo-page #demo-intro>.landing-how{grid-column:1/-1}
 }
 @media(max-width:999px){
- .landing-mast{order:1}.landing-lede{order:2}.landing-play{order:3}#landing-modes{order:4}.offline-demo-page #landing-loop{order:5}.landing-row{order:6}.landing-real-note{order:7}.offline-demo-page #demo-more-options{order:8}.landing-how{order:9}
+ .landing-mast{order:1}.landing-lede{order:2}.landing-live{order:3}.landing-try{order:4}#landing-modes{order:5}.offline-demo-page #landing-loop{order:6}.landing-how{order:9}
 }
 @media(max-width:760px){
  .offline-demo-page #demo-intro{gap:14px}
  .offline-demo-page #demo-intro .landing-mark{font-size:clamp(48px,16vw,76px)}
  .landing-boss{right:2%}
  .offline-demo-page #demo-intro .landing-lede{font-size:18px}
+ .landing-try{order:3;padding:12px}.landing-live{order:4}
  .landing-play{grid-template-columns:minmax(0,1fr);gap:10px}.landing-input{flex-direction:row}.offline-demo-page .landing-input button{justify-content:center;min-height:48px}.landing-input button small{display:none}
- .offline-demo-page #demo-intro #play-now{min-height:76px;font-size:40px}
+ .offline-demo-page #demo-intro #play-now{min-height:76px;font-size:34px}.offline-demo-page #demo-intro .landing-twitch{min-height:72px;gap:10px;padding:10px 12px;font-size:23px}
  #landing-modes .option-group{gap:10px}#landing-modes [data-trainer-mode]{--plate-h:84px;height:230px;padding:0 10px 10px;font-size:22px}
  #landing-modes [data-trainer-mode]::before{bottom:88px;height:128px}#landing-modes [data-trainer-mode] small{font-size:14px}
  #landing-modes .trainer-options{grid-template-columns:minmax(0,1fr)}
  .offline-demo-page #demo-intro #landing-loop{padding:6px}.offline-demo-page #landing-loop .loop-badge{left:12px;top:12px;font-size:13px;padding:4px 7px}.offline-demo-page #landing-loop figcaption{font-size:14px}
- .landing-row{flex-direction:column;align-items:flex-start}
  .landing-how{flex-direction:column}.offline-demo-page #demo-intro .landing-how h2{padding:10px}.landing-how ol{flex-direction:column}.landing-how li{padding:10px 14px}.landing-how li+li{border-left:0;border-top:1px solid #3a2f4d}
 }
-@media(prefers-reduced-motion:reduce){#landing-modes [data-trainer-mode],#landing-modes [data-trainer-mode]::before,#landing-modes .trainer-options input[role=switch],#landing-modes .trainer-options input[role=switch]::before,.offline-demo-page #demo-intro #play-now{transition:none}#landing-modes [data-trainer-mode]:hover::before{transform:translateX(-50%)}.offline-demo-page #demo-intro #play-now:hover,.offline-demo-page #demo-intro #play-now:active{transform:none}}
+/* Phone or touch tablet (PHONE_QUERY in demo-landing.ts): the demo, on keyboard/tap, is the main button; the Twitch button says it needs a computer. */
+@media (max-width: 760px), (hover: none) and (pointer: coarse){
+ .offline-demo-page #demo-intro #play-now{border:0;background:var(--yellow);color:#0c0912;box-shadow:0 6px 0 #b8941a}
+ .offline-demo-page #demo-intro .landing-twitch{background:transparent;border:3px solid #9146ff;color:#e3d2ff;box-shadow:none}.twitch-phone{display:block}
+}
+@media(prefers-reduced-motion:reduce){.offline-demo-page #demo-intro .landing-twitch,#landing-modes [data-trainer-mode],#landing-modes [data-trainer-mode]::before,#landing-modes .trainer-options input[role=switch],#landing-modes .trainer-options input[role=switch]::before,.offline-demo-page #demo-intro #play-now{transition:none}#landing-modes [data-trainer-mode]:hover::before{transform:translateX(-50%)}.offline-demo-page #demo-intro #play-now:hover,.offline-demo-page #demo-intro #play-now:active{transform:none}}
 /* ── end landing hero ── */
 /* Offline demo SIMULATED chat panel (sim-chat.ts). Sized in stage container units: the Boss Fight panel
    sits in the streamer rail between the defence card and the SIMULATED CHAT badge; Crowd Trainer puts it
