@@ -1,0 +1,72 @@
+import {readFileSync} from 'node:fs';
+import {JSDOM} from 'jsdom';
+import {afterEach,expect,it,vi} from 'vitest';
+import {mountFightSetup} from './setup-ui';
+import {mountDemoLanding} from './demo-landing';
+import {mountHostedFlow} from './hosted-flow';
+import {createPrefs,PREFS_KEY} from './prefs';
+import {bindSetupPrefs} from './setup-prefs';
+const windows:JSDOM[]=[];
+afterEach(()=>{for(const dom of windows)dom.window.close();windows.length=0;vi.unstubAllGlobals();});
+function memoryStorage():Storage{const data=new Map<string,string>();return {get length(){return data.size;},key:i=>[...data.keys()][i]??null,getItem:key=>data.get(key)??null,setItem:(key,value)=>{data.set(key,String(value));},removeItem:key=>{data.delete(key);},clear:()=>data.clear()};}
+/** One page load: fresh DOM, the same storage. */
+function load(storage:Storage,{page='index.html',search=''}:{page?:'index.html'|'play/index.html';search?:string}={}){
+ const dom=new JSDOM(readFileSync(new URL(`../${page}`,import.meta.url),'utf8'));windows.push(dom);vi.stubGlobal('Event',dom.window.Event);
+ const doc=dom.window.document;if(page==='index.html')mountDemoLanding(doc);else mountHostedFlow(doc);
+ const setup=mountFightSetup(doc,{onStart:vi.fn(),onWebcamStart:vi.fn(),now:()=>0,simplifiedCalibration:page!=='index.html'});
+ const label=doc.createElement('label'),plain=doc.createElement('input');plain.type='checkbox';label.append(plain);doc.body.append(label);
+ const target=new dom.window.EventTarget();let on=true;const sound={get:()=>on,set:(value:boolean)=>{on=value;target.dispatchEvent(new dom.window.Event('rails-sound-change'));},target};
+ const prefs=bindSetupPrefs(doc,{store:createPrefs(()=>storage),search,setup,sound,plain});
+ const byId=<T extends HTMLElement>(id:string)=>doc.getElementById(id) as T;
+ const value=(id:string)=>byId<HTMLSelectElement>(id).value;
+ const click=(selector:string)=>doc.querySelector<HTMLButtonElement>(selector)!.click();
+ const change=(id:string,next:string|boolean)=>{const element=byId<HTMLInputElement&HTMLSelectElement>(id);if(typeof next==='boolean')element.checked=next;else element.value=next;element.dispatchEvent(new dom.window.Event('change'));};
+ return {doc,prefs,sound,plain,byId,value,click,change,setup};
+}
+it.each(['index.html','play/index.html'] as const)('%s: a reload restores difficulty, input, posture, defence only, sound, crowd and plain',page=>{
+ const storage=memoryStorage(),first=load(storage,{page});
+ first.click('[data-option-for=start-difficulty][data-value=expert]');first.change('input-source','pose');first.change('posture','seated');first.change('no-punch',true);first.change('crowd-size','500');first.sound.set(false);first.plain.checked=true;first.plain.dispatchEvent(new first.doc.defaultView!.Event('change'));
+ const again=load(storage,{page});
+ expect([again.value('start-difficulty'),again.value('input-source'),again.value('posture'),again.value('crowd-size')]).toEqual(['expert','pose','seated','500']);
+ expect(again.byId<HTMLInputElement>('no-punch').checked).toBe(true);expect(again.sound.get()).toBe(false);expect(again.plain.checked).toBe(true);
+ expect(again.doc.querySelector('[data-option-for=start-difficulty][data-value=expert]')!.getAttribute('aria-pressed')).toBe('true');
+ expect(again.setup.difficultyByHand).toBe(true);
+ // The clear-space safety check is never remembered.
+ expect(again.byId<HTMLInputElement>('clear-space').checked).toBe(false);
+});
+it('webcam still preselects Easy when no level was ever picked, and the auto Easy is not saved',()=>{
+ const storage=memoryStorage(),first=load(storage);
+ first.click('#demo-webcam');expect(first.value('start-difficulty')).toBe('easy');
+ expect(JSON.parse(storage.getItem(PREFS_KEY)!)).toEqual({input:'pose'});
+ const again=load(storage);expect(again.value('input-source')).toBe('pose');expect(again.value('start-difficulty')).toBe('easy');expect(again.setup.difficultyByHand).toBe(false);
+ again.change('input-source','keyboard');expect(again.value('start-difficulty')).toBe('medium');
+});
+it('a saved explicit level wins over the webcam Easy default, including a re-confirmed Medium',()=>{
+ const storage=memoryStorage(),first=load(storage);
+ first.click('[data-option-for=start-difficulty][data-value=medium]');expect(JSON.parse(storage.getItem(PREFS_KEY)!).difficulty).toBe('medium');
+ const again=load(storage);again.click('#demo-webcam');expect(again.value('start-difficulty')).toBe('medium');
+ const play=load(storage,{page:'play/index.html'});play.click('[data-defend=pose]');expect(play.value('start-difficulty')).toBe('medium');
+});
+it('URL values win for the visit without overwriting what was saved',()=>{
+ const storage=memoryStorage(),first=load(storage);first.click('[data-option-for=start-difficulty][data-value=hard]');first.change('crowd-size','3');
+ const linked=load(storage,{search:'?difficulty=easy&crowd=0&scout=fast'});expect(linked.value('start-difficulty')).toBe('easy');expect(linked.value('crowd-size')).toBe('0');
+ linked.click('#demo-webcam');expect(linked.value('start-difficulty')).toBe('easy');
+ expect(JSON.parse(storage.getItem(PREFS_KEY)!)).toMatchObject({difficulty:'hard',crowd:3});
+ const plain=load(storage);expect(plain.value('start-difficulty')).toBe('hard');expect(plain.value('crowd-size')).toBe('3');
+});
+it.each(['index.html','play/index.html'] as const)('%s: Reset settings sits in the options panel and restores defaults',page=>{
+ const storage=memoryStorage(),first=load(storage,{page});
+ first.click('[data-option-for=start-difficulty][data-value=expert]');first.change('no-punch',true);first.change('posture','seated');first.sound.set(false);first.change('input-source','pose');
+ const again=load(storage,{page}),button=again.byId<HTMLButtonElement>('reset-settings');
+ expect(button.closest(page==='index.html'?'#demo-more-options':'#play-more-options')).not.toBeNull();expect(button.textContent).toBe('Reset settings');
+ button.click();
+ expect(storage.getItem(PREFS_KEY)).toBeNull();expect(again.byId<HTMLInputElement>('no-punch').checked).toBe(false);expect(again.value('posture')).toBe('standing');expect(again.sound.get()).toBe(true);
+ // Input stays put (a running camera is not switched off) and difficulty goes back to its webcam default.
+ expect(again.value('input-source')).toBe('pose');expect(again.value('start-difficulty')).toBe('easy');expect(again.setup.difficultyByHand).toBe(false);
+ expect(button.nextElementSibling!.textContent).toBe('Settings reset.');
+ const fresh=load(storage,{page});expect(fresh.value('input-source')).toBe('keyboard');expect(fresh.value('start-difficulty')).toBe('medium');
+});
+it('blocked storage leaves the setup on its defaults and fully usable',()=>{
+ const blocked=()=>{throw new DOMException('denied','SecurityError');},storage={getItem:blocked,setItem:blocked,removeItem:blocked,key:blocked,get length():number{return blocked();}} as unknown as Storage;
+ const page=load(storage);expect(page.value('start-difficulty')).toBe('medium');page.click('[data-option-for=start-difficulty][data-value=hard]');expect(page.value('start-difficulty')).toBe('hard');page.byId<HTMLButtonElement>('reset-settings').click();expect(page.value('start-difficulty')).toBe('medium');
+});

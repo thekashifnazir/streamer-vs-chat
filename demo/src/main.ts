@@ -6,6 +6,8 @@ import {showCameraError} from './camera-feedback';
 import {mountShareTools} from './share-tools';
 import {createLeaveGuard} from './leave-guard';
 import {mountFightSetup} from './setup-ui';
+import {createPrefs} from './prefs';
+import {bindSetupPrefs} from './setup-prefs';
 import {createCalibrationProfiles} from '../../capture/src/calibration-profile';
 import {scoutPreviewConfig,SCOUT_PREVIEW_BADGE} from './scout-preview';
 import {createSuperNotices} from '../../shared/src/super-notices';
@@ -394,4 +396,6 @@ if(liveMode){
   // connected streamer never sees step 1's Connect Twitch flash before step 2.
   await Promise.race([hosted.settled,new Promise(resolve=>setTimeout(resolve,2500))]);
 }
+// Setup choices survive a reload (localStorage, guarded); URL values win for the visit.
+bindSetupPrefs(document,{store:createPrefs(()=>window.localStorage),search:location.search,setup,sound:{get:()=>hud.soundRequested(),set:on=>{void hud.setSoundRequested(on);},target:host},plain:host.querySelector<HTMLInputElement>('[data-id=plain]')});
 updateModes();paint();input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});
