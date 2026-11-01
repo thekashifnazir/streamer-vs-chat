@@ -1,6 +1,6 @@
 # Streamer vs Chat: notes for judges
 
-Twitch chat votes the boss's attacks; the streamer blocks and dodges on camera. Start with the 90-second path; the five-minute tour and the detail follow.
+Two ways to play: **Boss Fight** (Twitch chat votes the boss's attacks; the streamer blocks and dodges on camera) and **Crowd Trainer** (chat votes the combo the streamer throws, like a boxing class calling numbers). Start with the 90-second path; the 60-second Crowd Trainer path, the five-minute tour and the detail follow.
 
 **Address:** https://streamervschat.kashifnazir.com. The no-login demo is free. The Workers fallback is https://streamer-vs-chat.kash-553.workers.dev.
 
@@ -12,6 +12,19 @@ Twitch chat votes the boss's attacks; the streamer blocks and dodges on camera. 
 4. **Watch for the scouting card in round 2.** If you keep dodging to one side, a card on the left rail shows chat your habit; if chat keeps voting one move, a card on the right rail tells you. It needs enough evidence, so it may not appear every match; [the scout preview](https://streamervschat.kashifnazir.com/?scout=fast) (badged **SCOUT PREVIEW · SIMULATED**) shows it in round 1.
 5. **Press Esc** to pause: Resume / Restart / Quit to setup.
 6. **Test a boss in Boss Forge.** On the start screen (**End fight** takes you back there), open **Boss Forge**, pick a boss and press **Test this boss** to see its before/after win rates.
+
+<!-- VERIFY after trainer merge -->
+## The 60-second Crowd Trainer path
+
+For fitness and boxing or martial-arts streamers, and any streamer who wants chat to be part of a workout.
+
+1. **Open [streamervschat.kashifnazir.com/?mode=trainer](https://streamervschat.kashifnazir.com/?mode=trainer).** Chat is simulated and badged **SIMULATED**.
+2. **Read the code.** **1** = left (lead) hand, **2** = right (rear) hand, **S** = slip (a lean), **G** = guard. On the keyboard: **F** = 1, **J** = 2, **A/D** slip, **K** guard.
+3. **Throw what chat calls.** Chat votes combos such as `!12` (one-two), `!112`, `!121`, `!1212`, `!12s` (one-two, slip), `!s12`, `!12g` (one-two, guard) and `!2s2`, and votes the pace with `!faster` / `!slower`.
+4. **Watch the score.** Each combo is scored leniently: **CLEAN**, **PARTIAL** or **MISSED**. Options: **Southpaw**, and **any hand counts**.
+5. **Finish.** Three 60 s rounds with 20 s rest, then a workout summary. It makes no calorie or medical claims.
+
+The camera reads only which hand, slips and guard; it can't tell a jab from a hook or measure force ([what the webcam can and can't see](docs/WEBCAM.md)).
 
 ### What to look for
 
@@ -55,12 +68,12 @@ Clone and `npm ci` need network access to download the repository and packages. 
 
 Three end-to-end browser suites were run by the team outside this repo; not included. **MEASURED** at `74cc38d`: demo flows 8/8 (including a bot-played best-of-3 and the webcam path fed a recorded clip as a fake camera), a hosted `/play` journey 9/9 with Twitch and the Worker mocked in the browser, and responsive/a11y checks at 6 widths in Chromium and WebKit with Lighthouse accessibility 100 on `/` and `/play`.
 
-The Codex session ID is `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`. Kash directed; that thread made 57 code commits; after its weekly limit ran out, 16 labelled "fix (Claude Code)" commits finished the build. See [How Codex built this](README.md#how-codex-built-this) and [Fixes made with Claude Code](README.md#fixes-made-with-claude-code).
+The Codex session ID is `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`. The entry was built mostly with Codex on a Plus plan: Kash directed, and that one thread made 57 code commits up to its last turn (`3677761`, 31 October). Kash kept the work in Codex through repeated usage limits with short continues after each reset. With the weekly limit used up (4% left on 1 November, reset 5 November, after the deadline), the entry was finished with Claude Code: mostly polish and bug fixes from live tests, plus Crowd Trainer and recorded voice lines, every commit labelled "(Claude Code)". The measured split and the command to reproduce it: [How Codex built this](README.md#how-codex-built-this), [Finished with Claude Code](README.md#finished-with-claude-code), [usage-limit timeline](docs/codex-evidence.md#usage-limits-and-continues).
 
 ## 4. Known limits
 
 - Punches are optional bonus damage; no-punch mode keeps automatic defence counters.
-- The webcam needs Chrome and reasonable light. Webcam leans take about 0.4 s to register, so Easy is recommended (and preselected) for webcam play.
+- The webcam needs Chrome and reasonable light. Webcam leans take about 0.4 s to register, so Easy is recommended (and preselected) for webcam play. It reads guard, lean and roughly which hand punched; it can't read punch type, force, footwork or kicks ([docs/WEBCAM.md](docs/WEBCAM.md)).
 - Not yet checked live in this build: bot result lines, clips, `!forge` and sound on stream (OBS audio). The first three are deployed with their flags on.
 - Going live from the page is experimental (undocumented WHIP ingest); OBS is the documented path.
 - `/play` reads chat; bot results, clips, hosted Forge and viewer memory each need their deployed flag and, where relevant, a Twitch grant (`channel:bot`, `clips:edit`). Clips need a live stream at least 60 seconds old; viewer memory is unchecked by default and never stores chat text. Details: [docs/HOSTED.md](docs/HOSTED.md).
