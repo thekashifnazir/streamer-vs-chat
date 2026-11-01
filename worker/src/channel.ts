@@ -39,6 +39,8 @@ export class ChannelHub extends DurableObject<Env> {
   coachReserveChannel(channel:string,max:number):Promise<CoachReply>{return this.env.HOSTED_COACH!=='on'?Promise.resolve({ok:false,reason:'feature-off'}):this.coach.reserveChannel(channel,max);}
   coachReleaseChannel(channel:string):Promise<void>{return this.coach.releaseChannel(channel);}
   coachReserveGlobal(ipHash:string,global:number,ip:number):Promise<CoachReply>{return this.env.HOSTED_COACH!=='on'?Promise.resolve({ok:false,reason:'feature-off'}):this.coach.reserveGlobal(ipHash,global,ip);}
+  /** Homepage demo coach: same global+IP counter shape, its own flag; only the 'coach-demo-global' instance is used. */
+  coachReserveDemo(ipHash:string,global:number,ip:number):Promise<CoachReply>{return this.env.HOSTED_COACH_DEMO!=='on'?Promise.resolve({ok:false,reason:'feature-off'}):this.coach.reserveGlobal(ipHash,global,ip);}
   status(channel:string) {return this.results.status(channel);}
   alarm():Promise<void> {return this.results.alarm();}
 }

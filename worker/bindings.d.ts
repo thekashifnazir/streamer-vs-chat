@@ -13,6 +13,9 @@ interface __BaseEnv_WorkerEnv {
 	COACH_DAILY_CHANNEL: string;
 	COACH_DAILY_IP: string;
 	COACH_DAILY_GLOBAL: string;
+	HOSTED_COACH_DEMO: string;
+	COACH_DEMO_DAILY_IP: string;
+	COACH_DEMO_DAILY_GLOBAL: string;
 	CHANNEL: DurableObjectNamespace<import("./src/index").ChannelHub>;
 }
 declare namespace Cloudflare {
@@ -27,7 +30,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "TWITCH_CLIENT_ID" | "BOT_USER_ID" | "HOSTED_BOT" | "HOSTED_CLIPS" | "HOSTED_FORGE" | "HOSTED_MEMORY" | "HOSTED_COACH" | "COACH_AGENT_ID" | "COACH_DAILY_CHANNEL" | "COACH_DAILY_IP" | "COACH_DAILY_GLOBAL">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "TWITCH_CLIENT_ID" | "BOT_USER_ID" | "HOSTED_BOT" | "HOSTED_CLIPS" | "HOSTED_FORGE" | "HOSTED_MEMORY" | "HOSTED_COACH" | "COACH_AGENT_ID" | "COACH_DAILY_CHANNEL" | "COACH_DAILY_IP" | "COACH_DAILY_GLOBAL" | "HOSTED_COACH_DEMO" | "COACH_DEMO_DAILY_IP" | "COACH_DEMO_DAILY_GLOBAL">> {}
 }
 declare module "*.txt" {
 	const value: string;

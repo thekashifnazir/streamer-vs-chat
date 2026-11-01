@@ -1,6 +1,6 @@
 import {describe,expect,it,vi} from 'vitest';
 import {createWorkerRouter,type RoutingEnv,type Hub} from './router';
-import {CoachCaps,coachIpHash,coachLimits,fetchCoachToken} from './coach';
+import {CoachCaps,coachDemoLimits,coachIpHash,coachLimits,fetchCoachToken} from './coach';
 import type {CapStorage} from './forge-caps';
 class Store implements CapStorage {
  data=new Map<string,unknown>();tail:Promise<unknown>=Promise.resolve();
@@ -17,7 +17,7 @@ function setup(options:{upstream?:()=>Promise<Response>}={}){
  const caps=(name:string)=>{let value=hubs.get(name);if(!value){value=new CoachCaps(new Store(),()=>now);hubs.set(name,value);}return value;};
  const idFromName=vi.fn((name:string)=>name);
  const env:RoutingEnv<string>={TWITCH_CLIENT_ID:'client',HOSTED_BOT:'off',HOSTED_CLIPS:'off',HOSTED_FORGE:'off',HOSTED_MEMORY:'off',HOSTED_COACH:'on',COACH_AGENT_ID:'agent_abc123',ELEVENLABS_API_KEY:KEY,COACH_DAILY_CHANNEL:'3',COACH_DAILY_IP:'2',COACH_DAILY_GLOBAL:'4',ASSETS:{fetch:async()=>new Response('asset')},
-  CHANNEL:{idFromName,get:(name:string)=>({coachReserveChannel:(channel:string,max:number)=>caps(name).reserveChannel(channel,max),coachReserveGlobal:(hash:string,global:number,ip:number)=>caps(name).reserveGlobal(hash,global,ip),coachReleaseChannel:(channel:string)=>caps(name).releaseChannel(channel)}) as unknown as Hub}};
+  CHANNEL:{idFromName,get:(name:string)=>({coachReserveChannel:(channel:string,max:number)=>caps(name).reserveChannel(channel,max),coachReserveGlobal:(hash:string,global:number,ip:number)=>caps(name).reserveGlobal(hash,global,ip),coachReleaseChannel:(channel:string)=>caps(name).releaseChannel(channel),coachReserveDemo:(hash:string,global:number,ip:number)=>caps(name).reserveGlobal(hash,global,ip)}) as unknown as Hub}};
  return {env,fetcher,upstream,idFromName,route:createWorkerRouter({fetch:fetcher as typeof fetch,now:()=>now}),setTime:(value:number)=>{now=value;}};
 }
 const post=(ip='203.0.113.7',authorization='Bearer streamer-token',path='/api/coach/token')=>new Request(`https://demo.test${path}`,{method:'POST',headers:{Authorization:authorization,'CF-Connecting-IP':ip}});
@@ -26,7 +26,7 @@ describe('corner coach token route',()=>{
   const s=setup();s.env.HOSTED_COACH='off';const response=await s.route(post(),s.env);
   expect(response.status).toBe(503);expect(await response.json()).toEqual({reason:'feature-off'});expect(s.fetcher).not.toHaveBeenCalled();expect(s.idFromName).not.toHaveBeenCalled();
   delete s.env.HOSTED_COACH;expect((await s.route(post(),s.env)).status).toBe(503);
-  expect(await(await s.route(new Request('https://demo.test/api/health'),s.env)).json()).toEqual({bot:false,clips:false,forge:false,memory:false,coach:false});
+  expect(await(await s.route(new Request('https://demo.test/api/health'),s.env)).json()).toEqual({bot:false,clips:false,forge:false,memory:false,coach:false,coachDemo:false});
   s.env.HOSTED_COACH='on';expect((await(await s.route(new Request('https://demo.test/api/health'),s.env)).json()).coach).toBe(true);
  });
  it('needs a validated Twitch login and POST, and rejects query overrides',async()=>{
@@ -71,6 +71,37 @@ describe('corner coach token route',()=>{
  ])('returns a safe 503 on %s, never upstream text',async(_name,upstream)=>{
   const s=setup({upstream});const response=await s.route(post(),s.env);expect(response.status).toBe(503);const text=await response.text();expect(JSON.parse(text)).toEqual({reason:'unavailable'});expect(text).not.toContain(KEY);
  });
+});
+const demo=(ip='203.0.113.7',init:RequestInit={method:'POST'},path='/api/coach/demo-token')=>new Request(`https://demo.test${path}`,{...init,headers:{'CF-Connecting-IP':ip,...(init.headers as Record<string,string>|undefined)}});
+describe('homepage demo coach token route',()=>{
+ it('is off unless HOSTED_COACH_DEMO is on: 503 before any upstream call; health reports coachDemo',async()=>{
+  const s=setup();const response=await s.route(demo(),s.env);expect(response.status).toBe(503);expect(await response.json()).toEqual({reason:'feature-off'});expect(s.fetcher).not.toHaveBeenCalled();expect(s.idFromName).not.toHaveBeenCalled();
+  s.env.HOSTED_COACH_DEMO='off';expect((await s.route(demo(),s.env)).status).toBe(503);
+  expect((await(await s.route(new Request('https://demo.test/api/health'),s.env)).json()).coachDemo).toBe(false);
+  s.env.HOSTED_COACH_DEMO='on';expect((await(await s.route(new Request('https://demo.test/api/health'),s.env)).json()).coachDemo).toBe(true);
+ });
+ it('needs no Twitch login: mints a token from the demo global object only, never calling Twitch',async()=>{
+  const s=setup();s.env.HOSTED_COACH_DEMO='on';s.env.HOSTED_COACH='off';const response=await s.route(demo(),s.env);expect(response.status).toBe(200);const text=await response.text();
+  expect(JSON.parse(text)).toEqual({token:'eyJ.conversation.token'});expect(text).not.toContain(KEY);
+  expect(s.idFromName.mock.calls.map(call=>call[0])).toEqual(['coach-demo-global']);expect(s.fetcher.mock.calls.every(call=>!String(call[0]).startsWith('https://id.twitch.tv/'))).toBe(true);
+  expect((await s.route(demo('1.1.1.1',{method:'GET'}),s.env)).status).toBe(405);expect((await s.route(demo('1.1.1.1',{method:'POST'},'/api/coach/demo-token?agent_id=other'),s.env)).status).toBe(400);expect(s.upstream).toHaveBeenCalledTimes(1);
+ });
+ it('enforces the demo per-IP and global caps (defaults 3 and 150) with 429, separately from /play caps',async()=>{
+  const s=setup();s.env.HOSTED_COACH_DEMO='on';s.env.COACH_DEMO_DAILY_GLOBAL='4';
+  for(let n=0;n<3;n++)expect((await s.route(demo('10.0.0.1'),s.env)).status).toBe(200);
+  const ip=await s.route(demo('10.0.0.1'),s.env);expect(ip.status).toBe(429);expect(await ip.json()).toEqual({reason:'daily-cap'});
+  expect((await s.route(demo('10.0.0.2'),s.env)).status).toBe(200);expect((await s.route(demo('10.0.0.3'),s.env)).status).toBe(429);expect(s.upstream).toHaveBeenCalledTimes(4);
+  // The signed-in route keeps its own global counter.
+  expect((await s.route(post('10.0.0.1'),s.env)).status).toBe(200);
+  s.setTime(Date.UTC(2026,10,2,0,0,1));expect((await s.route(demo('10.0.0.1'),s.env)).status).toBe(200);
+ });
+ it('returns a safe 503 when the key or agent is missing or upstream fails',async()=>{
+  for(const change of [{ELEVENLABS_API_KEY:''},{COACH_AGENT_ID:''}]){const s=setup();s.env.HOSTED_COACH_DEMO='on';Object.assign(s.env,change);expect((await s.route(demo(),s.env)).status).toBe(503);expect(s.upstream).not.toHaveBeenCalled();}
+  const s=setup({upstream:async()=>new Response('{"detail":"sk_private_test_key"}',{status:401})});s.env.HOSTED_COACH_DEMO='on';const response=await s.route(demo(),s.env);expect(response.status).toBe(503);expect(await response.text()).not.toContain(KEY);
+ });
+});
+it('demo limits parse Worker vars with safe defaults',()=>{
+ expect(coachDemoLimits({})).toEqual({ip:3,global:150});expect(coachDemoLimits({COACH_DEMO_DAILY_IP:'5',COACH_DEMO_DAILY_GLOBAL:'0'})).toEqual({ip:5,global:0});expect(coachDemoLimits({COACH_DEMO_DAILY_IP:'x',COACH_DEMO_DAILY_GLOBAL:'-2'})).toEqual({ip:3,global:150});
 });
 it('limits parse Worker vars with safe defaults',()=>{
  expect(coachLimits({})).toEqual({channel:20,ip:10,global:200});

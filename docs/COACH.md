@@ -2,7 +2,9 @@
 
 Between rounds, or while the fight is paused, the streamer on [/play](https://streamervschat.kashifnazir.com/play) can press **Talk to your corner** and speak with an AI boxing corner coach. It answers out loud in one or two short sentences, using the current fight numbers. It runs on [ElevenLabs Agents](https://elevenlabs.io/docs/agents-platform/overview).
 
-It ships **off**. With the flag off there is no button, no extra request and no voice code in the page. The offline demo at `/` never has it, because it needs the Worker.
+It ships **off**. With the flag off there is no button, no extra request and no voice code in the page.
+
+The homepage demo at `/` (no login) shows the same button in Boss Fight, labelled "Real voice AI coach · 60 s · limited per day". It makes no request until it is clicked. The click calls `POST /api/coach/demo-token`, which needs no login and is guarded by its own flag `HOSTED_COACH_DEMO` (committed off) and its own per-IP and global caps. With the flag off, or over a cap, the demo says "The corner coach is resting. Try it on /play or later." and the fight carries on. See [Homepage demo coach](#homepage-demo-coach).
 
 ## Status (1 November 2026)
 
@@ -39,6 +41,18 @@ Caps are UTC-day counters in Durable Object storage. They are reserved before th
 | `COACH_DAILY_IP` | 10 | Sessions per hashed IP per day. The hash is SHA-256 of IP + day + the secret key, kept only in the `coach-global` Durable Object for that day. Rotating the key resets that day's IP counts |
 | `COACH_DAILY_GLOBAL` | 200 | Sessions for everyone per day (the agent's own daily limit is also 200) |
 
+## Homepage demo coach
+
+`POST /api/coach/demo-token` ([router.ts](../worker/src/router.ts)) checks `HOSTED_COACH_DEMO` first (off: `503 {reason:"feature-off"}`, no upstream call). It needs no Twitch login, so the only guard is the cap: it reserves one slot from the hashed-IP and global counters in a separate `coach-demo-global` Durable Object (same counter code as `coach-global`, separate counts), then mints the token exactly like the signed-in route. It does not depend on `HOSTED_COACH`. The prompt is built from the same `coachFacts(state)`, so the coach never hears the simulated chat.
+
+| Worker var | Default | Meaning |
+|---|---|---|
+| `HOSTED_COACH_DEMO` | off | Turns the no-login demo route on. `/api/health` reports it as `coachDemo` |
+| `COACH_DEMO_DAILY_IP` | 3 | Demo sessions per hashed IP per day |
+| `COACH_DEMO_DAILY_GLOBAL` | 150 | Demo sessions for everyone per day |
+
+The ElevenLabs agent's own limit is 200 calls a day across both routes (INFERRED from the read-back above). With both on at their defaults (200 signed-in + 150 demo), the agent limit is reached first; lower one of the two globals if signed-in streamers must always get a session.
+
 ## What Kash must set to turn it on
 
 You cannot turn this on from the repo; everything below is on the deployed Worker.
@@ -46,6 +60,7 @@ You cannot turn this on from the repo; everything below is on the deployed Worke
 1. `wrangler secret put ELEVENLABS_API_KEY`: **done** (1 November).
 2. In the deploy copy of `wrangler.toml` (`/Users/kash/svc-deploy`): `COACH_AGENT_ID = "agent_2301m6bbje9tehbam3hnzp25j9nj"` and `HOSTED_COACH = "on"`. The flags use `"on"`/`"off"` like the other `HOSTED_*` flags, not `true`.
 3. Deploy. Then `/api/health` should show `"coach":true`.
+4. Optional, homepage demo: also set `HOSTED_COACH_DEMO = "on"` (needs the same key and agent id). `/api/health` then shows `"coachDemo":true`.
 
 To change the agent's prompt or voice later: `COACH_AGENT_ID=agent_… npx tsx scripts/create-coach-agent.ts` (with the key loaded from `.env`) updates it in place and prints the id. Without `COACH_AGENT_ID` it creates a new agent.
 
