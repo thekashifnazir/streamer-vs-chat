@@ -1,4 +1,4 @@
-import {superSequencePresentation,renderSuperSteps,superNoticePresentation,type SuperNoticesView} from './super-ui';
+import {superSequencePresentation,superResultPresentation,renderSuperSteps,superNoticePresentation,type SuperNoticesView} from './super-ui';
 import type {BossImpactBatch} from '../../shared/src/boss-impact';
 import {bossDamageLayout} from './damage-layout';
 import {finisherPresentation,renderFocus} from './focus-ui';
@@ -19,7 +19,8 @@ import {memoryPresentation} from './memory';
 import {chatHabitPresentation,readItResolution} from './chat-habit';
 import type { GameSummary } from '../../shared/src/highlights';
 import { createSummaryView, type EndcardClip } from './summary';
-export type HudModes={seated:boolean;noPunch:boolean};
+/** keyboard: the demo names K/J in the FINISHER banner; overlays without it get the webcam wording. */
+export type HudModes={seated:boolean;noPunch:boolean;keyboard?:boolean};
 
 const commands:[Move,string][]=[['JAB','!jab'],['HOOK_L','!left'],['HOOK_R','!right'],['COMBO','!combo'],['SUPER','!super']];
 export const defenceCue=(move:Move,seated=false)=>{const verb=seated?'TILT':'LEAN';return move==='HOOK_L'?`${verb} →`:move==='HOOK_R'?`← ${verb}`:move==='SUPER'?`${verb} ANY WAY`:'GUARD';};
@@ -181,7 +182,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   function setMemory(view:ViewerMemoryView|null){memory=view;renderMemory();summaryView.render(endSummary,endClips,memory);}
 
   function setModes(next:Partial<HudModes>) {
-    const updated={...modes,...next};if(updated.seated===modes.seated&&updated.noPunch===modes.noPunch&&stage.dataset.modesReady)return;
+    const updated={...modes,...next};if(updated.seated===modes.seated&&updated.noPunch===modes.noPunch&&updated.keyboard===modes.keyboard&&stage.dataset.modesReady)return;
     modes=updated;el('boss-damage').style.setProperty('--damage-number-box',`${modes.seated?FEEL.bossHit.seatedNumberBoxPx:FEEL.bossHit.numberBoxPx}px`);stage.dataset.modesReady='true';stage.classList.toggle('seated',modes.seated);stage.classList.toggle('no-punch',modes.noPunch);
     for(const side of ['left','right'])el(side+'-arrow').querySelector('span')!.textContent=modes.seated?'TILT':'LEAN';
     if(current)render(current,currentSimulated);
@@ -225,8 +226,8 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     hp('streamer',state.streamer.hp,state.streamer.max_hp);hp('boss',state.boss.hp,state.boss.max_hp);
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
-    renderFocus(el('focus-meter'),el('focus-value'),el('focus-fill'),state);if(options.offlineDemo&&state.focus>0&&!host.querySelector('.focus-guide')){const guide=document.createElement('small');guide.className='focus-guide';guide.innerHTML='FILL YOUR FOCUS BAR<br>TO UNLOCK A FINISHER';host.querySelector('.status-card')!.append(guide);}
-    const finisherView=finisherPresentation(state);el('finisher-ready').hidden=!finisherView.visible;el('finisher-ready').classList.toggle('window-active',finisherView.active);setText('finisher-ready',finisherView.text);
+    renderFocus(el('focus-meter'),el('focus-value'),el('focus-fill'),state);if(options.offlineDemo&&state.focus>0&&!host.querySelector('.focus-guide')){const guide=document.createElement('small');guide.className='focus-guide';guide.innerHTML='CLEAN BLOCKS + DODGES<br>FILL FOCUS → FINISHER';host.querySelector('.status-card')!.append(guide);}
+    const finisherView=finisherPresentation(state,modes);el('finisher-ready').hidden=!finisherView.visible;el('finisher-ready').classList.toggle('window-active',finisherView.active);setText('finisher-ready',finisherView.text);
     el('hype').textContent=`${Math.round(state.hype)}%`;el('hype-fill').style.width=`${state.hype}%`;
     const superReady=!!state.bossDef||state.hype>=100&&state.supers_used<3;setText('super-command',`→ ${chatCommand('SUPER',state.bossDef,true)}`);el('super-command').hidden=!availableMoves(state).includes('SUPER');
     const moveName=(move:Move)=>bossMove(state,move).label;
@@ -268,8 +269,10 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('telegraph').hidden=!(telegraph||sequence.visible||counter);el('telegraph').classList.toggle('super-sequence',sequence.visible);el('telegraph').classList.toggle('counter',counter&&!telegraph);
     el('banner').textContent=sequence.visible?'SUPER!':telegraph?telegraphBanner(activeDefence,modes.seated):'COUNTER HIT!';
     el('move').title=telegraph?moveName(attack!.move):'';
-    el('move').textContent=sequence.visible?'SUPER':telegraph?moveName(attack!.move):modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=sequence.visible?sequence.current>=0?`STEP ${sequence.current+1} OF 3`:'SEQUENCE COMPLETE':telegraph?bossDefenceCue(activeDefence,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
-    el('cue-icon').innerHTML=(telegraph||sequence.visible)&&activeDefence==='guard'?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':(telegraph||sequence.visible)?activeDefence==='lean_right'?'→':activeDefence==='lean_left'?'←':'↔':'';
+    // SUPER finished: name who took it (blocked = you, any miss = chat) instead of a neutral "complete".
+    const superResult=superResultPresentation(sequence);el('telegraph').classList.toggle('super-won',!!superResult?.won);el('telegraph').classList.toggle('super-lost',!!superResult&&!superResult.won);
+    el('move').textContent=superResult?superResult.move:sequence.visible?'SUPER':telegraph?moveName(attack!.move):modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=superResult?superResult.cue:sequence.visible?sequence.current>=0?`STEP ${sequence.current+1} OF 3`:'SUPER OVER':telegraph?bossDefenceCue(activeDefence,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
+    el('cue-icon').innerHTML=superResult?'':(telegraph||sequence.visible)&&activeDefence==='guard'?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':(telegraph||sequence.visible)?activeDefence==='lean_right'?'→':activeDefence==='lean_left'?'←':'↔':'';
     const tellKey=telegraph?`${state.match.seed}:${attack!.round}:${attack!.beat}`:'';
     if(tellKey&&tellKey!==lastTelegraph){el('banner').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}lastTelegraph=tellKey;
     el('exploit-note').textContent=telegraph?exploitHabitNote(state):'';

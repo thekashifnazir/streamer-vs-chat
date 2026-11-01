@@ -153,7 +153,7 @@ function updateControlGuide() {
 }
 function updateModes() {
   const seated=posture.value==='seated';
-  hud.setModes({seated,noPunch:noPunch.checked});
+  hud.setModes({seated,noPunch:noPunch.checked,keyboard:source.value==='keyboard'});
   classifier.setPunchesEnabled(!noPunch.checked);
   el('punch-guide').hidden=noPunch.checked;
   el('guide-lean').textContent=seated?'tilt':'lean';
@@ -358,6 +358,7 @@ source.addEventListener('change',()=>{
   if(game)input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});
   keyboard.setEnabled(!game||source.value==='keyboard');
   if(source.value==='pose')restoreCalibration();setup.sync();fightUi?.modes(source.value==='keyboard',noPunch.checked);setup.commands(game?game.bossDef:pendingBoss);updateControlGuide();updateLandingLabel();
+  hud.setModes({keyboard:source.value==='keyboard'});// FINISHER banner names K/J only for keyboard play.
   source.blur();
 });
 clearSpace.addEventListener('change',()=>{

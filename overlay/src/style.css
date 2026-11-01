@@ -367,3 +367,8 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .rails-hud .streamer h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* Plain-words HUD labels (hudclarity): the FOCUS hint wraps to two lines at the 36px floor, so it sits tighter under the defence text. */
 .status-card .focus-guide{margin-top:8px;line-height:1.05}
+/* ── results (1 Nov playtest): who took the SUPER, in the move pill's own space. Blocked = yellow on the win side, landed = pink. ── */
+.telegraph.super-won .move-pill{border-color:var(--yellow)}.telegraph.super-won .move-pill>b{background:var(--yellow);color:#0c0912}
+.telegraph.super-lost .move-pill{border-color:var(--pink)}.telegraph.super-lost .move-pill>b{background:var(--pink);color:#fff}
+.telegraph.super-won>strong{color:var(--yellow)}
+/* ── end results ── */
