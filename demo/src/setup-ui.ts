@@ -4,7 +4,7 @@ import type {Landmark} from '../../capture/src/classifier';
 import {superHelp} from './defence-copy';
 import {difficultyLabel,KEYBOARD_DIFFICULTY,WEBCAM_DIFFICULTY} from './difficulty-choice';
 /** Presentation adapter: the original form controls remain the only settings state. */
-export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcamStart:()=>void;onWebcamCountdown?:()=>void;webcamFramed?:()=>boolean;now?:()=>number;keyboardRequiresClearSpace?:boolean;simplifiedCalibration?:boolean}){
+export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcamStart:()=>void;onWebcamCountdown?:()=>void;webcamFramed?:()=>boolean;now?:()=>number;keyboardRequiresClearSpace?:boolean;simplifiedCalibration?:boolean;workout?:()=>boolean}){
  const get=<T extends HTMLElement>(id:string)=>root.getElementById(id) as T;
  const select=(id:string)=>get<HTMLSelectElement>(id);
  const space=get<HTMLInputElement>('clear-space'),noPunch=get<HTMLInputElement>('no-punch');
@@ -40,13 +40,15 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  }
  const difficultyNote=root.createElement('p');difficultyNote.id='webcam-difficulty-note';webcam.querySelector('.webcam-header > div')?.append(difficultyNote);
  const groups=()=>{for(const button of root.querySelectorAll<HTMLButtonElement>('[data-option-for]')){const selected=select(button.dataset.optionFor!).value===button.dataset.value;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));}};
+ // Crowd Trainer is a workout, not a fight: same buttons, its own word.
+ const noun=()=>options.workout?.()?'WORKOUT':'FIGHT';
  const sync=()=>{
   if(options.simplifiedCalibration){get('start-calibration').hidden=!camera;get('stop-camera').hidden=!camera;}
   groups();const pose=select('input-source').value==='pose';
-  for(const hint of recommended)hint.hidden=!pose;difficultyNote.textContent=`Difficulty: ${difficultyLabel(select('start-difficulty').value,true)} (change in Options)`;get('open-webcam').hidden=!pose;get('open-webcam').textContent=camera&&ready?'START WEBCAM FIGHT':'Set up your webcam · about 30 s →';get('start-fight').hidden=pose;get('punch-chance').hidden=noPunch.checked;
+  for(const hint of recommended)hint.hidden=!pose;difficultyNote.textContent=`Difficulty: ${difficultyLabel(select('start-difficulty').value,true)} (change in Options)`;get('open-webcam').hidden=!pose;get('open-webcam').textContent=camera&&ready?`START WEBCAM ${noun()}`:'Set up your webcam · about 30 s →';get('start-fight').hidden=pose;get('punch-chance').hidden=noPunch.checked;
   get('safety-card').classList.toggle('confirmed',space.checked);get('clear-space-label').textContent=space.checked?'✓ My space is clear':'Tap to confirm my space is clear';
-  const start=get<HTMLButtonElement>('start-fight');start.disabled=!(space.checked||!pose&&options.keyboardRequiresClearSpace===false);start.textContent=!start.disabled?'START FIGHT':'Tick “my space is clear” to start';
-  const webcamStart=get<HTMLButtonElement>('play-webcam');webcamStart.disabled=!(space.checked&&camera&&ready);webcamStart.textContent=webcamStart.disabled?(options.simplifiedCalibration?'Finish setup to start':'Finish the 5 steps to start'):'START WEBCAM FIGHT';
+  const start=get<HTMLButtonElement>('start-fight');start.disabled=!(space.checked||!pose&&options.keyboardRequiresClearSpace===false);start.textContent=!start.disabled?`START ${noun()}`:'Tick “my space is clear” to start';
+  const webcamStart=get<HTMLButtonElement>('play-webcam');webcamStart.disabled=!(space.checked&&camera&&ready);webcamStart.textContent=webcamStart.disabled?(options.simplifiedCalibration?'Finish setup to start':'Finish the 5 steps to start'):`START WEBCAM ${noun()}`;
   get('webcam-distance-tip').textContent=select('posture').value==='seated'?'Seated: sit about 1 m further back than feels natural.':'Standing: give yourself room to raise your guard and lean to either side.';
   get('calibration-saved').hidden=!restored;
   get<HTMLButtonElement>('start-camera').disabled=!space.checked;get('camera-start-reason').hidden=space.checked;
@@ -90,7 +92,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  }
  function calibration(snapshot:CalibrationSnapshot){latestCalibration=snapshot;ready=snapshot.ready;const index= !snapshot.ready&&!framed?0:snapshot.stage==='idle'?0:snapshot.stage==='neutral'?1:snapshot.stage==='resting'?2:snapshot.stage==='guard'?3:4;
   const titles=['Get in frame','Arms relaxed · hold still 3 s','Hands at your waist · hold still 3 s','Guard up, fists at face height · hold still 3 s','Lean left, then right · 1.5 s each'];
-  get('webcam-step-label').textContent=`STEP ${index+1} OF 5`;get('webcam-instruction').textContent=snapshot.ready?'Ready to fight':titles[index]!;get('calibration-status').textContent='';get('calibration-status').hidden=true;get<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
+  get('webcam-step-label').textContent=`STEP ${index+1} OF 5`;get('webcam-instruction').textContent=snapshot.ready?options.workout?.()?'Ready to train':'Ready to fight':titles[index]!;get('calibration-status').textContent='';get('calibration-status').hidden=true;get<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
   for(const item of root.querySelectorAll<HTMLElement>('[data-calibration-step]')){const n=Number(item.dataset.calibrationStep);item.classList.toggle('done',snapshot.ready||n<index);item.classList.toggle('active',!snapshot.ready&&n===index);}
   if(options.simplifiedCalibration){const group=index<=2?0:index===3?1:2;get('webcam-step-label').textContent=snapshot.ready?'SETUP COMPLETE':`STEP ${group+1} OF 3`;for(const item of root.querySelectorAll<HTMLElement>('[data-calibration-group]')){const n=Number(item.dataset.calibrationGroup);item.classList.toggle('done',snapshot.ready||n<group);item.classList.toggle('active',!snapshot.ready&&n===group);}const instruction=root.querySelector<HTMLElement>('[data-group-instruction]');if(instruction)instruction.textContent=group===0?titles[index]!:'';}
   sync();

@@ -7,9 +7,9 @@ import {DEFAULT_BOSS} from '../../shared/src/boss-def';
 import type {Landmark} from '../../capture/src/classifier';
 const windows:JSDOM[]=[];
 afterEach(()=>{for(const dom of windows)dom.window.close();windows.length=0;vi.unstubAllGlobals();});
-function mount(page='index.html'){
+function mount(page='index.html',workout?:()=>boolean){
  const dom=new JSDOM(readFileSync(new URL(`../${page}`,import.meta.url),'utf8'));windows.push(dom);vi.stubGlobal('Event',dom.window.Event);
- const doc=dom.window.document,onStart=vi.fn(),onWebcamStart=vi.fn(),ui=mountFightSetup(doc,{onStart,onWebcamStart,now:()=>0});
+ const doc=dom.window.document,onStart=vi.fn(),onWebcamStart=vi.fn(),ui=mountFightSetup(doc,{onStart,onWebcamStart,now:()=>0,workout});
  const byId=<T extends HTMLElement>(id:string)=>doc.getElementById(id) as T;
  const change=(id:string,value:string|boolean)=>{const element=byId<HTMLInputElement|HTMLSelectElement>(id);if(typeof value==='boolean')(element as HTMLInputElement).checked=value;else element.value=value;element.dispatchEvent(new dom.window.Event('change'));};
  const click=(selector:string)=>doc.querySelector<HTMLButtonElement>(selector)!.click();
@@ -65,4 +65,10 @@ it('hosted simplified setup keeps all measurements, hides camera controls until 
  const tips=doc.createElement('p');tips.id='no-body-tips';tips.hidden=true;doc.body.append(tips);
  const ui=mountFightSetup(doc,{onStart:()=>{},onWebcamStart:()=>{},simplifiedCalibration:true,now:()=>at});expect(doc.getElementById('start-calibration')!.hidden).toBe(true);expect(doc.getElementById('stop-camera')!.hidden).toBe(true);
  ui.camera(true);ui.tick(7999);expect(tips.hidden).toBe(true);ui.tick(8000);expect(tips.hidden).toBe(false);at=8100;ui.frame(Array.from({length:33},()=>({x:.5,y:.5,visibility:1})),true);ui.tick(at);expect(tips.hidden).toBe(true);dom.window.close();
+});
+it.each(['index.html','play/index.html'])('%s: Crowd Trainer says WORKOUT on the keyboard and webcam start buttons',page=>{
+ let trainer=true;const {ui,byId,change}=mount(page,()=>trainer);change('clear-space',true);expect(byId('start-fight').textContent).toBe('START WORKOUT');
+ change('input-source','pose');ui.camera(true);ui.calibration({...createCalibration().snapshot,ready:true,stage:'ready'});
+ expect(byId('open-webcam').textContent).toBe('START WEBCAM WORKOUT');expect(byId('play-webcam').textContent).toBe('START WEBCAM WORKOUT');expect(byId('webcam-instruction').textContent).toBe('Ready to train');
+ trainer=false;ui.sync();expect(byId('open-webcam').textContent).toBe('START WEBCAM FIGHT');expect(byId('play-webcam').textContent).toBe('START WEBCAM FIGHT');
 });
