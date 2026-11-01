@@ -47,10 +47,10 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   // Mid-fight the crowd selector is out of the way; between rounds the demo offers it again.
   expect(crowdLabel.hidden).toBe(true);
   for(let waited=0;waited<90000&&!last().round.over;waited+=250)await vi.advanceTimersByTimeAsync(250);
-  expect(last().round.over).toBe(true);expect(crowdLabel.hidden).toBe(false);expect(crowdSelect.disabled).toBe(false);
+  expect(last().round.over).toBe(true);expect(crowdLabel.hidden).toBe(false);expect(crowdSelect.disabled).toBe(false);expect(doc2.querySelector('.demo-controls')!.classList.contains('between-rounds')).toBe(true);
   crowdSelect.value='500';crowdSelect.dispatchEvent(new dom.window.Event('change'));
   doc2.getElementById('next-round')!.click();
-  expect(last().round.number).toBe(2);expect(last().viewers).toBe(500);expect(crowdLabel.hidden).toBe(true);
+  expect(last().round.number).toBe(2);expect(last().viewers).toBe(500);expect(crowdLabel.hidden).toBe(true);expect(doc2.querySelector('.demo-controls')!.classList.contains('between-rounds')).toBe(false);
   await vi.advanceTimersByTimeAsync(5000);
   const states=observed.renders as {difficulty:string;log:{rounds:unknown[]};clock:{beat:number}}[];expect(states.at(-1)!.difficulty).toBe('hard');
   expect(states.some(state=>state.clock.beat>0)).toBe(true);

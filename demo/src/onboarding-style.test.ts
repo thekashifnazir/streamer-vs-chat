@@ -60,6 +60,12 @@ it('shows the Crowd selector in the offline demo fight bar unless hidden, and ne
    (document.querySelector('.demo-controls') as HTMLElement).hidden=false;
    label.hidden=false;expect(getComputedStyle(label).display,file).toBe(demo?'flex':'none');
    label.hidden=true;expect(getComputedStyle(label).display,file).toBe('none');
+   if(demo){
+    // Between rounds the key guide gives its space to Crowd, and the select is a 44 px target in every engine.
+    const controls=document.querySelector('.demo-controls') as HTMLElement;controls.classList.add('between-rounds');
+    expect(getComputedStyle(document.getElementById('key-guide')!).display).toBe('none');
+    const select=document.getElementById('crowd-size')!;expect(getComputedStyle(select).minHeight).toBe('44px');expect(getComputedStyle(select).appearance).toBe('none');
+   }
   }finally{dom.window.close();}
  }
 });

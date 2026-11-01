@@ -169,7 +169,7 @@ function paint() {
     el('resume-input').hidden=!game.paused||showSessionSummary||(liveMode&&!hosted?.ready);
     crowdSize.disabled=!game.round.over;
     // Offline demo: the simulated crowd size is offered between rounds only (live play hides it for good).
-    if(!liveMode)crowdSize.closest('label')!.hidden=!game.round.over;
+    if(!liveMode){crowdSize.closest('label')!.hidden=!game.round.over;document.querySelector('.demo-controls')!.classList.toggle('between-rounds',game.round.over);}
     el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':fightHelp({pose:source.value==='pose',seated:posture.value==='seated',noPunch:noPunch.checked},game.bossDef?.name);
   }
   // The compact fight layout hides the setup card. If the flow leaves step 3 mid-fight (Twitch
