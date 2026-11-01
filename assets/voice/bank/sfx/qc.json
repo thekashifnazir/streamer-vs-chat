@@ -1,0 +1,44 @@
+{
+  "files": {
+    "crowd-cheer.mp3": {
+      "text": "Short excited crowd cheer in a small arena, quick burst of applause and whoops",
+      "rms_db": -15.27,
+      "peak_db": -2.08,
+      "seconds": 1.979,
+      "tempo": 1.0,
+      "pass": true
+    },
+    "crowd-groan.mp3": {
+      "text": "Short disappointed crowd groan, a room of people going aww",
+      "rms_db": -13.55,
+      "peak_db": -1.81,
+      "seconds": 1.334,
+      "tempo": 1.0,
+      "pass": true
+    },
+    "pad-hit.mp3": {
+      "text": "Single boxing glove punch hitting a focus mitt, sharp leather thump, close up, dry",
+      "rms_db": -23.33,
+      "peak_db": -2.45,
+      "seconds": 0.6,
+      "tempo": 1.0,
+      "pass": true
+    },
+    "rest-whistle.mp3": {
+      "text": "Single short coach whistle blast in a gym",
+      "rms_db": -16.72,
+      "peak_db": -2.5,
+      "seconds": 1.0,
+      "tempo": 1.0,
+      "pass": true
+    },
+    "big-bell.mp3": {
+      "text": "Boxing ring bell, two loud metallic dings, end of round",
+      "rms_db": -18.13,
+      "peak_db": -1.81,
+      "seconds": 2.0,
+      "tempo": 1.0,
+      "pass": true
+    }
+  }
+}

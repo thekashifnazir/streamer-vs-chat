@@ -37,3 +37,7 @@ Durations below were read from the copied WAV frame counts. `hands-up.wav` lasts
 The paid Creator-plan provenance and selection are supplied by Kash. Source generation/QC metadata is in the prep repository's `docs/assets/voice-elevenlabs-library/levels.json`.
 
 Standalone `/overlay` additionally attempts audio activation during browser idle for OBS autoplay; demo and `/play` wait for interaction. Browser autoplay policy may still require activation.
+
+## Recorded voice bank (boss taunts and coach)
+
+Separate from the announcer above, which is unchanged. `bank/` holds fixed, project-written boss taunts (Boss Fight) and coach calls (Crowd Trainer), each spoken by four ElevenLabs Voice Design voices per bank and generated with `eleven_v4` on Kash's paid ElevenLabs plan. Players choose the voice (or Boss voice Off) next to Sound; only the chosen voice's files are fetched. Voices, ids, model, QC and the regeneration script are in `bank/README.md`. Taunts never use chat text or usernames.

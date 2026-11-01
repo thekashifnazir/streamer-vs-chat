@@ -5,6 +5,8 @@ import { pathToFileURL } from 'node:url';
 const START = '<!-- asset-inventory:start -->';
 const END = '<!-- asset-inventory:end -->';
 export const ANNOUNCER_PROVENANCE = 'Announcer voice: ElevenLabs (Voice Library voice Rex Thunder - Deep N Tough), generated on a paid Creator plan.';
+/** One short row per voice-bank file (~900 files); the full provenance is in the bank README and the header above the table. */
+export const VOICE_BANK_PROVENANCE = 'ElevenLabs voice bank (paid plan), `assets/voice/bank/README.md`';
 
 const fontNotices: Record<string, string> = {
   Anton: 'anton-OFL.txt', BarlowCondensed: 'barlowcondensed-OFL.txt',
@@ -33,6 +35,10 @@ export function assetCredit(path: string, levels: Record<string, { source: strin
   }
   if (/^assets\/landing\/gameplay-loop-SIMULATED(?:-poster)?\.(?:webm|mp4|webp)$/.test(path)) return ['Original footage of this game: screen capture of its own offline demo (simulated chat), cut from b-roll clip 03-lean-dodge-SIMULATED', 'Project footage, same terms as this repository; shows the CC0 Chat Golem art and OFL fonts credited here'];
   if (path.startsWith('assets/voice/ready/') && /\.(wav|mp3)$/.test(path)) return [ANNOUNCER_PROVENANCE, 'Generated audio; see provenance'];
+  if (/^assets\/voice\/bank\/(?:README\.md|lines\.json|durations\.json|[a-z]+\/qc\.json)$/.test(path)) return ['Project voice-bank script data, QC and provenance documentation', 'Documentation/metadata; underlying audio terms listed here'];
+  if (/^assets\/voice\/bank\/sfx\/[a-z-]+\.mp3$/.test(path)) return ['ElevenLabs Sound Effects, generated on Kash\'s paid ElevenLabs plan; `assets/voice/bank/README.md`', 'Generated audio; see provenance'];
+  const bankVoice = /^assets\/voice\/bank\/([a-z]+)\/[a-z0-9-]+-\d+\.mp3$/.exec(path)?.[1];
+  if (bankVoice) return [`${VOICE_BANK_PROVENANCE}: \`${bankVoice}\``, 'Generated audio'];
   throw new Error(`Unclassified tracked asset: ${path}; add its verified provenance before generating credits`);
 }
 

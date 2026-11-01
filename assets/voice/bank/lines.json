@@ -1,0 +1,445 @@
+{
+  "about": "Fixed, pre-written voice lines. All text is written by the project, never by chat; no usernames. Edit a line and re-run scripts/voice-bank.py generate to replace only that file.",
+  "voices": {
+    "boss": [
+      {
+        "id": "golem",
+        "name": "Stone Golem",
+        "voice_id": "6dMZ57d2t6uB5BnrjVay",
+        "model_id": "eleven_v4",
+        "settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.8,
+          "style": 0.35,
+          "use_speaker_boost": true
+        },
+        "description": "A deep, gravelly male voice for a giant stone golem boss in a cartoon fighting game. Menacing but fun, theatrical playful trash talk, slow rumbling delivery, clear diction, British accent.",
+        "sample": "So, you think you can dodge me? I have been waiting in this quarry for a thousand years for someone brave enough to step into my ring. Chat picks the punches. Ha! Too slow, pebble. Hold still!",
+        "saved_name": "Streamer vs Chat Stone Golem",
+        "preview": 1
+      },
+      {
+        "id": "gremlin",
+        "name": "Gremlin",
+        "voice_id": "0wyRTjUq37yf1vHOAe5X",
+        "model_id": "eleven_v4",
+        "settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.8,
+          "style": 0.35,
+          "use_speaker_boost": true
+        },
+        "description": "A raspy, mischievous, slightly high-pitched male voice for a cheeky little gremlin boss in a cartoon fighting game. Cackling, sneering playful trash talk, quick and snappy, clear diction, London accent.",
+        "sample": "So, you think you can dodge me? I have been waiting in this quarry for a thousand years for someone brave enough to step into my ring. Chat picks the punches. Ha! Too slow, pebble. Hold still!",
+        "saved_name": "Streamer vs Chat Gremlin",
+        "preview": 2
+      },
+      {
+        "id": "queen",
+        "name": "Rock Queen",
+        "voice_id": "M26I7dx5tcrlUpUHe5CZ",
+        "model_id": "eleven_v4",
+        "settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.8,
+          "style": 0.35,
+          "use_speaker_boost": true
+        },
+        "description": "A commanding, regal female villain voice for a towering crystal queen boss in a cartoon fighting game. Cold, amused, theatrical playful trash talk, smooth and clear, British accent.",
+        "sample": "So, you think you can dodge me? I have been waiting in this quarry for a thousand years for someone brave enough to step into my ring. Chat picks the punches. Ha! Too slow, pebble. Hold still!",
+        "saved_name": "Streamer vs Chat Rock Queen",
+        "preview": 2
+      },
+      {
+        "id": "rumble",
+        "name": "Big Rumble",
+        "voice_id": "9O6FlwSgeilQ1Ak4KXLM",
+        "model_id": "eleven_v4",
+        "settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.8,
+          "style": 0.35,
+          "use_speaker_boost": true
+        },
+        "description": "A booming, swaggering male pro-wrestling heel voice for a huge boulder brute boss in a cartoon fighting game. Loud, cocky, over-the-top playful trash talk, clear diction, American accent.",
+        "sample": "So, you think you can dodge me? I have been waiting in this quarry for a thousand years for someone brave enough to step into my ring. Chat picks the punches. Ha! Too slow, pebble. Hold still!",
+        "saved_name": "Streamer vs Chat Big Rumble",
+        "preview": 2
+      }
+    ],
+    "coach": [
+      {
+        "id": "drill",
+        "name": "Drill Coach",
+        "voice_id": "4mX6dDqC4tubmVrPqviu",
+        "model_id": "eleven_v4",
+        "settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.8,
+          "style": 0.35,
+          "use_speaker_boost": true
+        },
+        "description": "A tough, barking but encouraging male boxing coach running pad work in a busy gym. Sharp, loud, punchy, very clear when counting combinations, British accent, adult.",
+        "sample": "Right, hands up, chin down! One-two! Good. One, one, two! Lovely. Slip, one-two! Keep breathing, stay light on your feet. Ten seconds left, push! And time. Brilliant work, take a breather.",
+        "saved_name": "Streamer vs Chat Drill Coach",
+        "preview": 2
+      },
+      {
+        "id": "hype",
+        "name": "Hype Coach",
+        "voice_id": "xt0880NUCNiFmcQkf1Bc",
+        "model_id": "eleven_v4",
+        "settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.8,
+          "style": 0.35,
+          "use_speaker_boost": true
+        },
+        "description": "A high-energy, upbeat female fitness and boxing coach running pad work. Bright, enthusiastic, encouraging, very clear when counting combinations, American accent, adult.",
+        "sample": "Right, hands up, chin down! One-two! Good. One, one, two! Lovely. Slip, one-two! Keep breathing, stay light on your feet. Ten seconds left, push! And time. Brilliant work, take a breather.",
+        "saved_name": "Streamer vs Chat Hype Coach",
+        "preview": 1
+      },
+      {
+        "id": "corner",
+        "name": "Corner Coach",
+        "voice_id": "BJH1jMQWSZvlUdNzj5MA",
+        "model_id": "eleven_v4",
+        "settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.8,
+          "style": 0.35,
+          "use_speaker_boost": true
+        },
+        "description": "A warm, gritty older male boxing trainer in the corner of the ring. Calm authority, encouraging, steady and very clear when counting combinations, Irish accent.",
+        "sample": "Right, hands up, chin down! One-two! Good. One, one, two! Lovely. Slip, one-two! Keep breathing, stay light on your feet. Ten seconds left, push! And time. Brilliant work, take a breather.",
+        "saved_name": "Streamer vs Chat Corner Coach",
+        "preview": 1
+      },
+      {
+        "id": "pads",
+        "name": "Pad Pro",
+        "voice_id": "APIsbeQ0LSHKxC3CrEDU",
+        "model_id": "eleven_v4",
+        "settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.8,
+          "style": 0.35,
+          "use_speaker_boost": true
+        },
+        "description": "An energetic young female boxing pad-work coach. Fast, crisp, motivating and very clear when counting combinations, Australian accent.",
+        "sample": "Right, hands up, chin down! One-two! Good. One, one, two! Lovely. Slip, one-two! Keep breathing, stay light on your feet. Ten seconds left, push! And time. Brilliant work, take a breather.",
+        "saved_name": "Streamer vs Chat Pad Pro",
+        "preview": 1
+      }
+    ]
+  },
+  "lines": {
+    "boss": {
+      "taunt-round-start": [
+        "Let's rock.",
+        "Stand still. This won't hurt much.",
+        "Chat, give me something heavy.",
+        "I've been waiting all day for this.",
+        "Ready to get flattened?",
+        "Time to crumble, streamer.",
+        "My rocks are all warmed up.",
+        "Right then. Hands up, little one."
+      ],
+      "taunt-hit": [
+        "Ha! Felt that, didn't you?",
+        "Rock beats face.",
+        "Bonk! Down you go!",
+        "That's going to leave a mark.",
+        "Chat says hello!",
+        "Straight from the quarry!",
+        "Oof. Sorry. Not sorry.",
+        "Too slow, pebble!",
+        "Gotcha!",
+        "Right on the button!",
+        "Chat called that one!",
+        "Should've kept your hands up!"
+      ],
+      "taunt-blocked": [
+        "Hiding behind your hands again?",
+        "Lucky block.",
+        "Ugh. Solid guard.",
+        "Fine. Keep your silly guard.",
+        "You can't block forever.",
+        "Oh, very nice wall.",
+        "Chat, pick something sneakier!",
+        "Blocked? How rude.",
+        "Knock knock. Anyone home?",
+        "Are your arms made of stone too?",
+        "Annoying. Very annoying.",
+        "Next one goes round the side."
+      ],
+      "taunt-dodged": [
+        "Hold still!",
+        "Stop wriggling!",
+        "Slippery little thing.",
+        "I'll get you next time.",
+        "Missed? Impossible!",
+        "Who taught you to dance?",
+        "Oi! Come back here!",
+        "Dodging is cheating.",
+        "Whoosh. Show-off.",
+        "Stand still and fight!",
+        "Running away again?",
+        "Missed by a pebble!"
+      ],
+      "taunt-perfect": [
+        "How did you do that?",
+        "Okay. That was clean.",
+        "Show-off!",
+        "Pure luck. Must be.",
+        "Ow! My lovely knuckles!",
+        "Perfect timing. So annoying.",
+        "Nobody saw that. Good.",
+        "Don't get cocky."
+      ],
+      "taunt-habit-left": [
+        "Always left. I've noticed.",
+        "Going left again? Predictable.",
+        "Left, left. Boring!",
+        "Chat, they love going left.",
+        "I know where you're going. Left.",
+        "Your left side's my favourite.",
+        "Lean left one more time. Go on.",
+        "Left again? I'm taking notes."
+      ],
+      "taunt-habit-right": [
+        "Right again? I've spotted that.",
+        "You always go right.",
+        "Right, right. Snooze!",
+        "Chat, they keep going right.",
+        "Your secret? You go right.",
+        "Your right side is all mine.",
+        "Lean right again. I dare you.",
+        "Right, is it? Writing that down."
+      ],
+      "taunt-super": [
+        "Super's charged. Brace yourself!",
+        "Chat, unleash the big one!",
+        "Feel that rumble?",
+        "Full power. This'll be fun.",
+        "Super time, pebble!",
+        "The mountain wakes up!",
+        "Chat's charged me right up!",
+        "Hear that? An avalanche is coming."
+      ],
+      "taunt-finisher": [
+        "Ow! Not the finisher!",
+        "That's not fair! Ow!",
+        "My beautiful rocks!",
+        "Ow, ow, ow! Stop that!",
+        "Okay, okay, I felt that one.",
+        "You chipped my favourite bit!",
+        "Who gave you a finisher?",
+        "Argh! I'm crumbling!"
+      ],
+      "taunt-round-win": [
+        "Chat wins! As it should be.",
+        "Back to the rubble with you.",
+        "Too easy. Next!",
+        "Chat, we make a great team.",
+        "Better luck next round, pebble.",
+        "Rocks one, streamer nil.",
+        "That's what solid gets you.",
+        "Don't cry. Here, have a pebble."
+      ],
+      "taunt-round-lose": [
+        "That was a warm-up. Honest.",
+        "I let you have that one.",
+        "Chat! Where were you?",
+        "Ugh. I need a lie-down.",
+        "Lucky. Very lucky.",
+        "Fine. Next one's mine.",
+        "I'm not crying. It's just gravel.",
+        "Rematch. Right now."
+      ],
+      "taunt-quiet-chat": [
+        "Hello? Chat? Anyone?",
+        "Chat's gone quiet. Wake up!",
+        "Type something, chat!",
+        "Is chat having a nap?",
+        "Chat, I can't punch without you.",
+        "Tumbleweed. Lovely.",
+        "Chat, pick an attack!",
+        "Don't leave me hanging, chat."
+      ]
+    },
+    "coach": {
+      "combo-12": [
+        "One-two!",
+        "One, two!",
+        "Hit me, one-two!",
+        "There! One-two!"
+      ],
+      "combo-112": [
+        "One, one, two!",
+        "One-one-two!",
+        "Go! One, one, two!",
+        "Double up! One, one, two!"
+      ],
+      "combo-121": [
+        "One-two-one!",
+        "One, two, one!",
+        "Again! One-two-one!",
+        "One-two, and one!"
+      ],
+      "combo-1212": [
+        "One-two, one-two!",
+        "One, two, one, two!",
+        "Double it! One-two, one-two!",
+        "Keep going! One-two, one-two!"
+      ],
+      "combo-12s": [
+        "One-two, slip!",
+        "One, two, and slip!",
+        "One-two, then slip!",
+        "One-two! Now slip!"
+      ],
+      "combo-s12": [
+        "Slip, one-two!",
+        "Slip! One, two!",
+        "Slip it, one-two!",
+        "Slip and one-two!"
+      ],
+      "combo-12g": [
+        "One-two, guard up!",
+        "One, two, hands up!",
+        "One-two, back to guard!",
+        "One-two! Guard!"
+      ],
+      "combo-2s2": [
+        "Two, slip, two!",
+        "Two! Slip! Two!",
+        "Two, slip, and two!",
+        "Two! Slip it! Two!"
+      ],
+      "round-start": [
+        "Let's go! Hands up!",
+        "Round's on! Show me something!",
+        "Here we go! Stay sharp!",
+        "Time to work! Let's go!",
+        "Gloves up! We're starting!",
+        "Ready? Let's have it!"
+      ],
+      "rest": [
+        "Rest. Shake it out.",
+        "Good work. Breathe.",
+        "Take a breather. Loosen up.",
+        "Rest up. Stay light on your feet.",
+        "Breathe in. Breathe out.",
+        "Drop the hands. Recover."
+      ],
+      "ten-seconds": [
+        "Ten seconds! Push!",
+        "Ten left! Empty the tank!",
+        "Last ten! Keep going!",
+        "Ten seconds! Big finish!",
+        "Ten to go! Don't stop now!",
+        "Final ten! Fast hands!"
+      ],
+      "time": [
+        "Time!",
+        "And time! Well done.",
+        "That's time!",
+        "Time! Hands down.",
+        "Time's up! Great round.",
+        "Stop there. That's time."
+      ],
+      "clean": [
+        "Clean!",
+        "Lovely! Clean hits!",
+        "That's it! Sharp!",
+        "Perfect form!",
+        "Yes! Crisp and clean!",
+        "Beautiful. Again!",
+        "Spot on!",
+        "Textbook!",
+        "That's the one!",
+        "Sharp hands! Love it!",
+        "Bang on! Again!",
+        "Smooth! Keep that up!"
+      ],
+      "partial": [
+        "Nearly! Keep it going.",
+        "Good effort. Tighten it up.",
+        "Almost there!",
+        "Not bad! Sharper next time.",
+        "Close! Stay with it.",
+        "Good start. Finish the combo.",
+        "Good! Finish strong next time.",
+        "Halfway there! Keep at it.",
+        "Nice try! Snap it out.",
+        "Getting there! Stay sharp.",
+        "Some good shots! Again!",
+        "Solid start. Close it out."
+      ],
+      "missed": [
+        "No worries. Next one!",
+        "Shake it off. Go again!",
+        "Reset. You've got this.",
+        "That's fine. Eyes on the pads.",
+        "Keep moving. Next one's yours.",
+        "All good. Breathe and go."
+      ],
+      "faster": [
+        "Chat wants it faster!",
+        "Pick it up! Chat says faster!",
+        "Faster! Chat's pushing you!",
+        "Speed it up! Chat's calling!",
+        "More pace! Chat wants speed!",
+        "Quicker hands! Chat's watching!"
+      ],
+      "slower": [
+        "Chat says slow it down.",
+        "Ease off. Chat wants control.",
+        "Slower now. Make it clean.",
+        "Steady. Chat wants it slower.",
+        "Take your time. Quality first.",
+        "Slow and sharp. Chat's call."
+      ],
+      "workout-done": [
+        "Workout done! Brilliant job!",
+        "That's the session! Proud of you.",
+        "Done! You smashed it.",
+        "All finished! Get some water.",
+        "And that's a wrap! Great work.",
+        "Session complete! Well fought."
+      ],
+      "chat-picked": [
+        "Chat's calling it!",
+        "Chat picked this one!",
+        "Chat's choice! Let's go!",
+        "Here's what chat wants!",
+        "Chat's in charge now!",
+        "Chat's call! Ready?"
+      ]
+    }
+  },
+  "sfx": {
+    "crowd-cheer": {
+      "text": "Short excited crowd cheer in a small arena, quick burst of applause and whoops",
+      "seconds": 2.0
+    },
+    "crowd-groan": {
+      "text": "Short disappointed crowd groan, a room of people going aww",
+      "seconds": 1.5
+    },
+    "pad-hit": {
+      "text": "Single boxing glove punch hitting a focus mitt, sharp leather thump, close up, dry",
+      "seconds": 0.6
+    },
+    "rest-whistle": {
+      "text": "Single short coach whistle blast in a gym",
+      "seconds": 1.0
+    },
+    "big-bell": {
+      "text": "Boxing ring bell, two loud metallic dings, end of round",
+      "seconds": 2.0
+    }
+  }
+}
