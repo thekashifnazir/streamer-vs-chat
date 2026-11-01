@@ -44,7 +44,7 @@ it('keeps transforms and flash constrained to the boss rail/sprite, within the f
  expect(hud).toContain("host.querySelector<HTMLElement>(`.rail.${name}`)");
  expect(sprite).toContain("ctx.globalCompositeOperation='source-atop'");
  expect(FEEL.bossHit.flashWidth*FEEL.bossHit.flashHeight+FEEL.flash.areaPx).toBeLessThan(FEEL.flash.largeAreaPx);
- expect(hud).toContain("'COUNTER HIT!'");expect(hud).toContain('FEEL.bossHit.trailMs');
+ expect(readFileSync(new URL('./stage-lanes.ts',import.meta.url),'utf8')).toContain("'COUNTER HIT!'");expect(hud).toContain('FEEL.bossHit.trailMs');
 });
 
 import {vi} from 'vitest';

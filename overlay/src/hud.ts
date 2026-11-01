@@ -10,7 +10,7 @@ import {difficultyName,tempoFor} from '../../shared/src/tempo';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
 import {createForgeView} from './forge';
 import type { Move, TallySnapshot } from '@svc/shared';
-import { bossMove, availableMoves, exploitMove, weightedTally, type GameState } from '../../shared/src/engine';
+import { bossMove, availableMoves, exploitMove, weightedTally, RULES, type GameState } from '../../shared/src/engine';
 import { BossSprite, moveClip } from './assets';
 import { GameSound, type Sound } from './sound';
 import { createFxScheduler } from './fx';
@@ -19,6 +19,7 @@ import {memoryPresentation} from './memory';
 import {chatHabitPresentation,readItResolution} from './chat-habit';
 import type { GameSummary } from '../../shared/src/highlights';
 import { createSummaryView, type EndcardClip } from './summary';
+import {counterCall,counterPrompt,createPromptLane,joinCommands,punchPopText,roundHasVotes,type PromptCandidate} from './stage-lanes';
 /** keyboard: the demo names K/J in the FINISHER banner; overlays without it get the webcam wording. */
 export type HudModes={seated:boolean;noPunch:boolean;keyboard?:boolean};
 
@@ -89,14 +90,14 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <section class="status-card"><p class="eyebrow" data-id="phase">READY TO FIGHT</p><p data-id="status">GUARD STRAIGHTS.<br>LEAN FROM SWINGS.</p><small data-id="result"></small></section><section class="viewer-record" data-id="viewer-record" hidden><h2>YOUR RECORD <span>VS THIS CHAT</span></h2><div class="record-values"><p><b data-id="record-streams"></b><span>STREAMS</span></p><p><b data-id="record-kos"></b><span title="Bosses KO">BOSS KOs</span></p><p><b data-id="record-deaths"></b><span title="Times KO">TIMES KO</span></p></div></section><section class="memory-hall" data-id="memory-hall" hidden><h2>CHAT HALL OF FAME <span>ALL TIME</span></h2><ol data-id="memory-hall-list"></ol></section>
   <div class="blocked-stamp" data-id="blocked" hidden>BLOCKED!</div><footer><p class="simulated" data-id="simulated" hidden>● SIMULATED CHAT</p><p class="calm-badge" data-id="calm" hidden>CALM FX</p><p class="connection" data-id="connection" role="status">CONNECTING…</p><div class="hud-options"><button data-id="sound" type="button">SOUND OFF · M</button><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer></aside>
   <div class="clock"><strong data-id="clock">75</strong><span>ROUND<br><b data-id="round">1 / 3</b><b class="difficulty-tag" data-id="difficulty">HARD</b></span></div>
-  <div class="super-ready-banner" data-id="super-ready" role="status" hidden>SUPER READY: chat type !s</div><div class="super-denied-banner" data-id="super-denied" role="status" hidden>!s needs 100% HYPE</div>
-  <div class="finisher-banner" data-id="finisher-ready" role="status" hidden></div>
+  <div class="prompt-lane" data-id="prompt-lane"><div class="counter-prompt" data-id="counter-prompt" role="status" hidden></div><div class="super-ready-banner" data-id="super-ready" role="status" hidden>SUPER READY: chat type !s</div><div class="super-denied-banner" data-id="super-denied" role="status" hidden>!s needs 100% HYPE</div>
+  <div class="finisher-banner" data-id="finisher-ready" role="status" hidden></div></div>
   <div class="telegraph" data-id="telegraph" hidden><strong data-id="banner">GUARD!</strong><div class="move-pill"><span data-id="move"></span><b><span data-id="cue-icon" class="cue-icon" aria-hidden="true"></span><span data-id="cue"></span></b></div><div class="super-steps" data-id="super-steps" aria-label="SUPER defence sequence" hidden></div><small data-id="exploit-note"></small><small class="nemesis-ko-move" data-id="nemesis-ko-move" hidden></small></div>
   <div class="lean-arrow left" data-id="left-arrow" hidden>❮<span>LEAN</span></div><div class="lean-arrow right" data-id="right-arrow" hidden>❯<span>LEAN</span></div>
   <aside class="rail boss" aria-label="Boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
   <div class="health-bar" data-id="boss-bar" role="progressbar" aria-label="boss HP 135 / 135" aria-valuemin="0" aria-valuemax="135" aria-valuenow="135"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span data-id="super-command">→ !super/!s</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
-  <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><section class="nemesis-card" data-id="nemesis" hidden><h2>YOUR NEMESIS IS VOTING</h2><p data-id="nemesis-name"></p><p data-id="nemesis-kos"></p></section><div class="vote-header"><span data-id="vote-count-label"><strong data-id="voters">0</strong> VOTING</span> <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
-  <p class="hype-vote-legend">EACH VOTE ADDS HYPE<br>MORE VOTERS, FASTER HYPE</p><div class="boss-damage-numbers" data-id="boss-damage" aria-live="polite"></div><canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section data-id="forge" hidden></section><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
+  <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><section class="nemesis-card" data-id="nemesis" hidden><h2>YOUR NEMESIS IS VOTING</h2><p data-id="nemesis-name"></p><p data-id="nemesis-kos"></p></section><div class="vote-header"><span data-id="vote-count-label"><strong data-id="voters">0</strong> VOTING</span> <span data-id="beat">· NEXT IN 2.4s</span></div><section class="join-panel" data-id="join-panel" hidden aria-live="polite"><b>CHAT, PICK THE NEXT HIT</b><span>Type in chat:</span><span data-id="join-commands">!jab · !left · !right · !combo</span><small>No votes yet · the boss picks</small></section><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
+  <p class="hype-vote-legend">EACH VOTE ADDS HYPE<br>MORE VOTERS, FASTER HYPE</p><div class="boss-damage-numbers" data-id="boss-damage" aria-live="polite"></div><div class="punch-pop" data-id="punch-pop" aria-hidden="true" hidden></div><canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section data-id="forge" hidden></section><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
   const forgeView=createForgeView(el('forge'));let forge:ForgeSnapshot|null=null;let forgeVisible:boolean|undefined;
@@ -143,6 +144,16 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   motion.addEventListener('change',motionChange);
   let lastStampUntil=0,lastTelegraph='',readItUntil=0,snapshotRealAt=performance.now();
   let spriteAnchorKey='',spriteAnchor=0;
+  // Fixed lanes: one prompt line (newest wins), a punch pop by the boss, and the join panel while this round has no chat votes.
+  const promptLane=createPromptLane();let lastPopAt=-Infinity,popAnimation:Animation|undefined,flinchAnimation:Animation|undefined,voteRound='',roundVoted=false;
+  function renderPromptLane(state:GameState,notices:{ready:boolean;denied:boolean},now:number){
+    const counterView=counterPrompt(state,modes),finisherView=finisherPresentation(state,modes),candidates:PromptCandidate[]=[];
+    if(counterView.visible)candidates.push({kind:'counter',key:counterView.key});
+    if(finisherView.visible)candidates.push({kind:'finisher',key:`finisher:${state.match.seed}:${state.round.number}:${finisherView.active?`on:${state.finisher.ends_at}`:`ready:${state.finisher.used}`}`});
+    if(notices.denied)candidates.push({kind:'super-denied',key:`super-denied:${superNotices?.deniedAt}`});else if(notices.ready)candidates.push({kind:'super-ready',key:`super-ready:${superNotices?.readyAt}`});
+    const shown=promptLane.pick(candidates,now);setText('counter-prompt',counterView.text);
+    el('counter-prompt').hidden=shown!=='counter';el('finisher-ready').hidden=shown!=='finisher';el('super-denied').hidden=shown!=='super-denied';el('super-ready').hidden=shown!=='super-ready';
+  }
   const setSoundRequested=(enabled:boolean)=>sound.setRequested(enabled,soundStarted);
   const activateSound=()=>{soundStarted=true;return sound.unlock();};
   const toggle=async(activate=false)=>{
@@ -219,6 +230,13 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     playBossImpactSounds(bossImpacts,()=>sound.play('bonus'));
     const cues=fx.observe(state,snapshotRealAt);
     const visual=fx.update(snapshotRealAt);
+    // Every punch is obvious: one big pop and a short boss flinch per 450 ms (the engine's punch throttle); a later hit inside it updates the number.
+    const popImpact=bossImpacts.at(-1);
+    if(popImpact){const pop=el('punch-pop');setText('punch-pop',punchPopText(popImpact));pop.dataset.kind=popImpact.kind;
+      if(snapshotRealAt-lastPopAt>=RULES.punchThrottle){lastPopAt=snapshotRealAt;pop.hidden=false;popAnimation?.cancel?.();
+        popAnimation=pop.animate(visual.calm?[{opacity:1},{opacity:1,offset:.75},{opacity:0}]:[{transform:'scale(1.6) rotate(-6deg)',opacity:1},{transform:'scale(1) rotate(-6deg)',opacity:1,offset:.18},{transform:'scale(1) rotate(-6deg)',opacity:1,offset:.75},{transform:'translateY(-24px) rotate(-6deg)',opacity:0}],{duration:950,easing:'ease-out',fill:'forwards'});
+        if(popAnimation)popAnimation.onfinish=()=>{pop.hidden=true;};
+        if(!visual.calm){flinchAnimation?.cancel?.();flinchAnimation=el('boss-sprite').animate([{translate:'0 0',rotate:'0deg'},{translate:'22px 0',rotate:'7deg',offset:.3},{translate:'0 0',rotate:'0deg'}],{duration:260,easing:'ease-out'});}}}
     el('calm').hidden=!visual.calm;stage.classList.toggle('calm',visual.calm);
     for(const cue of cues)if(cue.kind==='hit'&&cue.move==='COMBO'||(cue.kind==='hit'||cue.kind==='chip')&&cue.move==='SUPER')once(`impact-sfx:${state.match.seed}:${cue.id}`,()=>sound.play('hit'));
     if(cues.some(cue=>cue.kind==='block'||cue.kind==='perfect')){lastStampUntil=visual.streamer.animationTime+500;el('blocked').hidden=false;el('blocked').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}
@@ -227,7 +245,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
     renderFocus(el('focus-meter'),el('focus-value'),el('focus-fill'),state);if(options.offlineDemo&&state.focus>0&&!host.querySelector('.focus-guide')){const guide=document.createElement('small');guide.className='focus-guide';guide.innerHTML='CLEAN BLOCKS + DODGES<br>FILL FOCUS → FINISHER';host.querySelector('.status-card')!.append(guide);}
-    const finisherView=finisherPresentation(state,modes);el('finisher-ready').hidden=!finisherView.visible;el('finisher-ready').classList.toggle('window-active',finisherView.active);setText('finisher-ready',finisherView.text);
+    const finisherView=finisherPresentation(state,modes);el('finisher-ready').classList.toggle('window-active',finisherView.active);setText('finisher-ready',finisherView.text);
     el('hype').textContent=`${Math.round(state.hype)}%`;el('hype-fill').style.width=`${state.hype}%`;
     const superReady=!!state.bossDef||state.hype>=100&&state.supers_used<3;setText('super-command',`→ ${chatCommand('SUPER',state.bossDef,true)}`);el('super-command').hidden=!availableMoves(state).includes('SUPER');
     const moveName=(move:Move)=>bossMove(state,move).label;
@@ -251,6 +269,8 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
       setText('fixed-reward',scouting.healed>0?`+${scouting.healed} HP · KEEP MIXING IT UP`:'HP FULL · KEEP MIXING IT UP');
     }
     renderTally({kind:'tally',tally:state.tally,weights:weightedTally(state),voters:state.voters,simulated},superReady,scouting.kind==='habit'?scouting.highlightedMove:undefined);
+    const roundKey=`${state.match.seed}:${state.round.number}`;if(roundKey!==voteRound){voteRound=roundKey;roundVoted=false;}roundVoted||=roundHasVotes(state);
+    const joining=!roundVoted&&!practice;el('join-panel').hidden=!joining;el('votes').hidden=joining;host.querySelector('.boss')!.classList.toggle('join-active',joining);if(joining)setText('join-commands',joinCommands(state));
     const habit=chatHabitPresentation(state,modes.seated);el('chat-habit').hidden=!habit.visible;host.querySelector('.boss')!.classList.toggle('chat-habit-active',habit.visible);
     if(habit.visible){setText('chat-habit-move',moveName(habit.move));setText('chat-habit-share',`${habit.percent}%`);setText('chat-habit-n',`n=${habit.n}`);setText('chat-habit-instruction',state.bossDef?`PRE-HOLD ${bossDefenceCue(bossMove(state,habit.move).defence,modes.seated)}`:habit.instruction);const evidence=state.bossDef?availableMoves(state).map(move=>`${moveName(move)} ${habit.counts[move]}`).join(', '):habit.evidence;const detail=`${evidence}. ${habit.opening}. ${habit.openingDetail}. Pre-held clean defence: +25% counter${state.activeAttack?.brace?'. This attack is braced.':''}`;el('chat-habit').title=detail;el('chat-habit').setAttribute('aria-label',`Chat habit: ${moveName(habit.move)} ${habit.percent} percent, n=${habit.n}. ${detail}`);}
     const raid=raidPresentation(state);
@@ -261,17 +281,18 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('vote-count-label').hidden=practice;el('beat').parentElement!.classList.toggle('practice-voting',practice);
     el('beat').textContent=practice?'VOTING STARTS AFTER PRACTICE':state.paused?'· PAUSED':`· NEXT IN ${nextBeatSeconds(state)}s`;
     const sequence=superSequencePresentation(state,modes.seated);renderSuperSteps(el('super-steps'),sequence);
-    const notices=superNoticePresentation(state,superNotices,Date.now());el('super-ready').hidden=!notices.ready||notices.denied;el('super-denied').hidden=!notices.denied;
+    const notices=superNoticePresentation(state,superNotices,Date.now());renderPromptLane(state,notices,performance.now());
     const attack=state.activeAttack;
     const activeDefence=sequence.visible&&attack?(attack as typeof attack&{super_steps?:import('../../shared/src/boss-def').BossDefence[]}).super_steps?.[sequence.current]??bossMove(state,attack.move).defence:attack?bossMove(state,attack.move).defence:'guard';
     const telegraph=!!attack&&!attack.vetoed&&(state.clock.paused_at??state.now)<attack.lands_at&&!state.round.over;
     const counter=state.counter.open&&!state.round.over;
     el('telegraph').hidden=!(telegraph||sequence.visible||counter);el('telegraph').classList.toggle('super-sequence',sequence.visible);el('telegraph').classList.toggle('counter',counter&&!telegraph);
-    el('banner').textContent=sequence.visible?'SUPER!':telegraph?telegraphBanner(activeDefence,modes.seated):'COUNTER HIT!';
+    const counterView=counterCall(state,modes.seated);
+    el('banner').textContent=sequence.visible?'SUPER!':telegraph?telegraphBanner(activeDefence,modes.seated):counterView.banner;
     el('move').title=telegraph?moveName(attack!.move):'';
     // SUPER finished: name who took it (blocked = you, any miss = chat) instead of a neutral "complete".
     const superResult=superResultPresentation(sequence);el('telegraph').classList.toggle('super-won',!!superResult?.won);el('telegraph').classList.toggle('super-lost',!!superResult&&!superResult.won);
-    el('move').textContent=superResult?superResult.move:sequence.visible?'SUPER':telegraph?moveName(attack!.move):modes.noPunch?'BOSS DAMAGED':'BONUS PUNCH';el('cue').textContent=superResult?superResult.cue:sequence.visible?sequence.current>=0?`STEP ${sequence.current+1} OF 3`:'SUPER OVER':telegraph?bossDefenceCue(activeDefence,modes.seated):modes.noPunch?'KEEP DEFENDING':'J';
+    el('move').textContent=superResult?superResult.move:sequence.visible?'SUPER':telegraph?moveName(attack!.move):modes.noPunch?'BOSS DAMAGED':counterView.move;el('cue').textContent=superResult?superResult.cue:sequence.visible?sequence.current>=0?`STEP ${sequence.current+1} OF 3`:'SUPER OVER':telegraph?bossDefenceCue(activeDefence,modes.seated):modes.noPunch?'KEEP DEFENDING':counterView.cue;
     el('cue-icon').innerHTML=superResult?'':(telegraph||sequence.visible)&&activeDefence==='guard'?'<svg viewBox="0 0 40 46" aria-hidden="true"><path d="M20 3 36 9v13c0 9-7 16-16 21C11 38 4 31 4 22V9Z" fill="none" stroke="currentColor" stroke-width="5"/></svg>':(telegraph||sequence.visible)?activeDefence==='lean_right'?'→':activeDefence==='lean_left'?'←':'↔':'';
     const tellKey=telegraph?`${state.match.seed}:${attack!.round}:${attack!.beat}`:'';
     if(tellKey&&tellKey!==lastTelegraph){el('banner').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}lastTelegraph=tellKey;
@@ -327,7 +348,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     }
     el('read-it').hidden=frame.boss.animationTime>=readItUntil;el('read-it').style.opacity=String(Math.max(0,Math.min(1,(readItUntil-frame.boss.animationTime)/150)));
     el('blocked').hidden=frame.streamer.animationTime>=lastStampUntil;el('blocked').style.opacity=String(Math.max(0,Math.min(1,(lastStampUntil-frame.streamer.animationTime)/150)));
-    if(current){const notices=superNoticePresentation(current,superNotices,Date.now());el('super-ready').hidden=!notices.ready||notices.denied;el('super-denied').hidden=!notices.denied;const key=`${clip}:${clipAt}`;if(key!==spriteAnchorKey){spriteAnchorKey=key;spriteAnchor=frame.boss.animationTime-Math.max(0,(current.clock.paused_at??current.now)-clipAt);}
+    if(current){renderPromptLane(current,superNoticePresentation(current,superNotices,Date.now()),now);const key=`${clip}:${clipAt}`;if(key!==spriteAnchorKey){spriteAnchorKey=key;spriteAnchor=frame.boss.animationTime-Math.max(0,(current.clock.paused_at??current.now)-clipAt);}
       const age=Math.max(0,frame.boss.animationTime-spriteAnchor),transient=!['idle','victory','ko'].includes(clip)&&!clip.endsWith('_windup');sprite.draw(transient&&age>520?'idle':clip,transient&&age>520?current.round.elapsed_ms:age,bossHit.flash?.opacity??0);
       const attack=current.activeAttack;const viewNow=(current.clock.paused_at??current.now)+(current.paused?0:now-snapshotRealAt);tryTelegraphSound(current,viewNow);el('banner').style.opacity=attack&&!attack.vetoed&&lastTelegraph?String(Math.min(1,Math.max(0,(attack.lands_at-viewNow)/120))):'1';
     }else sprite.draw('idle',now);frameId=requestAnimationFrame(animate);};
