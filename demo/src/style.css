@@ -460,3 +460,9 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .trainer-stage[data-phase=practice] .trainer-call{visibility:hidden}.trainer-keys kbd{min-width:0;padding:0 .3cqw}
 .trainer-chip{height:auto;min-height:9.5cqw;padding:.5cqw 0}.trainer-chip i{font-style:normal;font-size:1.3cqw;font-weight:900;color:#faf8ff;white-space:nowrap}.trainer-chip[data-mark=hit] i{color:#0c0912}
 @container (max-width:700px){.trainer-practice{inset:2cqh 2cqw;gap:1.4cqw;padding:2cqw}.trainer-practice .trainer-eyebrow{font-size:3.2cqw}.trainer-practice-lead,.trainer-practice-status{font-size:3.2cqw}.trainer-practice li{padding:1.2cqw .6cqw;font-size:3cqw;gap:.4cqw}.trainer-practice li b{font-size:6.4cqw}.trainer-practice li small{font-size:2.6cqw}.trainer-practice kbd{min-width:3.4cqw}.trainer-practice li.done::after{font-size:3.6cqw}body>main .trainer-practice button{min-height:40px;padding:0 5cqw}.trainer-chip{min-height:12cqw;width:14cqw}.trainer-chip i{font-size:3cqw}}
+/* ── hudclarity: larger SIMULATED chat text and a one-screen webcam setup on / ──
+   Chat panel: the last 3 lines at about 32 px (1920 stage), below the defence card and above the SIMULATED CHAT badge. */
+.sim-chat{top:68.5cqh;max-height:17cqh;font-size:1.65cqw}.sim-chat h3{font-size:.7em}
+.sim-chat li[data-kind=bot],.sim-chat li[data-kind=you]{font-size:.95em;-webkit-line-clamp:3}
+.sim-chat-layer[data-mode=trainer] .sim-chat,.sim-chat-layer[data-mode=trainer-done] .sim-chat{font-size:1.65cqw}
+/* ── end hudclarity ── */

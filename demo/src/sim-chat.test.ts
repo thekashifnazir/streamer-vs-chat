@@ -19,14 +19,14 @@ it('bot lines post at once under the bot name and drop queued votes from the end
  feed.offer([{user:'sim-1',text:'!j'},{user:'sim-2',text:'!c'}]);feed.drop();feed.bot(formatRoundResult(roundResultBody(state,state.log.rounds[0]!)));for(let at=0;at<2000;at+=100)feed.tick(at);
  expect(feed.lines).toHaveLength(1);expect(feed.lines[0]).toMatchObject({kind:'bot',user:SIM_BOT,note:'BOT · what your bot would post'});expect(feed.lines[0]!.text).toMatch(/^Streamer vs Chat · Round 1: STREAMER wins \(80\/100 vs 0\/\d+ HP\) · 1–0/);
 });
-it('renders a SIMULATED panel and a two-line phone strip, hidden when there is no fight',()=>{
+it('renders a SIMULATED panel of the last 3 lines and a two-line phone strip, hidden when there is no fight',()=>{
  const dom=new JSDOM('<main><div id="stage"></div><section class="demo-controls"><button>Esc Pause</button></section></main>');const doc=dom.window.document;
  const view=mountSimChat(doc,doc.getElementById('stage')!),feed=createSimChatFeed();
  feed.offer([{user:'sim-3',text:'!left'}]);feed.tick(0);feed.bot('Streamer vs Chat · Round 1');feed.you('Workout done.','YOUR LINE');feed.offer([{user:'sim-4',text:'<img src=x>'}]);feed.tick(1000);
  view.render(feed,'boss');
  const layer=doc.querySelector<HTMLElement>('.sim-chat-layer')!,strip=doc.querySelector<HTMLElement>('.demo-controls>.sim-chat-strip')!;
  expect(layer.hidden).toBe(false);expect(layer.dataset.mode).toBe('boss');expect(layer.querySelector('h3')!.textContent).toContain('SIMULATED CHAT');
- expect([...layer.querySelectorAll('li')].map(li=>li.textContent)).toEqual(['sim_viewer_3 !left',`${SIM_BOT} BOT · what your bot would post Streamer vs Chat · Round 1`,'you YOUR LINE Workout done.','sim_viewer_4 <img src=x>']);
+ expect([...layer.querySelectorAll('li')].map(li=>li.textContent)).toEqual([`${SIM_BOT} BOT · what your bot would post Streamer vs Chat · Round 1`,'you YOUR LINE Workout done.','sim_viewer_4 <img src=x>']);
  expect(layer.querySelector('img')).toBeNull();expect(strip.querySelectorAll('li')).toHaveLength(2);
  view.render(feed,null);expect(layer.hidden).toBe(true);expect(strip.hidden).toBe(true);dom.window.close();
 });

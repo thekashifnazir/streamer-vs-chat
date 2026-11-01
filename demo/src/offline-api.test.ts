@@ -39,6 +39,8 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{code:'Escape'}));
   dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{code:'KeyK'}));
   expect(dom.window.document.getElementById('pause-screen')!.hidden).toBe(false);expect(dom.window.document.getElementById('tutorial-status')!.textContent).toContain('(1 of 3)');
+  // Practice has no crowd choice (it changes nothing there).
+  expect(dom.window.document.getElementById('crowd-size')!.closest('label')!.hidden).toBe(true);
   dom.window.document.querySelector<HTMLButtonElement>('[data-pause=resume]')!.click();
   for(const code of ['KeyK','KeyA','KeyD','KeyJ'])for(const type of ['keydown','keyup'])dom.window.dispatchEvent(new dom.window.KeyboardEvent(type,{code}));
   const doc2=dom.window.document,crowdSelect=doc2.getElementById('crowd-size') as HTMLSelectElement,crowdLabel=crowdSelect.closest('label')!;
