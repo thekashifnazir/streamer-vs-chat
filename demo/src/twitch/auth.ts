@@ -66,7 +66,7 @@ export function createBrowserAuth(options:{clientId:string;redirectUri:string;fe
   async backendRequest(path:string,init:RequestInit={}):Promise<Response>{
    if(!token||!account)throw new TwitchAuthError();
    // Deliberately fixed same-origin endpoint allowlist: no redirects can leak the user token.
-   if(!/^\/api\/(results|status|forge\/(?:moderate|respond)|memory\/events|memory\/snapshot\?sessionId=[A-Za-z0-9:_-]{1,100}(?:&mvpId=[0-9]{1,30})?)$/.test(path))throw new Error('Invalid hosted API path');
+   if(!/^\/api\/(results|status|forge\/(?:moderate|respond)|coach\/token|memory\/events|memory\/snapshot\?sessionId=[A-Za-z0-9:_-]{1,100}(?:&mvpId=[0-9]{1,30})?)$/.test(path))throw new Error('Invalid hosted API path');
    const current=generation;
    const headers=new Headers(init.headers);headers.set('Authorization',`Bearer ${token}`);
    const response=await request(path,{...init,headers,cache:'no-store',redirect:'error'});
