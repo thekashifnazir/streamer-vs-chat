@@ -70,7 +70,7 @@ Read from screenshots of Kash's ChatGPT plan usage page, taken on 1 November (**
 | Share of plan usage, 26 Oct – 1 Nov | Chats 52.6%, subagents 47.4% |
 | Tool activity, 24–30 Oct | 74 plugin calls (Computer Use, Unified Computer Use, Codex App Tools); 2 skills (Cloudflare One, OpenAI Platform API key) |
 
-So on top of the weekly limit, the build spent both limit resets that fell inside the Submission Period, plus bought credits, before Claude Code took over on 31 October.
+So on top of the weekly limit, the build spent both limit resets that fell inside the Submission Period, plus the extra credits (left from a previous OpenAI hackathon, in Kash's words), before Claude Code took over on 31 October.
 
 ## Codex vs Claude Code split
 
