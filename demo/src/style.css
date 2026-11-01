@@ -641,14 +641,16 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .hosted-flow .demo-stage>.pose-preview.skeleton-only[hidden]{display:none}
 .skeleton-option strong{font-weight:700}
 /* Crowd Trainer on the same lanes (Kash's 1 Nov VOD: the REST card sat over the camera circle). The circle's box is 40-60cqw x 69-97cqh of
-   the trainer stage; the combo card, practice, REST and summary cards and the key guide end by 66cqh. Wide layout only: phones have no circle. */
+   the trainer stage; the combo card (its name kept to one line), practice, REST and summary cards and the key guide end by 66cqh. Wide layout only: phones have
+   no circle. */
 @container (min-width:701px){
  .trainer-practice{inset:13cqh 22cqw 34cqh;gap:.8cqw;padding:1.4cqw 2cqw}
  .trainer-practice li{padding:.8cqw .3cqw}
- .trainer-rest{inset:15cqh 32cqw 34cqh;gap:.6cqw;padding:1.4cqw 2cqw}
+ .trainer-rest{inset:17cqh 32cqw 34cqh;gap:.6cqw;padding:1.4cqw 2cqw}
  .trainer-rest strong{font-size:9cqw}
  .trainer-summary{inset:4cqh 14cqw 34cqh;gap:.6cqw;padding:1.4cqw 2cqw}
  .trainer-summary h2{font-size:3.6cqw}
- .trainer-keys{top:59cqh;bottom:auto}
+ .trainer-call-name{white-space:nowrap}
+ .trainer-keys{top:60cqh;bottom:auto}
 }
 .trainer-votes li.trainer-vote-empty{flex-direction:column;gap:.3cqw}.trainer-vote-empty b{color:#faf8ff;font-weight:800}.trainer-vote-empty small{font-size:1.4cqw}
