@@ -38,6 +38,29 @@ The user token is remembered on this computer (localStorage, or this tab’s ses
 
 Hosted clips use that user token, require `clips:edit` and a stream at least 60 seconds old, and appear only after Get Clips confirmation within 15 seconds. Stale/unconfirmed moments stay stats-only; hosted mode has no local replay. The bot independently verifies each clip belongs to the authenticated channel before posting its link ([clip results](../worker/src/clip-results.ts)).
 
+### When the clip is taken
+
+On 1 November Kash saw KO and PERFECT clips whose footage did not seem to match the label. Until then `/play` called Create Clip the moment the KO or PERFECT happened on the page.
+
+What Twitch says (READ, [Create Clip](https://dev.twitch.tv/docs/api/reference/#create-clip)):
+- Create Clip captures up to 90 seconds "from when you called the API". Twitch's example: a call at 4:00 captures about 2:35 to 4:05.
+- By default Twitch publishes the last 30 seconds of that window, so a clip ends about 5 seconds after the call.
+- Optional `title`, and optional `duration` from 5 to 60 seconds (default 30). Both were added on 19 December 2025 ([change log](https://dev.twitch.tv/docs/change-log/)).
+- `has_delay` was removed because it "did not have an effect on the resulting clip" ([forum, 20 Dec 2025](https://discuss.dev.twitch.com/t/introducing-clip-api-improvements-and-clip-from-vod-in-open-beta/64492)). One forum user saw clip ends drift by about 2 to 9 seconds when using Clip From VOD (READ, same thread).
+- Creation is asynchronous; Get Clips confirms it.
+
+What we infer (INFERRED, not measured):
+- Twitch cuts from its own copy of the stream. A moment on the page reaches that copy only after the browser encodes it, sends it over WHIP (or OBS sends it over RTMP) and Twitch transcodes it. That takes a few seconds, more than "about 5 seconds" can be relied on to cover.
+- So an instant call can end the clip just before the KO: 25 seconds of fight with the moment cut off or in the last frames.
+
+What `/play` does now ([hosted clips](../demo/src/hosted-clips.ts)):
+- It waits 6 seconds after the moment, then calls Create Clip. The moment sits a few seconds before the clip's end, with about 20 seconds of lead-up. It would still be inside the clip if Twitch were up to 6 seconds behind the page.
+- Moments close together share one clip: each new moment restarts the 6-second wait, but never past 12 seconds after the first. The best moment names the clip, so a PERFECT just before a KO gives one KO clip, not a PERFECT clip that misses the KO.
+- The clip title is the moment and the game, e.g. "KO · Streamer vs Chat". Length stays at Twitch's default of 30 seconds.
+- Switching clips off, disconnecting or closing the page during the wait asks for nothing. The other limits are unchanged: one clip per 30 seconds, only after the stream's first 60 seconds, a moment older than 10 seconds when its turn comes stays stats-only, and a clip counts only after Get Clips confirms it.
+
+Not yet MEASURED: the real offset on twitch.tv. To check it, make one KO on a live test stream, note the page clock, and see where the KO falls in the clip.
+
 ## Boss Forge on `/play`
 
 With hosted Forge enabled, `/play` runs the same service as the local server, uses the Worker's capped OpenAI proxy, and runs the gate/tuner in a browser Web Worker. Chat proposes ideas with `!forge <idea>` and endorses with `!forge +1`; a moderator or broadcaster sends plain `!forge` between rounds to generate, or `!veto` to cancel. The Worker allows 5 generations and 200 moderation calls per channel per UTC day, plus 100 generations globally; one verified repair belongs to its original generation ([caps](../worker/src/forge-caps.ts)). When the budget is reached, the Forge card says ‘daily cap reached’. Details: [Boss Forge review](boss-forge-review.md).

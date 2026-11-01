@@ -3,7 +3,8 @@ import type { HighlightCandidate } from './highlights';
 /** Transport returns only data; a Create Clip response is never confirmation. */
 export type ClipTransport={
   getStream:()=>Promise<{startedAt:number}|null>;
-  createClip:()=>Promise<string|null>;
+  /** The moment lets a transport title the clip; transports may ignore it. */
+  createClip:(highlight?:HighlightCandidate)=>Promise<string|null>;
   getClip:(id:string)=>Promise<{id:string;url:string}|null>;
 };
 export type ReplayRequest={highlightId:string;at:number};
@@ -77,7 +78,7 @@ export class ServerHighlightCoordinator {
     // already-saved local snapshot rather than label later footage as that moment.
     if(this.now()-this.enqueuedAt.get(entry)!>10000){this.replay(entry,'stale-request');return;}
     this.lastCreate=this.now();
-    const id=await this.request(this.options.transport.createClip(),5000);
+    const id=await this.request(this.options.transport.createClip(entry.highlight),5000);
     if(!id){entry.status='stats-only';entry.reason='create-failed';return;}
     entry.status='pending';this.changed();
     const deadline=this.now()+15000;
