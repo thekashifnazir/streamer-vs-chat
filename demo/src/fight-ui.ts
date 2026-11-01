@@ -1,6 +1,7 @@
 import type {GameState} from '../../shared/src/engine';
 import {safeClipHref} from '../../overlay/src/summary';
 import {summarizeGame} from '../../shared/src/highlights';
+import {workoutStats,workoutText} from './workout';
 /** Round ends name the round; the match end names the match and its round score, winner first. */
 export function resultTitle(state:GameState,ended:boolean,roundWinner:string|null|undefined){
  const champion=state.match.winner;
@@ -16,6 +17,8 @@ export function mountFightUi(doc:Document,options:{offline:boolean;resume:()=>vo
  // aria-modal: keep Tab focus inside the pause dialog.
  doc.addEventListener('keydown',event=>{if(pause.hidden||event.key!=='Tab')return;const buttons=[...pause.querySelectorAll<HTMLButtonElement>('button')].filter(button=>!button.hidden&&!button.disabled);if(!buttons.length)return;const first=buttons[0]!,last=buttons[buttons.length-1]!;if(!pause.contains(doc.activeElement)){event.preventDefault();(event.shiftKey?last:first).focus();}else if(event.shiftKey&&doc.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&doc.activeElement===last){event.preventDefault();first.focus();}});
  const results=doc.createElement('section');results.id='round-results';results.className='fight-dialog round-results';results.hidden=true;results.innerHTML='<h2 data-result-title></h2><div class="plain-stats"></div><button data-result-next class="primary">NEXT ROUND</button><p data-result-countdown></p><button data-result-quit>End fight</button><div data-result-extras></div>';stage.append(results);
+ // Match end only: a compact Workout row under the plain stats.
+ const workout=doc.createElement('p');workout.className='workout-row';workout.hidden=true;results.querySelector('.plain-stats')!.after(workout);
  results.querySelector('[data-result-next]')!.addEventListener('click',()=>{if(matchDone)options.restart();else options.next();});results.querySelector('[data-result-quit]')!.addEventListener('click',options.quit);
  if(options.offline){for(const element of doc.querySelectorAll('#friend-tools .share-stats-row,#playtest-output')){results.querySelector('[data-result-extras]')!.append(element);if(element.classList.contains('share-stats-row'))(element as HTMLElement).hidden=false;}}
  let pausedAt:number|null=null;
@@ -30,6 +33,7 @@ export function mountFightUi(doc:Document,options:{offline:boolean;resume:()=>vo
   results.querySelector('[data-result-title]')!.textContent=resultTitle(state,ended,summary.winner);
   const stats=results.querySelector('.plain-stats')!;stats.replaceChildren();
   for(const text of [`${summary.stats.defended} defences`,`${Math.round(summary.stats.damageDealt)} damage dealt`,`${Math.round(summary.stats.damageTaken)} damage taken`]){const item=doc.createElement('p');item.textContent=text;stats.append(item);}
+  workout.hidden=!matchDone;workout.replaceChildren();if(matchDone){const label=doc.createElement('strong');label.textContent='Workout';workout.append(label,` ${workoutText(workoutStats(state))}`);}
   results.querySelector('[data-result-next]')!.textContent=matchDone?'NEW MATCH':'NEXT ROUND';results.querySelector('[data-result-countdown]')!.textContent='';due=matchDone?null:now()+5000;tick();
  }
  function tick(){if(due===null||paused)return;const remaining=Math.max(0,Math.ceil((due-now())/1000));results.querySelector('[data-result-countdown]')!.textContent=`Next round in ${remaining} s`;if(!remaining){due=null;options.next();}}
