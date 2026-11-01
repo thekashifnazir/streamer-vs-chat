@@ -37,7 +37,7 @@ export function createSimChatFeed(options:{seed?:number;gapMs?:number;queue?:num
  };
 }
 export type SimChatFeed=ReturnType<typeof createSimChatFeed>;
-/** Stage panel (desktop, sized in container units) plus a two-line strip under the stage (phone, in the controls row). */
+/** Stage panel (desktop, sized in container units, last 3 lines so the text stays large) plus a two-line strip under the stage (phone, in the controls row). */
 export function mountSimChat(doc:Document,stage:HTMLElement){
  const layer=doc.createElement('div');layer.className='sim-chat-layer';layer.hidden=true;
  layer.innerHTML='<aside class="sim-chat" aria-label="Simulated chat"><h3>● SIMULATED CHAT <small>not real viewers</small></h3><ol role="log" aria-live="off"></ol></aside>';stage.append(layer);
@@ -51,7 +51,7 @@ export function mountSimChat(doc:Document,stage:HTMLElement){
   render(feed:SimChatFeed,mode:SimChatMode|null){
    layer.hidden=strip.hidden=!mode;if(!mode)return;layer.dataset.mode=mode;
    if(shown===feed.version)return;shown=feed.version;
-   fill(layer.querySelector('ol')!,feed.lines.slice(-4));fill(strip.querySelector('ol')!,feed.lines.slice(-2));
+   fill(layer.querySelector('ol')!,feed.lines.slice(-3));fill(strip.querySelector('ol')!,feed.lines.slice(-2));
   },
  };
 }

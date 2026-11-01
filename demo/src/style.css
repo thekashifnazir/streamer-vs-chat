@@ -505,3 +505,26 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 /* PLAIN moved to More options as Steady bars (hosted-flow.ts); the HUD footer keeps only SOUND. */
 .play-plain-moved #game-hud .hud-options label:has(input[data-id=plain]){display:none}
 @media(max-width:760px){.hosted-flow #fight-setup .extras-grid{grid-template-columns:1fr 1fr}.hosted-flow .trainer-mode-choice [data-trainer-mode]{height:176px;--plate-h:98px;font-size:22px}.hosted-flow .trainer-mode-choice [data-trainer-mode]::before{bottom:102px;height:66px}}
+/* ── hudclarity: larger SIMULATED chat text and a one-screen webcam setup on / ──
+   Chat panel: the last 3 lines at about 32 px (1920 stage), below the defence card and above the SIMULATED CHAT badge. */
+.sim-chat{top:68.5cqh;max-height:17cqh;font-size:1.65cqw}.sim-chat h3{font-size:.7em}
+.sim-chat li[data-kind=bot],.sim-chat li[data-kind=you]{font-size:.95em;-webkit-line-clamp:3}
+.sim-chat-layer[data-mode=trainer] .sim-chat,.sim-chat-layer[data-mode=trainer-done] .sim-chat{font-size:1.65cqw}
+/* Webcam setup on / (desktop): two columns that fit 1280x720 without scrolling. The preview width follows the window
+   height; the 3 calibration groups are compact and the current sub-step is lit. Phones keep the stacked layout. */
+.webcam-groups [data-calibration-step].active{color:var(--yellow);font-weight:700}.webcam-groups [data-calibration-step].done{color:var(--cyan)}.webcam-groups [data-calibration-step].done::before{content:'✓ '}
+@media(min-width:761px){
+ body.offline-demo-page.webcam-open>main>#webcam-settings:not([hidden]){display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:20px;align-items:center;margin:10px auto;padding:12px 24px 14px}
+ .offline-demo-page.webcam-open>footer{display:none}
+ .offline-demo-page #webcam-settings .webcam-layout{grid-column:1/-1;margin-top:12px}.offline-demo-page #webcam-settings .webcam-header{margin:0}.offline-demo-page #webcam-settings .webcam-header h2{font-size:26px;margin:0 0 2px}.offline-demo-page #webcam-settings .webcam-header p{font-size:14px;margin:0}
+ .offline-demo-page #webcam-settings .webcam-layout{grid-template-columns:min(calc((100vh - 350px)*4/3),58%) minmax(0,1fr);gap:22px;align-items:start}
+ .offline-demo-page #webcam-settings .webcam-instructions{padding:8px 0 0}.offline-demo-page #webcam-settings .webcam-instructions h3{margin:2px 0 4px;font-size:22px}
+ .offline-demo-page #webcam-settings #webcam-step-label{margin:0;font-size:13px}.offline-demo-page #webcam-settings .webcam-instructions p,.offline-demo-page #webcam-settings #webcam-distance-tip,.offline-demo-page #webcam-settings #camera-status{font-size:14px;margin:4px 0}
+ .offline-demo-page #webcam-settings .webcam-checklist{gap:8px}.offline-demo-page #webcam-settings .webcam-step{min-height:0;padding:8px 12px;gap:12px}.offline-demo-page #webcam-settings .webcam-step svg{width:34px;height:34px}
+ .offline-demo-page #webcam-settings .webcam-step strong{font-size:17px}.offline-demo-page #webcam-settings .webcam-step small{font-size:14px;line-height:1.35}
+ .offline-demo-page #webcam-settings .safety-check{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:12px;margin-top:12px;padding:10px 14px}
+ .offline-demo-page #webcam-settings .safety-check svg{width:32px;height:32px;margin:0}.offline-demo-page #webcam-settings .safety-check p{margin:0;font-size:14px}.offline-demo-page #webcam-settings .safety-check label{grid-column:1/-1;margin-top:8px;min-height:44px}
+ .offline-demo-page #webcam-settings .webcam-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.offline-demo-page #webcam-settings .webcam-actions button{margin:0}.offline-demo-page #webcam-settings .webcam-actions #play-webcam{flex:0 0 100%;min-height:50px;margin:0}
+ .offline-demo-page #webcam-settings #calibration-saved{margin:6px 0 0}
+}
+/* ── end hudclarity ── */

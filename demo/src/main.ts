@@ -199,6 +199,8 @@ function paint() {
     if(!liveMode){crowdSize.closest('label')!.hidden=!game.round.over;document.querySelector('.demo-controls')!.classList.toggle('between-rounds',game.round.over);}
     el('demo-status').textContent=game.paused?'Paused. Resume when your space is clear.':game.match.winner?'Match complete. Try another crowd size or play again.':game.round.over?noPunch.checked?'Round complete. Clean defences do the damage.':'Round complete. Defence does the damage; punches are a bonus.':fightHelp({pose:source.value==='pose',seated:posture.value==='seated',noPunch:noPunch.checked},game.bossDef?.name);
   }
+  // No crowd choice in practice or Crowd Trainer: the trainer's simulated crowd is fixed when the workout starts.
+  if(!liveMode&&!game)crowdSize.closest('label')!.hidden=tutorialStarted||trainer.active;
   // The compact fight layout hides the setup card. If the flow leaves step 3 mid-fight (Twitch
   // authorization revoked or expired), expand it so the Reconnect card is not hidden behind a blank page.
   if(liveMode&&document.body.dataset.playStep!=='fight'&&document.body.classList.contains('stream-compact'))streamLayout.expand();

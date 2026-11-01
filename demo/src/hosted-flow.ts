@@ -29,7 +29,7 @@ export function mountHostedFlow(doc:Document){
   const source=get('input-source') as HTMLSelectElement;source.value=button.dataset.defend!;source.dispatchEvent(new doc.defaultView!.Event('change'));
   if(source.value==='pose')get('open-webcam').click();else get('start-fight').click();
  });
- const groups=doc.createElement('ol');groups.className='play-calibration-groups';groups.innerHTML='<li class="active" data-calibration-group="0">Get in frame <small data-group-instruction></small></li><li data-calibration-group="1">Guard up</li><li data-calibration-group="2">Lean left, then right</li>';
+ const groups=doc.createElement('ol');groups.className='play-calibration-groups';groups.innerHTML='<li class="active" data-calibration-group="0">1. Get in frame <small data-group-instruction></small></li><li data-calibration-group="1">2. Guard up <small>Fists at face height · hold still 3 s</small></li><li data-calibration-group="2">3. Lean left, then right <small>1.5 s each</small></li>';
  doc.querySelector('.webcam-checklist')!.before(groups);
  const hint=doc.createElement('p');hint.id='no-body-tips';hint.hidden=true;hint.textContent='Step back, put light in front of you, and keep both wrists in view.';get('webcam-preview').after(hint);
  let latest:PlayFlow={connected:false,live:false,obs:false,skipped:false};

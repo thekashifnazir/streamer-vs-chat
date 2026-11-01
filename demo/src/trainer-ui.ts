@@ -93,7 +93,7 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
   part('round').textContent=`ROUND ${s.round}/3`;
   part('clock').textContent=clock(s.phase==='done'?0:s.phaseEndsAt-at);part('clock').classList.toggle('trainer-last-ten',s.phase==='work'&&s.phaseEndsAt-at<=10_000);
   part('badge').textContent=options.live?'LIVE · YOUR TWITCH CHAT':'SIMULATED CHAT';
-  part('pace').textContent=`PACE · ${(s.gapMs/1000).toFixed(1)} s between combos`;
+  part('pace').textContent=`New combo every ${(s.gapMs/1000).toFixed(1)} s`;
   const combo=s.combo,shown=combo??(s.last?{id:s.last.id,tokens:comboDef(s.last.id).tokens,marks:s.last.marks,index:-1}:null);
   part('name').textContent=combo?`${comboDef(combo.id).name}${combo.voted?'':' · autopilot'}`:s.phase==='work'?(s.last?'Chat is calling the next combo…':'Get ready · chat is voting the first combo'):'';
   const key=shown?`${shown.id}:${combo?.calledAt??s.last?.at}:${shown.marks.join()}:${combo?.index}:${southpaw}:${anyHand}`:'';
