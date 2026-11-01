@@ -120,7 +120,7 @@ function trackLocalRound(){
  if(!game||liveMode||coldOpenAt!==null)return;
  const key=`${game.match.seed}:${game.round.number}`;
  if(playtestRound!==key){if(game.round.over)return;playtest.endRound();playtest.startRound();playtestRound=key;}
- if(game.round.over)playtest.endRound();
+ if(game.round.over)playtest.endRound(game);
 }
 function trackFight(){
   if(!hosted||!game)return;
@@ -414,7 +414,6 @@ const timer=window.setInterval(()=>{
 },100);
 // pagehide, not beforeunload: a cancelled leave warning must not tear down the live stream or fight.
 window.addEventListener('pagehide',()=>{leaveGuard.dispose();window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();demoCoach?.dispose();playtest.dispose();});
-el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
 el('back-to-setup').addEventListener('click',()=>fightUi?.end());
 el('cold-open').addEventListener('click',()=>{
