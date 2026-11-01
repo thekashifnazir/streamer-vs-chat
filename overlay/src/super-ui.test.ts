@@ -35,14 +35,12 @@ it('gives locked SUPER a full-width wrapping status line at the36px floor',()=>{
  expect(hud).toContain('<span>SUPER UNLOCKS</span><span>AT 100% HYPE</span>');expect(hud).toContain('· NOW ${Math.round(current?.hype??0)}%');expect(hud).toContain('EACH VOTE ADDS HYPE<br>MORE VOTERS, FASTER HYPE');
  expect(css).toContain('font:400 36px/1 Anton');
 });
-it('keeps the SUPER READY / denied banners clear of the telegraph callout and move chip',()=>{
- const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+it('keeps the SUPER READY / denied banners in the one prompt lane, clear of the call lane and the camera lane',()=>{
+ const css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),hud=readFileSync(new URL('./hud.ts',import.meta.url),'utf8');
  const rule=css.match(/\.super-ready-banner,\.super-denied-banner\{([^}]*)\}/)![1]!;
- expect(rule).toContain('top:auto');const bottom=Number(rule.match(/bottom:(\d+)px/)![1]);
- // Telegraph: top 142 px, 140 px callout at 1.1 line height, move chip and SUPER steps below: ends by ~520 px.
- // Banner: 44 px text + 24 px padding + 8 px border. It must start below that and sit above the finisher window banner (bottom 28 px, ~76 px tall).
- const top=1080-bottom-76;expect(top).toBeGreaterThan(520);expect(bottom).toBeGreaterThanOrEqual(28+76+8);
- expect(css).not.toMatch(/\.super-denied-banner\{top:/);
+ // No position of their own: they live inside .prompt-lane (556 to 676 px), below the call lane (ends 548) and above the camera lane (700).
+ expect(rule).toContain('position:relative');expect(rule).not.toMatch(/(top|bottom):/);expect(css).not.toMatch(/\.super-denied-banner\{top:/);
+ expect(hud).toMatch(/<div class="prompt-lane" data-id="prompt-lane">[^]*data-id="super-ready"[^]*data-id="super-denied"[^]*data-id="finisher-ready"[^]*<\/div><\/div>/);
 });
 it('names who took a finished SUPER: all three clean is yours, any miss is chat\'s',()=>{
  const done=(results:string[])=>({visible:true,current:-1,steps:results.map(outcome=>({defence:'guard',label:'GUARD',mark:outcome==='HIT'?'✕':'✓',status:outcome==='HIT'?'miss':'clean'}))}) as ReturnType<typeof superSequencePresentation>;

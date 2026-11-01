@@ -10,10 +10,13 @@ export const PREF_FIELDS={
  input:oneOf<'keyboard'|'pose'>('keyboard',['keyboard','pose']),
  posture:oneOf<'standing'|'seated'>('standing',['standing','seated']),
  noPunch:flag(false),sound:flag(true),plain:flag(false),
- crowd:oneOf<0|3|50|500>(50,[0,3,50,500]),
+ // 5 by default (Kash, 1 Nov): a calmer crowd, so SUPERs are rare and attack, defend, counter is easy to see.
+ crowd:oneOf<0|3|5|50|500>(5,[0,3,5,50,500]),
  mode:oneOf<'boss'|'trainer'>('boss',['boss','trainer']),
  // Crowd Trainer options; Boss Fight ignores them.
  southpaw:flag(false),anyHand:flag(false),
+ // Webcam: draw the tracked skeleton on the camera circle (off by default; setup's calibration preview always shows it).
+ skeleton:flag(false),
 };
 export type Prefs={-readonly [K in keyof typeof PREF_FIELDS]:(typeof PREF_FIELDS)[K]['fallback']};
 export type PrefKey=keyof Prefs;

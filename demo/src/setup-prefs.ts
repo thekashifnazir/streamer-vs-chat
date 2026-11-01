@@ -1,7 +1,7 @@
 import {cleanPrefs,defaultPrefs,PREF_FIELDS,PREFS_PREFIX,urlPrefs,type Prefs,type PrefsStore} from './prefs';
-type Control={id:string;key:'input'|'posture'|'noPunch'|'crowd'|'southpaw'|'anyHand'};
+type Control={id:string;key:'input'|'posture'|'noPunch'|'crowd'|'southpaw'|'anyHand'|'skeleton'};
 // Input goes last so its webcam → Easy default sees whether a level was already restored.
-const CONTROLS:Control[]=[{id:'posture',key:'posture'},{id:'no-punch',key:'noPunch'},{id:'crowd-size',key:'crowd'},{id:'trainer-southpaw',key:'southpaw'},{id:'trainer-any-hand',key:'anyHand'},{id:'input-source',key:'input'}];
+const CONTROLS:Control[]=[{id:'posture',key:'posture'},{id:'no-punch',key:'noPunch'},{id:'crowd-size',key:'crowd'},{id:'trainer-southpaw',key:'southpaw'},{id:'trainer-any-hand',key:'anyHand'},{id:'show-skeleton',key:'skeleton'},{id:'input-source',key:'input'}];
 // A ?mode= link also holds for this tab (sessionStorage), so Crowd Trainer survives the Twitch login round trip on /play.
 export const VISIT_MODE_KEY=`${PREFS_PREFIX}visit-mode`;
 /** Loads saved setup choices into the existing controls, saves later changes, and adds a Reset settings link. URL values win for the visit. */

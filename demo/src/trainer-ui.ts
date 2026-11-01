@@ -105,7 +105,7 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
   const result=part('result'),fresh=!combo&&s.last&&at-s.last.at<1600;result.textContent=fresh?RESULT_TEXT[s.last!.result]:'';result.dataset.result=fresh?s.last!.result:'';
   const ranked=COMBOS.map(c=>({c,n:s.tally[c.id]})).filter(row=>row.n>0).sort((a,b)=>b.n-a.n).slice(0,4),total=ranked.reduce((sum,row)=>sum+row.n,0),votes=part('votes');
   const voteKey=ranked.map(row=>`${row.c.id}${row.n}`).join();if(votes.dataset.key!==voteKey){votes.dataset.key=voteKey;votes.replaceChildren();
-   if(!ranked.length){const li=doc.createElement('li');li.className='trainer-vote-empty';li.textContent='No votes yet · autopilot picks';votes.append(li);}
+   if(!ranked.length){const li=doc.createElement('li');li.className='trainer-vote-empty';li.innerHTML=`<b>Type ${COMBOS.filter(combo=>combo.id==='12'||combo.id==='12s').map(combo=>combo.command).join(', ')}… in chat to pick the next combo</b><small>No votes yet · autopilot picks</small>`;votes.append(li);}
    for(const row of ranked){const li=doc.createElement('li');li.style.setProperty('--share',`${Math.round(row.n/total*100)}%`);const name=doc.createElement('span');name.textContent=`${row.c.command} ${row.c.name}`;const n=doc.createElement('b');n.textContent=String(row.n);li.append(name,n);votes.append(li);}
   }
   const sum=trainerSummary(s),stats=part('stats'),statsKey=`${sum.clean}:${sum.partial}:${sum.missed}:${sum.punchesL}:${sum.punchesR}`;
