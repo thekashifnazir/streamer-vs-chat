@@ -30,6 +30,12 @@ export async function buildDemo(options: {mock?:boolean} = {}) {
     await copyFile(join(projectRoot,'node_modules/@mediapipe/tasks-vision/wasm',filename),join(poseOutput,filename));
   }
   await copyFile(modelPath,join(poseOutput,'pose_landmarker_lite.task'));
+  // The recorded voice bank (about 870 short MP3s) is copied, not bundled: the player fetches only the chosen voice, a line at a time.
+  const bank=join(projectRoot,'assets/voice/bank');
+  for(const voice of await readdir(bank,{withFileTypes:true}))if(voice.isDirectory()){
+    await mkdir(join(output,'assets/voice-bank',voice.name),{recursive:true});
+    for(const file of await readdir(join(bank,voice.name)))if(file.endsWith('.mp3'))await copyFile(join(bank,voice.name,file),join(output,'assets/voice-bank',voice.name,file));
+  }
   const credits=join(output,'credits');await mkdir(credits,{recursive:true});
   const creditText=(await readFile(join(projectRoot,'CREDITS.md'),'utf8')).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
   await writeFile(join(credits,'index.html'),'<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Streamer vs Chat · Credits</title><style>body{font:16px system-ui;background:#0c0912;color:#f5f2fa;padding:24px}a{color:#2ef2ff}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><a href="/">Back to Streamer vs Chat</a><h1>Credits</h1><pre>'+creditText+'</pre>','utf8');
@@ -38,7 +44,7 @@ export async function buildDemo(options: {mock?:boolean} = {}) {
     ['assets/fonts/barlowcondensed-OFL.txt','barlowcondensed-OFL.txt'],
     ['assets/fonts/Bungee-OFL.txt','Bungee-OFL.txt'],['assets/fonts/RussoOne-OFL.txt','RussoOne-OFL.txt'],['assets/fonts/inter-OFL.txt','inter-OFL.txt'],
     ['assets/licences/Apache-2.0.txt','Apache-2.0.txt'],
-    ['assets/SOUNDS.md','sound-provenance.txt'],['assets/voice/README.md','voice-provenance.txt'],
+    ['assets/SOUNDS.md','sound-provenance.txt'],['assets/voice/README.md','voice-provenance.txt'],['assets/voice/bank/README.md','voice-bank-provenance.txt'],
     ['assets/boss/README.md','boss-provenance.txt'],['capture/public/models/README.md','model-provenance.txt'],
   ])await copyFile(join(projectRoot,source!),join(credits,name!));
   for(const file of await readdir(join(projectRoot,'assets/licences')))if(file.startsWith('kenney-'))await copyFile(join(projectRoot,'assets/licences',file),join(credits,file));

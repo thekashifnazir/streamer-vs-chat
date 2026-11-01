@@ -37,6 +37,7 @@ import {mountStreamLayout} from './stream-layout';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
+import {createBossTaunts,createVoiceBank,mountVoicePicker,PREVIEW_CUE,setActiveVoiceBank} from './voice-bank';
 
 const impactLedger=createBossImpactLedger('browser');
 const superNotices=createSuperNotices();
@@ -59,6 +60,8 @@ const previewConfig=scoutPreviewConfig(location,{liveMode,liveTokenLoaded:false}
 if(previewConfig)document.querySelector('.demo-tag')!.textContent=SCOUT_PREVIEW_BADGE;
 const hud=createRailsHud(host,{simulated:!liveMode,soundDefault:true,deferSoundUntilStart:true,offlineDemo:!liveMode});
 const streamSound=(document.getElementById('stream-sound')??document.getElementById('demo-sound')) as HTMLInputElement|null;
+// Recorded boss taunts (and the Crowd Trainer's coach) share the HUD's sound, mute and announcer priority.
+const voiceBank=createVoiceBank(hud.voiceHost),bossTaunts=createBossTaunts(voiceBank,hud.voiceHost);setActiveVoiceBank(voiceBank);
 if(streamSound){
   const syncSound=()=>{streamSound.checked=hud.soundRequested();updateLandingLabel();};
   host.addEventListener('rails-sound-change',syncSound);
@@ -158,6 +161,7 @@ function paint() {
   document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef)+' · '+finisherHelp(source.value==='pose');
   updateControlGuide();
   hud.setBossReceipts(impactLedger.snapshot());hud.setSuperNotices(superNotices.snapshot());
+  bossTaunts.observe(game);
   hud.render(game??createSelectedGame(difficulty,{seed,viewers:liveMode?0:Number(crowdSize.value),now:0,...(previewConfig?{scoutingConfig:previewConfig}:{})}),!liveMode);
   hud.setConnection(previewConfig?SCOUT_PREVIEW_BADGE:liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   // /play is any streamer's broadcast: name the connected Twitch login, never the default HUD name.
@@ -415,4 +419,8 @@ if(liveMode){
 }
 // Setup choices survive a reload (localStorage, guarded); URL values win for the visit.
 bindSetupPrefs(document,{store:createPrefs(()=>window.localStorage),search:location.search,setup,sound:{get:()=>hud.soundRequested(),set:on=>{void hud.setSoundRequested(on);},target:host},plain:host.querySelector<HTMLInputElement>('[data-id=plain]')});
+// After hosted flow has moved the Sound switch into its options, so the picker sits beside it.
+// Before game sound starts, ▶ plays through a plain audio element (still only with Sound on).
+const soundLabel=streamSound?.closest('label');
+if(soundLabel)mountVoicePicker(soundLabel,voiceBank,{preview:bank=>{if(!hud.soundRequested())return;if(hud.voiceHost.enabled){void voiceBank.playLine(bank,PREVIEW_CUE[bank],{interrupt:true,yieldToVoice:false});return;}const url=voiceBank.previewUrl(bank);if(url)void new Audio(url).play().catch(()=>{});}});
 updateModes();paint();input({kind:'pose',guard:false,lean:null,source:'keyboard',at:performance.now()});

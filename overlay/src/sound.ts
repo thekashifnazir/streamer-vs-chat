@@ -42,6 +42,7 @@ export class GameSound {
   private dead=false;
   private lastVoiceAt=-Infinity;
   private duckUntil=0;
+  private yielding=new Set<{stop():void}>();
   constructor(private options:{defaultEnabled?:boolean;context?:()=>AudioContext;fetch?:typeof fetch;onChange?:()=>void}={}){this.requested=!!options.defaultEnabled;}
   async prepare():Promise<void> {
     if(this.dead)return;
@@ -96,12 +97,35 @@ export class GameSound {
     if(!this.enabled||!context||!buffer||this.dead)return;
     if(voice){
       if(!priority&&context.currentTime-this.lastVoiceAt<MIX.voiceGapSeconds)return;
+      for(const line of this.yielding)line.stop();
       this.lastVoiceAt=context.currentTime;this.duckUntil=Math.max(this.duckUntil,context.currentTime+buffer.duration);
       this.musicGain!.gain.cancelScheduledValues(context.currentTime);
       this.musicGain!.gain.setValueAtTime(MIX.duckGain,context.currentTime);
       this.musicGain!.gain.setValueAtTime(MIX.musicGain,this.duckUntil);
     }
     const source=context.createBufferSource();source.buffer=buffer;source.connect(this.master!);source.start();
+  }
+  /** An announcer, callout or bank line is still speaking; lower-priority lines wait for it. */
+  speaking():boolean{return this.enabled&&!!this.context&&this.context.currentTime<this.duckUntil;}
+  /** Fetch and decode an extra cue on demand (recorded voice bank). Undefined until sound is prepared. */
+  async loadBuffer(url:string):Promise<AudioBuffer|undefined>{
+    const context=this.context;if(!context||this.dead)return undefined;
+    try{const response=await (this.options.fetch??fetch)(url);return response.ok&&!this.dead?await context.decodeAudioData(await response.arrayBuffer()):undefined;}catch{return undefined;}
+  }
+  /** Play an extra voice buffer through the same mute, limiter and music duck. A yieldToVoice line stops when an announcer voice starts. */
+  playBuffer(buffer:AudioBuffer,{yieldToVoice=false}:{yieldToVoice?:boolean}={}):{stop():void;ended:Promise<void>}|undefined{
+    const context=this.context;
+    if(!this.enabled||!context||this.dead)return undefined;
+    const now=context.currentTime,gain=context.createGain(),source=context.createBufferSource();
+    this.duckUntil=Math.max(this.duckUntil,now+buffer.duration);
+    this.musicGain!.gain.cancelScheduledValues(now);this.musicGain!.gain.setValueAtTime(MIX.duckGain,now);this.musicGain!.gain.setValueAtTime(MIX.musicGain,this.duckUntil);
+    gain.gain.setValueAtTime(1,now);source.buffer=buffer;source.connect(gain);gain.connect(this.master!);
+    let done=()=>{};const ended=new Promise<void>(resolve=>{done=resolve;});
+    // A 40 ms fade avoids a click when a line is cut for a warning or the announcer.
+    const line={stop:()=>{this.yielding.delete(line);try{const at=context.currentTime;gain.gain.setValueAtTime(gain.gain.value,at);gain.gain.linearRampToValueAtTime(0,at+.04);source.stop(at+.05);}catch{}done();},ended};
+    source.onended=()=>{this.yielding.delete(line);done();};
+    if(yieldToVoice)this.yielding.add(line);
+    source.start();return line;
   }
   dispose(){this.dead=true;this.requested=false;this.enabled=false;try{this.music?.stop();}catch{}void this.context?.close();this.buffers.clear();}
 }
