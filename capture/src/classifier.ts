@@ -139,6 +139,8 @@ export class PoseClassifier {
     this.leanThresholds={L:Math.max(floor,leanThresholds.L),R:Math.max(floor,leanThresholds.R)};
     this.reset();
   }
+  /** Read-only: the Boss Fight punch detector's last scored frame, for the punch lab (?lab=punch). */
+  get punchDebug() { return this.punch.debug; }
   setPunchesEnabled(enabled:boolean) {
     if(this.punchesEnabled===enabled)return;
     this.punchesEnabled=enabled;this.punch.reset();

@@ -1,0 +1,38 @@
+/* Punch lab (?lab=punch): a hidden tuning page, never on stream. */
+@font-face{font-family:Anton;src:url('../../assets/fonts/Anton-400.woff2') format('woff2');font-display:swap}
+.punch-lab-page{margin:0;background:#0c0912;color:#f5f2fa;font:16px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;--yellow:#ffdc43;--pink:#ff268a;--cyan:#2ef2ff;--muted:#c2bdcd;--panel:#16111f;--line:#3a3147}
+.lab{box-sizing:border-box;max-width:1600px;margin:0 auto;padding:16px 24px 32px}.lab *{box-sizing:border-box}
+.lab h1,.lab h2,.lab h3{margin:0}.lab h1{font:400 32px/1 Anton,Impact,sans-serif;letter-spacing:1px;color:var(--yellow)}
+.lab-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.lab-top p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.lab-actions{display:flex;gap:8px;flex-wrap:wrap}.lab-actions button{min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:#f5f2fa;font:600 15px system-ui,sans-serif;cursor:pointer}
+.lab-actions button:disabled{opacity:.45;cursor:default}.lab-actions .lab-primary{background:var(--cyan);border-color:var(--cyan);color:#0c0912;font-weight:800}.lab-actions [data-running="1"]{border-color:var(--pink);color:var(--pink)}
+.lab-status{margin:10px 0;color:var(--muted);font-size:14px;min-height:20px}
+.lab-body{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:16px;align-items:start}
+.lab-view{position:relative;aspect-ratio:16/9;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lab-view video{position:absolute;inset:0;width:100%;height:100%;visibility:hidden}.lab-view canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.lab-wrists{position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:8px 18px;background:#e0102fe6;border:3px solid #fff;border-radius:8px;color:#fff;font:400 30px/1.1 Anton,Impact,sans-serif;letter-spacing:1px;white-space:nowrap}
+.lab-prompt{position:absolute;left:4%;right:4%;bottom:5%;display:grid;gap:6px;padding:14px 20px;background:#08050ce6;border:3px solid var(--yellow);border-radius:10px;text-align:center}
+.lab-prompt strong{font:400 44px/1.05 Anton,Impact,sans-serif;color:var(--yellow)}.lab-prompt[data-phase=ready] strong{color:var(--cyan)}.lab-prompt span{font-size:17px;color:#f5f2fa}
+.lab-prompt i{display:block;height:6px;background:#ffffff22;border-radius:3px;overflow:hidden}.lab-prompt i b{display:block;height:100%;background:var(--yellow)}
+.lab [hidden]{display:none!important}
+.lab-side{display:grid;gap:12px}.lab-side>section{padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.lab-side h2{font:800 13px system-ui,sans-serif;letter-spacing:1.2px;color:var(--muted)}.lab-side h2 small{font-weight:500;letter-spacing:0;text-transform:none;color:#8f869d}
+.lab-side h3{margin:10px 0 4px;font:600 12px system-ui,sans-serif;color:#8f869d}
+.lab-counter[data-detector=boss]{border-left:5px solid var(--yellow)}.lab-counter[data-detector=trainer]{border-left:5px solid var(--cyan)}
+.lab-counts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}.lab-counts p{margin:0;padding:4px 10px;border-radius:8px;background:#0c0912;text-align:center}
+.lab-counts b{display:block;font:400 64px/1 Anton,Impact,sans-serif;font-variant-numeric:tabular-nums}.lab-counts span{font:800 13px system-ui,sans-serif;letter-spacing:1.5px;color:var(--muted)}
+.lab-counter[data-detector=boss] b{color:var(--yellow)}.lab-counter[data-detector=trainer] b{color:var(--cyan)}
+.lab-counts p.lab-flash{animation:lab-flash 450ms ease-out}@keyframes lab-flash{0%{background:#fff;transform:scale(1.08)}100%{background:#0c0912;transform:scale(1)}}
+.lab-bar-row{display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-areas:'name bar' '. value' '. why';column-gap:8px;margin:4px 0}.lab-bar-name{grid-area:name;font:800 12px system-ui,sans-serif;letter-spacing:1px;align-self:center}
+.lab-bar{grid-area:bar;position:relative;height:16px;background:#0c0912;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.lab-bar-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:#6d6380}.lab-bar-fill.over{background:var(--yellow)}.lab-bar-centre .lab-bar-fill{background:var(--pink)}
+.lab-bar-on{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:#fff}.lab-bar-peak{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--pink)}
+.lab-bar-value{grid-area:value;font:13px ui-monospace,Menlo,monospace;color:#f5f2fa}.lab-bar-why{grid-area:why;font-size:12px;color:var(--pink);min-height:0}.lab-bar-why:empty{display:none}
+.lab-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.lab-chips span{padding:6px 10px;border:1px solid var(--line);border-radius:20px;font:800 13px system-ui,sans-serif;color:#8f869d}.lab-chips span.on{background:var(--cyan);border-color:var(--cyan);color:#0c0912}
+.lab-log ol{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:2px;font:13px ui-monospace,Menlo,monospace;color:var(--muted)}.lab-log li[data-kind=punch]{color:#f5f2fa}.lab-log li[data-kind=wrists-out]{color:var(--pink)}
+.lab-results{overflow-x:auto;margin-top:16px;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:10px}.lab-results h2{font:400 24px Anton,Impact,sans-serif;color:var(--yellow)}
+.lab-results table{width:100%;margin-top:8px;border-collapse:collapse;font-size:15px}.lab-results th,.lab-results td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.lab-results th{color:var(--muted);font-size:13px}
+.lab-results td.lab-miss{color:var(--pink);font-weight:700}.lab-results p{margin:8px 0 0;color:var(--muted);font-size:13px}
+.lab-keys{margin:12px 0 0;color:#8f869d;font-size:13px}.lab-keys kbd{padding:1px 6px;border:1px solid var(--line);border-radius:4px;color:#f5f2fa;font:inherit}
+@media(max-width:1100px){.lab-body{grid-template-columns:1fr}.lab{padding:12px 16px}}
+@media(max-width:600px){.lab-wrists{font-size:20px;white-space:normal;text-align:center;width:90%}.lab-prompt strong{font-size:26px}.lab-prompt span{font-size:14px}.lab-counts b{font-size:48px}.lab-results table{font-size:13px}.lab-results th,.lab-results td{padding:6px 4px}}

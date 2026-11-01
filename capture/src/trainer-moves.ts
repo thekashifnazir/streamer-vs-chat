@@ -1,5 +1,5 @@
 import type {Landmark} from './classifier';
-import {STRAIGHT_PUNCH,StraightPunchDetector} from './straight-punch';
+import {STRAIGHT_PUNCH,StraightPunchDetector,type PunchDebug} from './straight-punch';
 /**
  * Crowd Trainer only: punch side and slip from a front webcam. Boss Fight keeps PoseClassifier unchanged.
  * Straight punches at the camera barely lengthen the arm in 2D and the shoulders narrow as the body
@@ -35,12 +35,16 @@ export class TrainerMoveDetector {
  private straight=new StraightPunchDetector();
  private emitted:{side:'L'|'R';at:number;own:boolean;paired:boolean}[]=[];
  private pending:{side:'L'|'R';at:number}|null=null;
+ /** Read-only: this detector's own last scored frame (shoulder widths), for the punch lab. Never feeds a decision. */
+ debug:PunchDebug|null=null;
+ /** Read-only: the merged straight-punch detector's last scored frame. */
+ get straightDebug(){return this.straight.debug;}
  /** Per-player thresholds from the punch setup step (Boss Fight units); null keeps the tuned default. This detector measures
   * in shoulder widths with its own default, so it takes the same ratio to its default, not the raw value (a raw 0.7-0.9 cut
   * Kash's recorded catches from 40 to 34 of 44). */
  setPunchThresholds(value:{L:number;R:number}|null){this.thresholds=value?{L:value.L,R:value.R}:null;}
  reset(){this.clear();this.straight.reset();this.emitted=[];}
- private clear(){this.history=[];this.widths=[];this.punch={L:fresh(),R:fresh()};this.slip={armed:true,last:-Infinity};this.pending=null;}
+ private clear(){this.debug=null;this.history=[];this.widths=[];this.punch={L:fresh(),R:fresh()};this.slip={armed:true,last:-Infinity};this.pending=null;}
  /** Punches from this detector and the straight-punch one, each counted once; slips from this one, after their confirm wait. */
  update(landmarks:Landmark[],at:number):{punches:{side:'L'|'R';at:number}[];slips:{side:'L'|'R';at:number}[]}{
   const own=this.moves(landmarks,at),straight=this.straight.update(landmarks,at,this.thresholds??{L:STRAIGHT_PUNCH.on,R:STRAIGHT_PUNCH.on});
@@ -55,7 +59,7 @@ export class TrainerMoveDetector {
   return {punches,slips:own.slips};
  }
  private moves(landmarks:Landmark[],at:number):{punches:{side:'L'|'R';at:number}[];slips:{side:'L'|'R';at:number}[]}{
-  const out={punches:[] as {side:'L'|'R';at:number}[],slips:[] as {side:'L'|'R';at:number}[]};
+  const out={punches:[] as {side:'L'|'R';at:number}[],slips:[] as {side:'L'|'R';at:number}[]};this.debug=null;
   const [nose,ls,rs,lw,rw]=[landmarks[0],landmarks[11],landmarks[12],landmarks[15],landmarks[16]];
   if(!usable(nose)||!usable(ls)||!usable(rs)||!usable(lw)||!usable(rw)){this.clear();return out;}
   const last=this.history.at(-1);if(last&&(at<last.at||at-last.at>500))this.clear();
@@ -73,6 +77,9 @@ export class TrainerMoveDetector {
   const shift=sample.nx-base('nx'),body=sample.sx-base('sx');
   const {punch,slip}=TRAINER_MOVES;
   const tilting=Math.abs(sample.tilt-base('tilt'))>punch.tiltGate;
+  const on=(side:'L'|'R')=>this.thresholds?punch.on*this.thresholds[side]/STRAIGHT_PUNCH.on:punch.on;
+  const reason=(side:'L'|'R')=>tilting?'tilt' as const:(side==='L'?sample.ly-base('ly'):sample.ry-base('ry'))>punch.down?'drop' as const:base(side==='L'?'rawL':'rawR')>punch.edgeY?'edge' as const:null;
+  this.debug={excursion:{...e},threshold:{L:on('L'),R:on('R')},blocked:{L:reason('L'),R:reason('R')},armed:{L:this.punch.L.armed,R:this.punch.R.armed}};
   for(const side of ['L','R'] as const){
    const tracker=this.punch[side],other=e[side==='L'?'R':'L'],value=e[side];
    const blocked=tilting||(side==='L'?sample.ly-base('ly'):sample.ry-base('ry'))>punch.down||base(side==='L'?'rawL':'rawR')>punch.edgeY;

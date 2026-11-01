@@ -33,6 +33,8 @@ export function punchThresholdsFromReach(reach:PunchThresholds):PunchThresholds{
 }
 type Sample={at:number;l:[number,number];r:[number,number];lf:number;rf:number;ly:number;ry:number;tilt:number};
 type Tracker={armed:boolean;peak:number;peakAt:number;dominant:boolean;last:number};
+/** Read-only view of the last frame's per-wrist score, for the punch lab (?lab=punch). Never feeds a decision. */
+export type PunchDebug={excursion:PunchThresholds;threshold:PunchThresholds;blocked:{L:'tilt'|'drop'|'edge'|null;R:'tilt'|'drop'|'edge'|null};armed:{L:boolean;R:boolean}};
 const fresh=():Tracker=>({armed:true,peak:0,peakAt:0,dominant:false,last:-Infinity});
 const median=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return sorted[sorted.length>>1]!;};
 const usable=(p:Landmark|undefined)=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&(p.visibility??1)>=.5;
@@ -42,10 +44,12 @@ export class StraightPunchDetector {
  private trackers={L:fresh(),R:fresh()};
  private lastPunch=-Infinity;
  private lastAt=-Infinity;
- reset(){this.history=[];this.lengths=[];this.trackers={L:fresh(),R:fresh()};this.lastPunch=-Infinity;this.lastAt=-Infinity;}
+ /** The last scored frame's values (null until the baseline has five frames, or while a wrist or shoulder is lost). */
+ debug:PunchDebug|null=null;
+ reset(){this.history=[];this.lengths=[];this.trackers={L:fresh(),R:fresh()};this.lastPunch=-Infinity;this.lastAt=-Infinity;this.debug=null;}
  /** Emits a punch at its observed peak, once the wrist starts back; the peak is the excursion in shoulder lengths. */
  update(landmarks:Landmark[],at:number,thresholds:PunchThresholds={L:STRAIGHT_PUNCH.on,R:STRAIGHT_PUNCH.on}):{side:'L'|'R';at:number;peak:number}[]{
-  const out:{side:'L'|'R';at:number;peak:number}[]=[];
+  const out:{side:'L'|'R';at:number;peak:number}[]=[];this.debug=null;
   const [ls,rs,lw,rw]=[landmarks[11],landmarks[12],landmarks[15],landmarks[16]];
   if(at<this.lastAt||at-this.lastAt>STRAIGHT_PUNCH.maxGapMs){this.history=[];this.lengths=[];}
   // A frame lost mid-punch (the shoulders turn edge-on) is skipped rather than resetting the peak.
@@ -70,6 +74,8 @@ export class StraightPunchDetector {
   const excursion={L:Math.hypot(sample.l[0]-base.l[0]!,sample.l[1]-base.l[1]!,fore.L),R:Math.hypot(sample.r[0]-base.r[0]!,sample.r[1]-base.r[1]!,fore.R)};
   const drop={L:sample.l[1]-base.l[1]!,R:sample.r[1]-base.r[1]!},restY={L:median(past.map(p=>p.ly)),R:median(past.map(p=>p.ry))};
   const tilting=Math.abs(sample.tilt-median(past.map(p=>p.tilt)))>STRAIGHT_PUNCH.tiltGate;
+  const reason=(side:'L'|'R')=>tilting?'tilt' as const:drop[side]>STRAIGHT_PUNCH.down?'drop' as const:restY[side]>STRAIGHT_PUNCH.edgeY?'edge' as const:null;
+  this.debug={excursion:{...excursion},threshold:{...thresholds},blocked:{L:reason('L'),R:reason('R')},armed:{L:this.trackers.L.armed,R:this.trackers.R.armed}};
   for(const side of ['L','R'] as const){
    const tracker=this.trackers[side],value=excursion[side],other=excursion[side==='L'?'R':'L'];
    const blocked=tilting||drop[side]>STRAIGHT_PUNCH.down||restY[side]>STRAIGHT_PUNCH.edgeY;
