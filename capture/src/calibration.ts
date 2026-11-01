@@ -1,8 +1,9 @@
 import {validateCalibrationSettings} from './calibration-profile.js';
 import { computeGuardReleaseBand, GUARD_MIN_ON, leanThresholdsFromPeaks, measurePose, type Landmark } from './classifier.js';
+import {punchThresholdsFromReach,StraightPunchDetector,STRAIGHT_PUNCH} from './straight-punch.js';
 
 export type CalibrationMode = 'standing' | 'seated';
-export type CalibrationStage = 'idle' | 'neutral' | 'resting' | 'guard' | 'lean-left' | 'lean-right' | 'ready';
+export type CalibrationStage = 'idle' | 'neutral' | 'resting' | 'guard' | 'lean-left' | 'lean-right' | 'punches' | 'ready';
 export type CalibrationSnapshot = {
   stage: CalibrationStage; ready: boolean; guardThreshold: number | null;
   mode: CalibrationMode; message: string; progress: number;
@@ -12,6 +13,10 @@ export type CalibrationSnapshot = {
   guardReleaseBand: number | null;
   neutralSwayP95: number | null;
   leanFloor: number | null;
+  /** Optional punch step: each hand's measured punch (shoulder lengths), the thresholds derived from it, and the hands done so far. */
+  punchReach: {L:number;R:number} | null;
+  punchThresholds: {L:number;R:number} | null;
+  punchesThrown: {L:boolean;R:boolean};
 };
 const median = (values: number[]) => {
   const sorted = [...values].sort((a, b) => a - b);
@@ -22,8 +27,8 @@ const visible = (landmark: Landmark | undefined) => landmark && Number.isFinite(
   && landmark.x >= 0 && landmark.x <= 1 && landmark.y >= 0 && landmark.y <= 1 && (landmark.visibility ?? 1) >= 0.5;
 
 /** Calibrates each posture from the current camera, without writing game state. */
-export function createCalibration(options: { onChange?: (snapshot: CalibrationSnapshot) => void } = {}) {
-  let snapshot: CalibrationSnapshot = { stage: 'idle', ready: false, guardThreshold: null, mode: 'standing', message: 'Check your space, then calibrate your webcam.', progress: 0, leanThresholds:null, leanPeaks:null, guardMedians:null, guardReleaseBand:null, neutralSwayP95:null, leanFloor:null };
+export function createCalibration(options: { onChange?: (snapshot: CalibrationSnapshot) => void; punches?: boolean; punchesAllowed?: () => boolean } = {}) {
+  let snapshot: CalibrationSnapshot = { stage: 'idle', ready: false, guardThreshold: null, mode: 'standing', message: 'Check your space, then calibrate your webcam.', progress: 0, leanThresholds:null, leanPeaks:null, guardMedians:null, guardReleaseBand:null, neutralSwayP95:null, leanFloor:null, punchReach:null, punchThresholds:null, punchesThrown:{L:false,R:false} };
   let since: number | null = null;
   let lastAt: number | null = null;
   let samples: number[] = [];
@@ -31,10 +36,15 @@ export function createCalibration(options: { onChange?: (snapshot: CalibrationSn
   let neutral = 0;
   let resting = 0;
   let leftPeak = 0;
+  const punch = new StraightPunchDetector();
+  let reach: {L:number|null;R:number|null} = {L:null,R:null};
   const copy = ():CalibrationSnapshot => ({...snapshot,
     leanThresholds:snapshot.leanThresholds?{...snapshot.leanThresholds}:null,
     leanPeaks:snapshot.leanPeaks?{...snapshot.leanPeaks}:null,
     guardMedians:snapshot.guardMedians?{...snapshot.guardMedians}:null,
+    punchReach:snapshot.punchReach?{...snapshot.punchReach}:null,
+    punchThresholds:snapshot.punchThresholds?{...snapshot.punchThresholds}:null,
+    punchesThrown:{...snapshot.punchesThrown},
   });
   const publish = (change: Partial<CalibrationSnapshot>) => {
     snapshot = { ...snapshot, ...change };
@@ -45,8 +55,8 @@ export function createCalibration(options: { onChange?: (snapshot: CalibrationSn
     publish({ stage, message, progress: 0 });
   };
   function reset() {
-    since = null; lastAt = null; samples = []; tiltSamples = []; neutral = 0; resting = 0; leftPeak = 0;
-    publish({ stage: 'idle', ready: false, guardThreshold: null, leanThresholds:null, leanPeaks:null, guardMedians:null, guardReleaseBand:null, neutralSwayP95:null, leanFloor:null, progress: 0, message: 'Check your space, then calibrate your webcam.' });
+    since = null; lastAt = null; samples = []; tiltSamples = []; neutral = 0; resting = 0; leftPeak = 0; punch.reset(); reach = {L:null,R:null};
+    publish({ stage: 'idle', ready: false, guardThreshold: null, leanThresholds:null, leanPeaks:null, guardMedians:null, guardReleaseBand:null, neutralSwayP95:null, leanFloor:null, punchReach:null, punchThresholds:null, punchesThrown:{L:false,R:false}, progress: 0, message: 'Check your space, then calibrate your webcam.' });
   }
   return {
     get snapshot() { return copy(); },
@@ -57,6 +67,12 @@ export function createCalibration(options: { onChange?: (snapshot: CalibrationSn
       next('neutral', mode === 'seated' ? 'Sit with hands relaxed for 3 seconds. Sit ~1 m further back than feels natural.' : 'Stand with hands relaxed for 3 seconds.');
     },
     reset,
+    /** Punches are a bonus: skipping keeps the default punch threshold and finishes setup. */
+    skipPunches() {
+      if (snapshot.stage !== 'punches') return copy();
+      publish({ stage: 'ready', ready: true, progress: 1, punchReach: null, punchThresholds: null, message: `${snapshot.mode === 'seated' ? 'Seated' : 'Standing'} calibration ready. Punches skipped: the default punch setting applies.` });
+      return copy();
+    },
     restore(value:unknown,mode:CalibrationMode):boolean {
       const settings=validateCalibrationSettings(value,mode);if(!settings)return false;
       reset();publish({...settings,stage:'ready',ready:true,progress:1,message:`${mode==='seated'?'Seated':'Standing'} calibration restored from this browser. Start camera, check framing and clear space, then Resume inputs.`});return true;
@@ -113,6 +129,21 @@ export function createCalibration(options: { onChange?: (snapshot: CalibrationSn
             }
           }
         }
+      } else if (snapshot.stage === 'punches') {
+        // Arm's-length punches are the one vigorous setup move, so they wait for the clear-space tick.
+        if (options.punchesAllowed && !options.punchesAllowed()) {
+          punch.reset();
+          publish({ progress: 0, message: 'Tick “My space is clear”, then throw one straight punch with each hand.' });
+          return copy();
+        }
+        for (const thrown of punch.update(landmarks, at, {L:STRAIGHT_PUNCH.calibration.probe,R:STRAIGHT_PUNCH.calibration.probe})) reach[thrown.side] ??= thrown.peak;
+        const punchesThrown = {L:reach.L!==null,R:reach.R!==null};
+        if (reach.L !== null && reach.R !== null) {
+          const punchReach = {L:reach.L,R:reach.R};
+          publish({ stage: 'ready', ready: true, progress: 1, punchesThrown, punchReach, punchThresholds: punchThresholdsFromReach(punchReach),
+            message: `${snapshot.mode === 'seated' ? 'Seated' : 'Standing'} calibration ready. Guard, both leans and your punches confirmed.` });
+        } else publish({ progress: (Number(punchesThrown.L) + Number(punchesThrown.R)) / 2, punchesThrown,
+          message: punchesThrown.L ? 'Left punch ✓ Now one straight punch with your RIGHT hand.' : punchesThrown.R ? 'Right punch ✓ Now one straight punch with your LEFT hand.' : 'Throw one straight punch with each hand, out towards the camera, then back to guard.' });
       } else {
         const left = snapshot.stage === 'lean-left';
         const extended = metrics.punchExtended;
@@ -129,7 +160,11 @@ export function createCalibration(options: { onChange?: (snapshot: CalibrationSn
             next('lean-right', 'Lean comfortably RIGHT (D), as you will during play. Hold for 1.5 seconds.');
           } else {
             const leanPeaks = {L:leftPeak,R:peak};
-            publish({ stage: 'ready', ready: true, progress: 1, leanPeaks,
+            if (options.punches) {
+              publish({ leanPeaks, leanThresholds:leanThresholdsFromPeaks(leanPeaks,floor) });
+              punch.reset(); reach = {L:null,R:null};
+              next('punches', 'Throw one straight punch with each hand, out towards the camera, then back to guard.');
+            } else publish({ stage: 'ready', ready: true, progress: 1, leanPeaks,
               leanThresholds:leanThresholdsFromPeaks(leanPeaks,floor),
               message: `${snapshot.mode === 'seated' ? 'Seated' : 'Standing'} calibration ready. Face-height guard and both comfortable leans confirmed.` });
           }

@@ -85,7 +85,7 @@ it('reports unavailable replay metadata without sending a blob URL or media when
 
 function storedProfile(){
  const data=new Map<string,string>(),storage={getItem:(key:string)=>data.get(key)??null,setItem:(key:string,value:string)=>{data.set(key,value);},removeItem:(key:string)=>{data.delete(key);}};
- const ready:CalibrationSnapshot={stage:'ready',ready:true,mode:'standing',message:'Ready',progress:1,guardThreshold:-1.2+.7*1.8,guardMedians:{neutral:-2.5,resting:-1.2,guard:.6},guardReleaseBand:.775,neutralSwayP95:.02,leanFloor:.3,leanPeaks:{L:.57,R:.88},leanThresholds:{L:.3,R:.48*.88}};
+ const ready:CalibrationSnapshot={stage:'ready',ready:true,mode:'standing',message:'Ready',progress:1,guardThreshold:-1.2+.7*1.8,guardMedians:{neutral:-2.5,resting:-1.2,guard:.6},guardReleaseBand:.775,neutralSwayP95:.02,leanFloor:.3,leanPeaks:{L:.57,R:.88},leanThresholds:{L:.3,R:.48*.88},punchReach:null,punchThresholds:null,punchesThrown:{L:false,R:false}};
  expect(createCalibrationProfiles(()=>storage).save(ready)).toBe(true);return storage;
 }
 function guardFrame():Landmark[]{const frame=Array.from({length:33},()=>({x:.5,y:.1,z:0,visibility:1}));for(const [index,x,y]of [[11,.41,.4],[12,.59,.4],[13,.41,.7],[14,.59,.7],[15,.41,.3],[16,.59,.3],[23,.41,.9],[24,.59,.9]])frame[index!]={x:x!,y:y!,z:0,visibility:1};return frame;}

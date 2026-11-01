@@ -528,3 +528,10 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  .offline-demo-page #webcam-settings #calibration-saved{margin:6px 0 0}
 }
 /* ── end hudclarity ── */
+/* ── calib (1 Nov playtest): 5 webcam steps, Skip punches, clear-space card lights up when it is the last thing before START ── */
+#webcam-settings #skip-punches{display:block;background:transparent;border-color:transparent;padding:6px 0;min-height:44px;color:var(--cyan);text-decoration:underline;font-size:15px}
+#webcam-settings #skip-punches[hidden]{display:none}
+#safety-card.needs-tick{outline:3px solid var(--yellow);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){#safety-card.needs-tick{animation:svc-needs-tick 1.2s ease-in-out 2}}
+@keyframes svc-needs-tick{50%{outline-color:transparent}}
+/* ── end calib ── */
