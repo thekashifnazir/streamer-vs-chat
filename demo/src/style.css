@@ -528,3 +528,65 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  .offline-demo-page #webcam-settings #calibration-saved{margin:6px 0 0}
 }
 /* ── end hudclarity ── */
+/* ── results (1 Nov playtest): the round/match results card as a fight scoreboard in the HUD's language (Anton,
+   yellow/pink/cyan, hard borders). Headline and score first, big-number tiles, then NEXT ROUND as the big button,
+   the corner coach as a mic card under it, End fight and Copy my stats as small links. Same coach card on the pause
+   screen. IDs and data-* hooks are unchanged; the headline text is uppercased here only. ── */
+.round-results:not([hidden]){display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:8px 18px;padding:16px 20px;background:#0c0912;border:4px solid #f5f2fa;border-radius:6px;box-shadow:8px 8px 0 #0c0912aa}
+.round-results[data-result-winner=streamer]{border-color:var(--yellow)}.round-results[data-result-winner=boss]{border-color:var(--pink)}
+.round-results>*,.round-results>.result-actions>*,.round-results>[data-result-extras]>*{flex:0 0 100%;margin:0;min-width:0;box-sizing:border-box}
+.round-results>.result-actions,.round-results>[data-result-extras]{display:contents}
+.round-results .result-eyebrow{order:0;font:900 clamp(12px,1.2vw,16px)/1.2 Barlow,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan)}
+.round-results h2{order:1;margin:0;font:400 clamp(28px,3.4vw,58px)/1 Anton,Impact,sans-serif;text-transform:uppercase;letter-spacing:.01em;color:#f5f2fa;-webkit-text-stroke:4px #08050c;paint-order:stroke fill;overflow-wrap:anywhere}
+.round-results[data-result-winner=streamer] h2{color:var(--yellow)}.round-results[data-result-winner=boss] h2{color:var(--pink)}
+.round-results .result-score{order:2;display:flex;justify-content:center;align-items:center;gap:10px;font:900 clamp(12px,1.1vw,16px)/1 Barlow,system-ui,sans-serif;letter-spacing:.14em;color:var(--muted)}
+.result-score b{display:inline-grid;place-items:center;min-width:1.5em;padding:2px 8px;font:400 clamp(26px,2.8vw,42px)/1.1 Anton,Impact,sans-serif;letter-spacing:0;background:var(--yellow);color:#0c0912}.result-score b+i+b{background:var(--pink);color:#fff}.result-score i{font:400 clamp(20px,2vw,30px)/1 Anton,Impact,sans-serif;font-style:normal;color:#f5f2fa}
+.round-results .result-tiles{order:3;display:flex;gap:8px;flex-wrap:wrap}
+.result-tiles>.plain-stats,.result-tiles>[data-result-sim]{display:contents}.result-tiles>[data-result-sim][hidden]{display:none}
+.result-tile{flex:1 1 0;min-width:0;margin:0!important;padding:8px 6px 7px;background:#1d1629;border-top:4px solid var(--cyan);display:flex;flex-direction:column;align-items:center;gap:2px}
+.result-tile b{font:400 clamp(28px,3.4vw,52px)/1 Anton,Impact,sans-serif;color:var(--cyan)}.result-tile span{font:800 clamp(11px,1vw,14px)/1.2 Barlow,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.result-tile.tile-yellow{border-top-color:var(--yellow)}.result-tile.tile-yellow b{color:var(--yellow)}.result-tile.tile-pink{border-top-color:var(--pink)}.result-tile.tile-pink b{color:var(--pink)}
+.result-tile.tile-white{flex-grow:1.4;border-top-color:#f5f2fa}.result-tile.tile-white b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(20px,2.2vw,34px);line-height:1.5;color:#f5f2fa}
+.round-results .result-tiles .workout-row{order:9;flex:0 0 100%;margin:2px 0 0}
+.round-results [data-result-next]{order:5;min-height:60px;margin:4px 0 0;width:100%;padding:8px 20px;border:0;border-radius:6px;background:var(--yellow);color:#0c0912;font:400 clamp(28px,2.8vw,42px)/1 Anton,Impact,sans-serif;letter-spacing:.02em;box-shadow:0 5px 0 #b8941a;cursor:pointer}
+.round-results [data-result-next]:hover{transform:translateY(-1px)}.round-results [data-result-next]:active{transform:translateY(3px);box-shadow:0 2px 0 #b8941a}
+.round-results [data-result-countdown]{order:6;font:600 13px/1.3 system-ui,sans-serif;color:var(--muted)}.round-results [data-result-countdown]:empty{display:none}
+.round-results .corner-coach{order:7;margin:0}
+.round-results [data-result-quit],.round-results .share-stats-row{order:8;flex:0 1 auto}
+.fight-dialog button.result-quit,.round-results .share-stats-row button{min-height:44px;margin:0;padding:6px 10px;background:transparent;border:0;color:var(--muted);font:600 15px/1.2 system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.fight-dialog button.result-quit:hover,.round-results .share-stats-row button:hover{color:#f5f2fa}
+.round-results .share-stats-row{display:flex;align-items:center;gap:4px 10px;margin:0}.round-results .share-stats-row .playtest-note{font-size:12px;color:#9a91a8}
+.round-results #playtest-output{order:9;max-height:160px;overflow:auto;text-align:left;font-size:12px}
+/* Corner coach card: mic icon, the label as the button, the note under it. Button text stays plain (tests read it). */
+.corner-coach{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:12px;padding:8px 12px;border:2px solid var(--cyan);border-radius:6px;background:#2ef2ff14;text-align:left}
+.corner-coach:before{content:'';grid-row:1/3;width:40px;height:40px;border-radius:50%;background:var(--cyan) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230c0912' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='9' y='3' width='6' height='11' rx='3' fill='%230c0912'/%3E%3Cpath d='M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7'/%3E%3C/svg%3E") center/24px no-repeat}
+.fight-dialog .corner-coach button{grid-column:2;justify-self:start;min-height:44px;margin:0;padding:0;background:transparent;border:0;color:var(--cyan);font:400 clamp(22px,2vw,30px)/1.1 Anton,Impact,sans-serif;letter-spacing:.02em;text-align:left;cursor:pointer}
+.fight-dialog .corner-coach button:hover{color:#f5f2fa}
+.corner-coach small{grid-column:2;font:600 13px/1.3 system-ui,sans-serif;opacity:1;color:#c9f9ff}
+.corner-coach p{grid-column:1/-1;margin:0;font:600 14px/1.3 system-ui,sans-serif;color:#f5f2fa;min-height:0}.corner-coach p:empty{display:none}
+.corner-coach.coach-live{background:var(--cyan)}.corner-coach.coach-live:before{background-color:#0c0912;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232ef2ff' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='9' y='3' width='6' height='11' rx='3' fill='%232ef2ff'/%3E%3Cpath d='M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7'/%3E%3C/svg%3E")}
+.fight-dialog .corner-coach.coach-live button,.corner-coach.coach-live small,.corner-coach.coach-live p{color:#0c0912;background:transparent}
+/* Pause: Resume, then the coach card, then Restart and Quit as one row; compact enough for 1280x720. */
+#pause-screen:not([hidden]){display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:8px 12px;padding:18px 22px;background:#0c0912f2;border-width:4px;border-radius:6px}
+#pause-screen>*{flex:0 0 100%;margin:0;box-sizing:border-box}#pause-screen>[hidden]{display:none}
+#pause-screen h2{font-size:clamp(30px,3.6vw,56px);line-height:1;margin:0}#pause-screen [data-pause-reason]{font-size:clamp(20px,2.2vw,34px)}#pause-screen>p:not([data-pause-reason]){font-size:clamp(15px,1.4vw,20px)}
+#pause-screen [data-pause=resume]{order:1;margin:4px 0 0;font:400 clamp(26px,2.6vw,38px)/1 Anton,Impact,sans-serif;border:0;border-radius:6px;box-shadow:0 5px 0 #b8941a}
+#pause-screen .corner-coach{order:2;margin:4px 0 0}
+#pause-screen [data-pause=restart],#pause-screen [data-pause=quit]{order:3;flex:0 1 auto;margin:0}
+/* Desktop: a slightly wider centre column so the whole card fits at 1280x720 without scrolling. */
+@media(min-width:1000px){.round-results{inset:2% 25.5% 3%}}
+@media(max-width:600px){
+ /* Phone: the stage is short, so NEXT ROUND and End fight come straight under the headline (no scrolling to find them). */
+ .round-results:not([hidden]){gap:6px 10px;padding:8px 10px}
+ .round-results .result-eyebrow,.round-results [data-result-countdown]{display:none}
+ .round-results h2{order:0;font-size:24px;-webkit-text-stroke:3px #08050c}
+ .round-results [data-result-next]{order:1;flex:1 1 auto;width:auto}.round-results [data-result-quit]{order:2;flex:0 0 auto;align-self:center}
+ .round-results .corner-coach{order:3}.round-results .result-score{order:4}.round-results .result-tiles{order:5}.round-results .share-stats-row{order:6}
+ #pause-screen [data-pause=restart],#pause-screen [data-pause=quit]{order:2}#pause-screen .corner-coach{order:3}#pause-screen [data-pause=resume]{font-size:24px}
+ .round-results .result-score b{font-size:22px}
+ .result-tile{padding:4px 2px}.result-tile b{font-size:22px}.result-tile span{font-size:10px;letter-spacing:.02em}
+ .result-tile.tile-white{flex-basis:100%;flex-direction:row;justify-content:center;gap:8px}.result-tile.tile-white b{font-size:18px;line-height:1.3}
+ .round-results [data-result-next]{min-height:48px;font-size:24px;margin:0}
+ .round-results .corner-coach{padding:6px 10px}.corner-coach:before{width:32px;height:32px;background-size:20px}.fight-dialog .corner-coach button{font-size:20px}.corner-coach small{font-size:12px}
+}
+/* ── end results ── */

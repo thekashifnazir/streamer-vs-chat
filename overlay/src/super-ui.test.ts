@@ -1,6 +1,6 @@
 import {expect,it} from 'vitest';
 import {createGame,type GameState} from '../../shared/src/engine';
-import {superSequencePresentation,renderSuperSteps,superNoticePresentation} from './super-ui';
+import {superSequencePresentation,superResultPresentation,renderSuperSteps,superNoticePresentation} from './super-ui';
 class Chip {
  hidden=false;textContent='';className='';attributes:Record<string,string>={};children:Chip[]=[];
  ownerDocument={createElement:()=>new Chip()};
@@ -43,4 +43,11 @@ it('keeps the SUPER READY / denied banners clear of the telegraph callout and mo
  // Banner: 44 px text + 24 px padding + 8 px border. It must start below that and sit above the finisher window banner (bottom 28 px, ~76 px tall).
  const top=1080-bottom-76;expect(top).toBeGreaterThan(520);expect(bottom).toBeGreaterThanOrEqual(28+76+8);
  expect(css).not.toMatch(/\.super-denied-banner\{top:/);
+});
+it('names who took a finished SUPER: all three clean is yours, any miss is chat\'s',()=>{
+ const done=(results:string[])=>({visible:true,current:-1,steps:results.map(outcome=>({defence:'guard',label:'GUARD',mark:outcome==='HIT'?'✕':'✓',status:outcome==='HIT'?'miss':'clean'}))}) as ReturnType<typeof superSequencePresentation>;
+ expect(superResultPresentation(done(['BLOCK','DODGE','BLOCK']))).toEqual({won:true,move:'SUPER BLOCKED',cue:'YOU WIN THIS ONE'});
+ expect(superResultPresentation(done(['BLOCK','HIT','BLOCK']))).toEqual({won:false,move:'2 OF 3 BLOCKED',cue:'CHAT WINS THIS ONE'});
+ expect(superResultPresentation(done(['HIT','HIT','HIT']))).toEqual({won:false,move:'SUPER LANDED',cue:'CHAT WINS THIS ONE'});
+ expect(superResultPresentation({...done(['BLOCK','BLOCK','BLOCK']),current:1})).toBeNull();expect(superResultPresentation({visible:false,current:-1,steps:[]})).toBeNull();
 });

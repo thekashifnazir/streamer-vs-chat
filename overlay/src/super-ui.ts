@@ -24,3 +24,9 @@ export function renderSuperSteps(container:HTMLElement,presentation:ReturnType<t
  const nodes=presentation.steps.map(step=>{const node=container.ownerDocument.createElement('span');node.className=`super-step ${step.status}`;node.textContent=`${step.mark}${step.mark?' ':''}${step.label}`;node.setAttribute('aria-label',`${step.label}: ${step.status}`);return node;});
  container.replaceChildren(...nodes);
 }
+/** After the third step: who took the SUPER. The engine scores it by the worst step, so one miss means chat landed it. */
+export function superResultPresentation(presentation:ReturnType<typeof superSequencePresentation>){
+ if(!presentation.visible||presentation.current>=0||presentation.steps.some(step=>!step.mark))return null;
+ const clean=presentation.steps.filter(step=>step.status==='clean').length;
+ return clean===3?{won:true,move:'SUPER BLOCKED',cue:'YOU WIN THIS ONE'}:{won:false,move:clean?`${clean} OF 3 BLOCKED`:'SUPER LANDED',cue:'CHAT WINS THIS ONE'};
+}
