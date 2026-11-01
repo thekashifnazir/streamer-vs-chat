@@ -25,6 +25,7 @@ import { createKeyboard } from '../../capture/src/keyboard';
 import { createKeyboardAvatar } from './keyboard-avatar';
 import { PoseCamera } from '../../capture/src/camera';
 import { PoseClassifier } from '../../capture/src/classifier';
+import {TrainerMoveDetector} from '../../capture/src/trainer-moves';
 import { createCalibration } from '../../capture/src/calibration';
 import { createSimulationSource } from './source';
 import { InputTutorial } from './tutorial';
@@ -65,6 +66,7 @@ if(streamSound){
 }
 const tutorial=new InputTutorial();
 const classifier=new PoseClassifier({guardThreshold:0});
+const trainerMoves=new TrainerMoveDetector();
 let pendingBoss:BossDef|null=null;
 let forgeSnapshot:ForgeSnapshot|null=null;
 let forgePanel:ReturnType<typeof import('./forge').mountDemoForge>|null=null;
@@ -217,7 +219,7 @@ function startTrainer() {
   fightUi?.setPaused(false);tutorialStarted=false;hud.setPractice(false);fightUi?.showStage();clearColdOpen();game=null;crowd=null;showSessionSummary=false;
   el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();stage.scrollIntoView?.({block:'start',behavior:'smooth'});
   keyboard.setEnabled(source.value==='keyboard');classifier.setPunchesEnabled(true);
-  const at=performance.now();trainer.start(at);trainer.input(source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);paint();
+  trainerMoves.reset();const at=performance.now();trainer.start(at);trainer.input(source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);paint();
 }
 let pauseReason='Esc';
 const guardResume=createGuardResume(()=>input({kind:'control',action:'resume',by:'capture'}));
@@ -289,6 +291,8 @@ const camera=new PoseCamera(video,sample=>{
   if(source.value==='pose') {
     input(lastPose);
     if(ready)for(const punch of result.punches)input(punch);
+    // Crowd Trainer reads punch side and slips with its own detector; Boss Fight thresholds stay as they are.
+    if(trainer.running){const moves=trainerMoves.update(sample.landmarks,sample.at);if(ready){for(const punch of moves.punches)trainer.move({kind:'punch',side:punch.side});for(const slip of moves.slips)trainer.move({kind:'slip',side:slip.side});}}
   }
 },message=>{
   cameraRunning=false;poseFramed=false;setup.camera(false);lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};

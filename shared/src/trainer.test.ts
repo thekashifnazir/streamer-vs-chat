@@ -141,4 +141,10 @@ describe('reducer',()=>{
   expect(run(createTrainer(base,0),events).state).toEqual(run(createTrainer(base,0),events).state);
   expect(()=>trainerStep(createTrainer(base,10),{kind:'advance'},5)).toThrow();
  });
+ it('counts one slip when a lean onset and the webcam slip detector both see it',()=>{
+  let s=createTrainer(base,0);s=trainerStep(s,{kind:'vote',user:'v',vote:{kind:'combo',combo:'2s2'}},1);s=trainerStep(s,{kind:'advance'},t0);
+  s=run(s,[[{kind:'punch',side:'R'},t0+100],[{kind:'slip',side:'L'},t0+300],[{kind:'pose',guard:false,lean:'L'},t0+500]]).state;
+  expect(s.stats.slips).toBe(1);expect(s.combo?.index).toBe(2);
+  s=run(s,[[{kind:'pose',guard:false,lean:null},t0+700],[{kind:'slip',side:'R'},t0+1000]]).state;expect(s.stats.slips).toBe(2);
+ });
 });

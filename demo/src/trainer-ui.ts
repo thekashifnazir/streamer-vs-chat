@@ -118,9 +118,10 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
    if(!state||state.phase==='done')return;
    if(event.kind==='control'){step(event.action==='resume'?{kind:'resume'}:{kind:'pause'},at);return;}
    if(event.kind==='pose'){step({kind:'pose',guard:event.guard,lean:event.lean},at);return;}
-   // Keyboard J arrives as a Boss Fight punch; Trainer reads F/J itself so J is the right hand.
-   if(event.source==='pose')step({kind:'punch',side:event.side},at);
+   // Punches come from F/J (keyboard) or the Trainer webcam detector via move(); the Boss Fight punch path is ignored.
   },
+  /** Webcam punches and slips from capture/src/trainer-moves.ts. */
+  move(event:{kind:'punch'|'slip';side:'L'|'R'},at=now()){if(state&&state.phase!=='done')step(event,at);},
   chat(message:{userId:string;text:string;isMod?:boolean;isBroadcaster?:boolean},at=now()){
    if(mode!=='trainer'||!state||state.phase==='done')return;
    if(isTrainerStop(message.text,!!message.isMod||!!message.isBroadcaster)){step({kind:'stop'},at);return;}

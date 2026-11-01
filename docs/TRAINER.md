@@ -35,6 +35,22 @@ Mods and the broadcaster can use `!pause` and `!resume` (same as Boss Fight) and
 
 A front webcam cannot see depth, so the game never claims a punch type (jab, cross, hook). It only reads which hand punched. Punch side comes from MediaPipe's anatomical landmarks on the raw, unmirrored frame, so `1` is your own left hand for an orthodox stance even though the preview is mirrored (READ: `capture/src/classifier.ts` uses raw indices and `test/pose/README.md` scores anatomical `left_punch`/`right_punch`).
 
+On webcam, Trainer uses its own detector (`capture/src/trainer-moves.ts`); Boss Fight thresholds are unchanged. Straight punches at the camera barely lengthen the arm in 2D, so the Boss Fight gate (arm longer than 1.6 shoulder widths) missed most of Kash's recorded punches. The Trainer detector looks for a quick move of one wrist away from where it rests, measured against the recent shoulder width, and reads a slip as the head and shoulders shifting sideways while no hand is out. A Boss Fight lean onset also counts as a slip; the two are merged so one slip counts once.
+
+Measured on Kash's 1 Nov drill clip (MEASURED, replay test `test/pose/trainer-moves.test.ts`, Logitech webcam, 30 fps, his 31 Oct calibration):
+
+| Drill | Trainer detector | Boss Fight gate |
+|---|---|---|
+| Left punches (6 thrown) | 7 L (1 extra), 1 R | 4 L, 1 R |
+| Right punches (5) | 5 R, 0 L | 0 R, 1 L |
+| One-twos (5) | 3 L + 4 R, 2 complete in order | 1 L, 1 R |
+| Slips left (3) | 3 L, 2 wrong side | lean L 1 |
+| Slips right (3) | 2 R, 1 wrong side | lean R 3 |
+| Guard holds (2) | 0 punches, 0 slips | guard 2 |
+| One-two-slip / one-two-guard (6 one-twos) | 5 complete one-twos in order | 1 L, 1 R |
+
+`1` is the player's own left hand: in the raw camera frame his LEFT punches move MediaPipe landmark 15 (left wrist) and his SLIP RIGHT registers lean R.
+
 In Trainer, `J` is the right hand (in Boss Fight it is the bonus punch). `K`, `A` and `D` keep their Boss Fight meaning.
 
 ## Scoring

@@ -22,6 +22,8 @@ export function comboDef(id:ComboId):ComboDef{return COMBOS.find(combo=>combo.id
 /** The only Crowd Trainer timing constants. */
 export const TRAINER={
  rounds:3,workMs:60_000,restMs:20_000,tenSecondsMs:10_000,guardHoldMs:500,firstCallMs:2_500,
+ // A lean onset and the webcam slip detector can both see one slip; count it once.
+ slipMergeMs:600,
  // Gap between one combo's end and the next call; chat's !faster/!slower nudge it inside these bounds.
  pace:{stepMs:500,minMs:1_200,maxMs:5_000},
  gapMs:{easy:3_000,medium:2_500,hard:2_000,expert:1_600} as Record<Difficulty,number>,
@@ -40,12 +42,12 @@ export type TrainerState={
  combo:ActiveCombo|null;nextCallAt:number|null;gapMs:number;
  votes:Record<string,ComboId>;paceVotes:Record<string,Pace>;tally:Record<ComboId,number>;history:ComboId[];
  last:{id:ComboId;result:ComboResult;marks:Mark[];at:number}|null;
- pose:{guard:boolean;lean:'L'|'R'|null;guardSince:number|null;guardCounted:boolean};
+ pose:{guard:boolean;lean:'L'|'R'|null;guardSince:number|null;guardCounted:boolean;slipAt:number};
  stats:{clean:number;partial:number;missed:number;punchesL:number;punchesR:number;slips:number;guards:number;activeMs:number;comboVotes:Record<ComboId,number>;voters:Record<string,true>};
  /** Cues raised by the latest step only; the view plays them and never stores them. */
  cues:TrainerCue[];
 };
-export type TrainerEvent={kind:'advance'}|{kind:'vote';user:string;vote:TrainerVote}|{kind:'pose';guard:boolean;lean:'L'|'R'|null}|{kind:'punch';side:'L'|'R'}|{kind:'pause'}|{kind:'resume'}|{kind:'stop'};
+export type TrainerEvent={kind:'advance'}|{kind:'vote';user:string;vote:TrainerVote}|{kind:'pose';guard:boolean;lean:'L'|'R'|null}|{kind:'punch';side:'L'|'R'}|{kind:'slip';side:'L'|'R'}|{kind:'pause'}|{kind:'resume'}|{kind:'stop'};
 const emptyTally=()=>Object.fromEntries(COMBO_IDS.map(id=>[id,0])) as Record<ComboId,number>;
 /** Same unsigned mulberry32 step as the Boss Fight engine; the state carries the seed. */
 function randomStep(seed:number):{seed:number;value:number}{
@@ -86,7 +88,7 @@ export function scoreCombo(marks:readonly Mark[]):ComboResult{const hits=marks.f
 export function createTrainer(options:TrainerOptions,now:number):TrainerState{
  return {now,options:{...options},rng:options.seed>>>0,phase:'work',round:1,phaseEndsAt:now+TRAINER.workMs,workStartedAt:now,tenWarned:false,paused:false,pausedAt:null,
   combo:null,nextCallAt:now+TRAINER.firstCallMs,gapMs:TRAINER.gapMs[options.difficulty],votes:{},paceVotes:{},tally:emptyTally(),history:[],last:null,
-  pose:{guard:false,lean:null,guardSince:null,guardCounted:false},
+  pose:{guard:false,lean:null,guardSince:null,guardCounted:false,slipAt:-Infinity},
   stats:{clean:0,partial:0,missed:0,punchesL:0,punchesR:0,slips:0,guards:0,activeMs:0,comboVotes:emptyTally(),voters:{}},cues:['round-start']};
 }
 function finishCombo(s:TrainerState,at:number,discardEmpty=false){
@@ -178,10 +180,14 @@ export function trainerStep(state:TrainerState,event:TrainerEvent,now:number):Tr
   s.stats={...s.stats,[event.side==='L'?'punchesL':'punchesR']:s.stats[event.side==='L'?'punchesL':'punchesR']+1};
   detect(s,punchToken(event.side,s.options),now);return s;
  }
+ if(event.kind==='slip'){
+  if(s.paused||s.phase!=='work'||now-s.pose.slipAt<TRAINER.slipMergeMs)return s;
+  s.pose={...s.pose,slipAt:now};s.stats={...s.stats,slips:s.stats.slips+1};detect(s,'S',now);return s;
+ }
  if(event.kind==='pose'){
-  const before=s.pose,slip=event.lean!==null&&event.lean!==before.lean;
-  s.pose={guard:event.guard,lean:event.lean,guardSince:event.guard?before.guard?before.guardSince:now:null,guardCounted:event.guard&&before.guard?before.guardCounted:false};
-  if(s.paused||s.phase!=='work')return s;
+  const before=s.pose,onset=event.lean!==null&&event.lean!==before.lean,live=!s.paused&&s.phase==='work',slip=onset&&live&&now-before.slipAt>=TRAINER.slipMergeMs;
+  s.pose={guard:event.guard,lean:event.lean,guardSince:event.guard?before.guard?before.guardSince:now:null,guardCounted:event.guard&&before.guard?before.guardCounted:false,slipAt:slip?now:before.slipAt};
+  if(!live)return s;
   if(slip){s.stats={...s.stats,slips:s.stats.slips+1};detect(s,'S',now);}
   countGuard(s,now);
   if(s.combo){const g=guardDue(s);if(g!==null&&g<=now)detect(s,'G',now);}
