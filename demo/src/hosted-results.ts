@@ -1,8 +1,7 @@
 import {createHostedHealth,type HealthReader} from './hosted-health';
 import type {BrowserAuth} from './twitch/auth';
 import type {GameState} from '../../shared/src/engine';
-import type {ResultRoundData} from '../../shared/src/result-text';
-import {chatCommand} from '../../shared/src/chat-commands';
+import {roundResultBody} from '../../shared/src/result-text';
 export const BOT_POST_HINT="Bot can't post: reconnect to grant channel:bot, or make streamervschatbot a mod";
 /** Hosted-only observer. Delivery is best effort and never controls the game or chat transport. */
 export function createHostedResults(options:{auth:Pick<BrowserAuth,'account'|'authenticated'|'backendRequest'>;fetch?:typeof fetch;getHealth?:HealthReader;onStatus:(message:string)=>void;setInterval?:typeof globalThis.setInterval;clearInterval?:typeof globalThis.clearInterval}){
@@ -34,7 +33,7 @@ export function createHostedResults(options:{auth:Pick<BrowserAuth,'account'|'au
    // First observation (or a newly attached match) is a baseline, not a replay.
    // The page observes an empty state at START before any result can arrive.
    const prior=new Set((sameMatch?before!:state).log.rounds.map(round=>round.number));
-   for(const round of state.log.rounds){if(prior.has(round.number))continue;const body:ResultRoundData&{kind:'round'}={kind:'round',number:round.number,winner:round.winner,streamerHp:round.streamer_hp,bossHp:round.boss_hp,bossMaxHp:round.boss_max_hp??state.boss.max_hp,bossName:state.bossDef?.name??'CHAT GOLEM',score:{streamer:state.match.round_wins.streamer,boss:state.match.round_wins.boss},matchOver:state.match.winner!==null,difficulty:state.difficulty,hookL:chatCommand('HOOK_L',state.bossDef).split(/[ /]/)[0]!,hookR:chatCommand('HOOK_R',state.bossDef).split(/[ /]/)[0]!};void send(body);}
+   for(const round of state.log.rounds){if(prior.has(round.number))continue;void send(roundResultBody(state,round));}
    if(hypeFull)void send({kind:'hype-full'});
   },
   dispose(){disposed=true;enabled=false;if(timer!==undefined)cancel(timer);},

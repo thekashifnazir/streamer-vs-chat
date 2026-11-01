@@ -2,7 +2,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 type ManifestChunk={file:string;imports?:string[];dynamicImports?:string[]};
 type Manifest=Record<string,ManifestChunk>;
-/** The OAuth callback and live controller are conditional dynamic branches.
+/** The OAuth callback, live controller and click-only voice coach are conditional dynamic branches.
  * Follow every other static/dynamic dependency, including the full no-login game. */
 export function offlineDependencyFiles(manifest:Manifest,entries:string[]=['index.html']):Set<string> {
   const result=new Set<string>(),seen=new Set<string>();
@@ -12,7 +12,8 @@ export function offlineDependencyFiles(manifest:Manifest,entries:string[]=['inde
     result.add(chunk.file);
     for(const dependency of chunk.imports??[])visit(dependency);
     for(const dependency of chunk.dynamicImports??[]) {
-      if(/(?:^|\/)(?:play|twitch\/auth)\.ts$/.test(dependency))continue;
+      // corner-coach.ts (and the ElevenLabs client it loads) is the demo coach's click-only branch: nothing loads it at page load.
+      if(/(?:^|\/)(?:play|twitch\/auth|corner-coach)\.ts$/.test(dependency))continue;
       visit(dependency);
     }
   }

@@ -44,10 +44,15 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   const doc2=dom.window.document,crowdSelect=doc2.getElementById('crowd-size') as HTMLSelectElement,crowdLabel=crowdSelect.closest('label')!;
   const last=()=>observed.renders.at(-1) as {round:{over:boolean;number:number};viewers:number};
   await vi.advanceTimersByTimeAsync(1000);
+  expect([...doc2.querySelectorAll('.sim-chat li')].some(li=>/^sim_viewer_\d+ !/.test(li.textContent!))).toBe(true);
   // Mid-fight the crowd selector is out of the way; between rounds the demo offers it again.
   expect(crowdLabel.hidden).toBe(true);
   for(let waited=0;waited<90000&&!last().round.over;waited+=250)await vi.advanceTimersByTimeAsync(250);
-  expect(last().round.over).toBe(true);expect(crowdLabel.hidden).toBe(false);expect(crowdSelect.disabled).toBe(false);expect(doc2.querySelector('.demo-controls')!.classList.contains('between-rounds')).toBe(true);
+  expect(last().round.over).toBe(true);
+  // SIMULATED chat panel: sampled fake handles, then the line the bot would post; the corner coach button makes no request until clicked.
+  const simLines=[...doc2.querySelectorAll('.sim-chat li')].map(li=>li.textContent!);expect(doc2.querySelector<HTMLElement>('.sim-chat-layer')!.hidden).toBe(false);expect(doc2.querySelector('.sim-chat h3')!.textContent).toContain('SIMULATED CHAT');
+  expect(simLines.at(-1)).toMatch(/^streamervschatbot BOT · what your bot would post Streamer vs Chat · Round 1: /);expect(doc2.querySelectorAll('#round-results .corner-coach button')).toHaveLength(1);
+  expect(crowdLabel.hidden).toBe(false);expect(crowdSelect.disabled).toBe(false);expect(doc2.querySelector('.demo-controls')!.classList.contains('between-rounds')).toBe(true);
   crowdSelect.value='500';crowdSelect.dispatchEvent(new dom.window.Event('change'));
   doc2.getElementById('next-round')!.click();
   expect(last().round.number).toBe(2);expect(last().viewers).toBe(500);expect(crowdLabel.hidden).toBe(true);expect(doc2.querySelector('.demo-controls')!.classList.contains('between-rounds')).toBe(false);

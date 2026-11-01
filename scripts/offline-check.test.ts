@@ -35,6 +35,17 @@ it('follows the whole no-login dependency graph while isolating dynamic live bra
   };
   expect([...offlineDependencyFiles(manifest)].sort()).toEqual(['assets/engine.js','assets/entry.js','assets/main.js','assets/shared.js']);
 });
+it('treats the click-only demo voice coach (and the client it loads) as a conditional branch',async()=>{
+  const {offlineDependencyFiles}=await import('./offline-check');
+  const manifest={
+    'index.html':{file:'assets/entry.js',dynamicImports:['src/main.ts']},
+    'src/main.ts':{file:'assets/main.js',dynamicImports:['src/corner-coach.ts','src/forge.ts']},
+    'src/corner-coach.ts':{file:'assets/corner-coach.js',dynamicImports:['node_modules/@elevenlabs/client/index.js']},
+    'node_modules/@elevenlabs/client/index.js':{file:'assets/elevenlabs.js'},
+    'src/forge.ts':{file:'assets/forge.js'},
+  };
+  expect([...offlineDependencyFiles(manifest)].sort()).toEqual(['assets/entry.js','assets/forge.js','assets/main.js']);
+});
 it('rejects Twitch endpoints hidden in any no-login dynamic dependency',async()=>{
   const root=await mkdtemp(join(tmpdir(),'svc-offline-graph-'));
   try{

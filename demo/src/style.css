@@ -337,3 +337,26 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .trainer-mode .corner-coach,.trainer-running .corner-coach{display:none}
 
 .landing-real-note{max-width:34rem;margin:.5rem auto 0;font-size:.9rem;opacity:.8;text-align:center}
+
+/* Offline demo SIMULATED chat panel (sim-chat.ts). Sized in stage container units: the Boss Fight panel
+   sits in the streamer rail between the defence card and the SIMULATED CHAT badge; Crowd Trainer puts it
+   on the right between the clock and the stats; on a phone a two-line strip sits under the stage instead. */
+.sim-chat-layer{position:absolute;inset:0;z-index:20;pointer-events:none;container-type:size}.sim-chat-layer[hidden],.sim-chat-strip[hidden]{display:none}
+.sim-chat{position:absolute;left:3.1cqw;top:66cqh;width:19.6cqw;max-height:17.5cqh;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;padding:.5cqw .7cqw;background:#0a0814d9;border-left:.35cqw solid var(--yellow,#ffdc43);color:#faf8ff;font:600 1.3cqw/1.25 Barlow,'Arial Narrow',sans-serif}
+.sim-chat h3,.sim-chat-strip h3{margin:0 0 .25em;color:var(--yellow,#ffdc43);font:800 .75em/1.2 Barlow,'Arial Narrow',sans-serif;letter-spacing:.08em}.sim-chat h3 small{color:#c2bdcd;font-weight:600;letter-spacing:0}
+.sim-chat ol,.sim-chat-strip ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;justify-content:flex-end;min-height:0;flex:1;overflow:hidden}
+.sim-chat li,.sim-chat-strip li{flex:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.sim-chat li b,.sim-chat-strip li b{color:#ff8fc4}
+.sim-chat li[data-kind=bot],.sim-chat li[data-kind=you],.sim-chat-strip li[data-kind=bot],.sim-chat-strip li[data-kind=you]{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;font-size:.8em;margin-top:.2em}
+.sim-chat li[data-kind=bot] b,.sim-chat-strip li[data-kind=bot] b{color:#2ef2ff}.sim-chat li[data-kind=you] b,.sim-chat-strip li[data-kind=you] b{color:var(--yellow,#ffdc43)}.sim-chat li small,.sim-chat-strip li small{color:#c2bdcd;font-size:.85em;font-weight:700}
+.sim-chat-layer[data-mode=trainer] .sim-chat{left:auto;right:2cqw;top:20cqh;width:22cqw;max-height:30cqh;font-size:1.5cqw}
+.sim-chat-layer[data-mode=trainer-done] .sim-chat{left:14cqw;right:14cqw;top:auto;bottom:.6cqh;width:auto;max-height:5.6cqh;padding:.3cqw .7cqw;font-size:1.5cqw;flex-direction:row;align-items:baseline;gap:.8cqw}
+.sim-chat-layer[data-mode=trainer-done] .sim-chat h3{flex:none;margin:0}.sim-chat-layer[data-mode=trainer-done] .sim-chat li:not(:last-child){display:none}.sim-chat-layer[data-mode=trainer-done] .sim-chat li{-webkit-line-clamp:2;margin:0}
+.sim-chat-strip{display:none}
+.round-results [data-result-sim]{font-size:.7em}.round-results [data-result-sim] p{margin:2px 0}
+@media(max-width:600px){
+ .sim-chat-layer{display:none!important}
+ .stream-compact>main>.demo-controls{flex-wrap:wrap;height:auto;overflow:visible}
+ .sim-chat-strip:not([hidden]){display:block;flex:0 0 100%;box-sizing:border-box;width:100%;margin:0;text-align:left;padding:6px 12px;background:#0a0814;border-left:4px solid var(--yellow,#ffdc43);font:600 14px/1.3 Barlow,'Arial Narrow',sans-serif;color:#faf8ff}
+ .sim-chat-strip h3{font-size:12px}.sim-chat-strip li[data-kind=bot],.sim-chat-strip li[data-kind=you]{-webkit-line-clamp:2;font-size:13px}
+ .round-results [data-result-sim]{order:4;font-size:13px}.round-results .corner-coach{order:5}
+}

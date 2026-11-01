@@ -18,7 +18,7 @@ const RESULT_TEXT:Record<ComboResult,string>={clean:'CLEAN!',partial:'PARTIAL ·
 const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
 function isTextEntry(target:EventTarget|null){const element=target as {tagName?:string;type?:string;isContentEditable?:boolean}|null;if(element?.tagName==='INPUT'&&['checkbox','radio','button'].includes(element.type??''))return false;return !!element?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(element?.tagName??'');}
 /** Crowd Trainer view and controller. The pure reducer owns all rules; this file only feeds and paints it. */
-export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElement;difficulty:()=>Difficulty;keyboard:()=>boolean;viewers:()=>number;liveTokenLoaded:()=>boolean;onCue?:(cue:TrainerCue)=>void;onAgain:()=>void;onExit:()=>void;onModeChange?:(mode:GameMode)=>void;onDone?:(state:TrainerState)=>void;now?:()=>number;search?:string}){
+export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElement;difficulty:()=>Difficulty;keyboard:()=>boolean;viewers:()=>number;liveTokenLoaded:()=>boolean;onCue?:(cue:TrainerCue)=>void;onAgain:()=>void;onExit:()=>void;onModeChange?:(mode:GameMode)=>void;onDone?:(state:TrainerState)=>void;/** Offline only: sees each batch of simulated messages (for the demo's chat panel); it never changes them. */onSimChat?:(messages:readonly {user:string;text:string}[])=>void;now?:()=>number;search?:string}){
  const win=doc.defaultView!,now=options.now??(()=>win.performance.now());
  let mode=initialMode(options.search??win.location.search),state:TrainerState|null=null,crowd:ReturnType<typeof createTrainerCrowd>|null=null,lastTick=0,seed=20261101,southpaw=false,anyHand=false,renderKey='';
  // Mode choice: the offline landing shows it above PLAY NOW; /play shows it at the top of step 3.
@@ -129,7 +129,7 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
   },
   tick(at=now()){
    if(!state||state.phase==='done')return;
-   if(crowd&&!state.paused)for(const message of crowd.messages(at-lastTick)){const vote=parseTrainerCommand(message.text);if(vote){state=trainerStep(state,{kind:'vote',user:message.user,vote},Math.max(at,state.now));emit(state.cues);}}
+   if(crowd&&!state.paused){const batch=crowd.messages(at-lastTick);options.onSimChat?.(batch);for(const message of batch){const vote=parseTrainerCommand(message.text);if(vote){state=trainerStep(state,{kind:'vote',user:message.user,vote},Math.max(at,state.now));emit(state.cues);}}}
    lastTick=at;step({kind:'advance'},at);
   },
   stop(at=now()){if(state&&state.phase!=='done')step({kind:'stop'},at);},
