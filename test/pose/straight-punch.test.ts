@@ -32,9 +32,11 @@ describe('straight punches on Kash’s recorded webcam footage (44 punches; guar
   expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(4);
  });
  it('Crowd Trainer keeps its catches and drops most false punches',()=>{
-  // Before (no drop, edge or tilt filters): 41 of 44 caught, 32 false punches.
+  // Before (no drop, edge or tilt filters): 41 of 44 caught, 32 false punches. With them: 40, 9. Merged with the straight-punch
+  // detector (1 Nov live playtest: jabs at the camera were missed, so combos lost their first token): 42, 11; frame-labelled
+  // drill one-twos: jabs 8 -> 11 of 12.
   const result=score(trainer);
-  expect(result.caught).toBeGreaterThanOrEqual(40);expect(result.falsePunches).toBeLessThanOrEqual(9);
+  expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(11);
  });
  it('Crowd Trainer reads setup thresholds as a ratio to the Boss Fight default, not in its own units',()=>{
   // Raw Boss Fight units (0.7-0.9) in the Trainer's shoulder-width units cut its catches from 40 to 34 of 44.

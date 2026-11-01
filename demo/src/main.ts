@@ -29,6 +29,7 @@ import { createKeyboardAvatar } from './keyboard-avatar';
 import { PoseCamera } from '../../capture/src/camera';
 import { PoseClassifier } from '../../capture/src/classifier';
 import {TrainerMoveDetector} from '../../capture/src/trainer-moves';
+import {mountPoseDebug} from './pose-debug';
 import { createCalibration } from '../../capture/src/calibration';
 import { createSimulationSource } from './source';
 import { InputTutorial } from './tutorial';
@@ -87,6 +88,8 @@ if(streamSound){
 const tutorial=new InputTutorial();
 const classifier=new PoseClassifier({guardThreshold:0});
 const trainerMoves=new TrainerMoveDetector();
+// ?debug=pose: a tiny corner readout of pose fps and detected moves for live tuning (off by default, outside the stage).
+const poseDebug=mountPoseDebug(document,location.search);let debugPose={guard:false,lean:null as 'L'|'R'|null};
 let pendingBoss:BossDef|null=null;
 let forgeSnapshot:ForgeSnapshot|null=null;
 let forgePanel:ReturnType<typeof import('./forge').mountDemoForge>|null=null;
@@ -332,7 +335,15 @@ const camera=new PoseCamera(video,sample=>{
     input(lastPose);
     if(ready)for(const punch of result.punches)input(punch);
     // Crowd Trainer reads punch side and slips with its own detector; Boss Fight thresholds stay as they are.
-    if(trainer.running){const moves=trainerMoves.update(sample.landmarks,sample.at);if(ready){for(const punch of moves.punches)trainer.move({kind:'punch',side:punch.side});for(const slip of moves.slips)trainer.move({kind:'slip',side:slip.side});}}
+    if(trainer.running){const moves=trainerMoves.update(sample.landmarks,sample.at);if(ready){for(const punch of moves.punches)trainer.move({kind:'punch',side:punch.side});for(const slip of moves.slips)trainer.move({kind:'slip',side:slip.side});}
+     if(poseDebug&&ready){for(const punch of moves.punches)poseDebug.move({kind:'PUNCH',side:punch.side});for(const slip of moves.slips)poseDebug.move({kind:'SLIP',side:slip.side});}}
+    else if(poseDebug&&ready)for(const punch of result.punches)poseDebug.move({kind:'PUNCH',side:punch.side});
+  }
+  if(poseDebug){
+    poseDebug.frame(performance.now());
+    if(lastPose.lean&&lastPose.lean!==debugPose.lean)poseDebug.move({kind:'LEAN',side:lastPose.lean});if(lastPose.guard&&!debugPose.guard)poseDebug.move({kind:'GUARD'});debugPose={guard:lastPose.guard,lean:lastPose.lean};
+    const s=trainer.running?trainer.state:null,token=s?.combo?.tokens[s.combo.index];
+    poseDebug.expect(!s||!token?null:token==='S'?'SLIP':token==='G'?'GUARD':`${token} (${s.options.anyHand?'any hand':(token==='1')!==s.options.southpaw?'L':'R'})`);
   }
 },message=>{
   cameraRunning=false;poseFramed=false;setup.camera(false);lastPose={kind:'pose',guard:false,lean:null,source:'pose',at:performance.now()};

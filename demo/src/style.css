@@ -630,3 +630,7 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  .hosted-flow #webcam-settings .play-calibration-groups .active{background:#ffdc4314}.hosted-flow #webcam-settings .play-calibration-groups .done{color:var(--cyan)}
 }
 /* ── end pose ── */
+/* ── pose debug (?debug=pose only): tiny fixed corner readout for live tuning, appended to <body>, never inside the stage ── */
+.pose-debug{position:fixed;left:4px;top:4px;z-index:9999;max-width:210px;padding:4px 6px;border:1px solid #ffffff40;border-radius:4px;background:#000c;color:#e8e8e8;font:11px/1.35 ui-monospace,Menlo,monospace;pointer-events:none}
+.pose-debug b{display:block;color:#5ef0ff;font-weight:600}.pose-debug span{display:block;color:#ffdc43}.pose-debug ol{margin:2px 0 0;padding:0;list-style:none}
+/* ── end pose debug ── */
