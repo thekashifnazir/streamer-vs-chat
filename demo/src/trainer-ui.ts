@@ -129,7 +129,7 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
   },
   tick(at=now()){
    if(!state||state.phase==='done')return;
-   if(crowd&&!state.paused)for(const message of crowd.messages(at-lastTick)){const vote=parseTrainerCommand(message.text);if(vote)state=trainerStep(state,{kind:'vote',user:message.user,vote},Math.max(at,state.now));}
+   if(crowd&&!state.paused)for(const message of crowd.messages(at-lastTick)){const vote=parseTrainerCommand(message.text);if(vote){state=trainerStep(state,{kind:'vote',user:message.user,vote},Math.max(at,state.now));emit(state.cues);}}
    lastTick=at;step({kind:'advance'},at);
   },
   stop(at=now()){if(state&&state.phase!=='done')step({kind:'stop'},at);},
