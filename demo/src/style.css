@@ -337,3 +337,15 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .trainer-mode .corner-coach,.trainer-running .corner-coach{display:none}
 
 .landing-real-note{max-width:34rem;margin:.5rem auto 0;font-size:.9rem;opacity:.8;text-align:center}
+
+/* Crowd Trainer keys (trainer-ui.ts): the "Your keys" card before round 1, and the key or body move under each combo chip. Colours follow the Boss Fight practice card (#tutorial). */
+.trainer-practice{position:absolute;inset:15cqh 22cqw 12cqh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2cqw;padding:2cqw;background:#17101ff5;border:1px solid #756084;border-radius:1.2cqw;box-shadow:0 2cqw 8cqw #000a;text-align:center;pointer-events:auto}.trainer-practice[hidden]{display:none}
+.trainer-practice .trainer-eyebrow{font-size:2cqw}.trainer-practice-lead{font-size:1.9cqw;color:#e8e3ee}
+.trainer-practice ol{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1cqw;width:100%;margin:0;padding:0;list-style:none}
+.trainer-practice li{position:relative;display:flex;flex-direction:column;align-items:center;gap:.5cqw;padding:1.2cqw .6cqw;border:.2cqw solid #584961;border-radius:.8cqw;font-size:1.7cqw}.trainer-practice li b{font:400 4.4cqw/1 Anton,Impact,sans-serif;color:var(--t-yellow)}.trainer-practice li[data-token=S] b,.trainer-practice li[data-token=G] b{color:var(--t-cyan)}.trainer-practice li small{font-size:1.45cqw;font-weight:600;color:#c9bfd4}
+.trainer-practice kbd{display:inline-block;min-width:2.2cqw;padding:0 .4cqw;border:1px solid #ffffff88;border-radius:.3cqw;color:#faf8ff;font:inherit;font-weight:900}
+.trainer-practice li.done{border-color:#62ce9a;background:#62ce9a14}.trainer-practice li.done::after{content:'✓';position:absolute;top:.4cqw;right:.7cqw;color:#62ce9a;font-size:2.2cqw}
+.trainer-practice-status{font-size:1.9cqw;color:var(--t-yellow)}body>main .trainer-practice button{min-height:44px;padding:.6cqw 3cqw;font:900 max(16px,1.8cqw) Barlow,'Arial Narrow',sans-serif;border-radius:.6cqw;border:2px solid var(--t-yellow);background:#1d1629;color:#faf8ff;cursor:pointer}
+.trainer-stage[data-phase=practice] .trainer-call{visibility:hidden}
+.trainer-chip{height:auto;min-height:9.5cqw;padding:.5cqw 0}.trainer-chip i{font-style:normal;font-size:1.3cqw;font-weight:900;color:#faf8ff;white-space:nowrap}.trainer-chip[data-mark=hit] i{color:#0c0912}
+@container (max-width:700px){.trainer-practice{inset:2cqh 2cqw;gap:1.4cqw;padding:2cqw}.trainer-practice .trainer-eyebrow{font-size:3.2cqw}.trainer-practice-lead,.trainer-practice-status{font-size:3.2cqw}.trainer-practice li{padding:1.2cqw .6cqw;font-size:3cqw;gap:.4cqw}.trainer-practice li b{font-size:6.4cqw}.trainer-practice li small{font-size:2.6cqw}.trainer-practice kbd{min-width:3.4cqw}.trainer-practice li.done::after{font-size:3.6cqw}body>main .trainer-practice button{min-height:40px;padding:0 5cqw}.trainer-chip{min-height:12cqw}.trainer-chip i{font-size:2.4cqw}}

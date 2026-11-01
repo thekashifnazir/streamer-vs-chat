@@ -1,4 +1,4 @@
-import {COMBOS,comboDef,createTrainer,formatWorkoutSummary,trainerStep,trainerSummary,type ComboResult,type Token,type TrainerCue,type TrainerEvent,type TrainerState} from '../../shared/src/trainer';
+import {COMBOS,comboDef,createTrainer,formatWorkoutSummary,punchToken,trainerStep,trainerSummary,type ComboResult,type Token,type TrainerCue,type TrainerEvent,type TrainerState} from '../../shared/src/trainer';
 import {isTrainerStop,parseTrainerCommand} from '../../shared/src/trainer-commands';
 import type {Difficulty} from '../../shared/src/tempo';
 import type {Sound} from '../../overlay/src/sound';
@@ -16,11 +16,19 @@ export function defaultCueSound(cue:TrainerCue):Sound{
 }
 const RESULT_TEXT:Record<ComboResult,string>={clean:'CLEAN!',partial:'PARTIAL · nice work',missed:'MISSED · keep moving'};
 const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
+/** Crowd Trainer keys. F/J stay the physical left/right hand; the digits follow the stance, so 1 is always the lead hand. */
+const PUNCH_KEYS:Record<string,'L'|'R'|'lead'|'rear'>={KeyF:'L',KeyJ:'R',Digit1:'lead',Numpad1:'lead',Digit2:'rear',Numpad2:'rear'};
+export function trainerKeySide(code:string,southpaw:boolean):'L'|'R'|null{const key=PUNCH_KEYS[code];return !key?null:key==='L'||key==='R'?key:(key==='lead')!==southpaw?'L':'R';}
+/** What to press (keyboard) or do (webcam) for each token: the keys card, the chips and the key strip share it. */
+export function tokenHint(token:Token,keyboard:boolean,southpaw:boolean):string{
+ const lead=southpaw?'J':'F',rear=southpaw?'F':'J';
+ return keyboard?{'1':`1 / ${lead}`,'2':`2 / ${rear}`,S:'S / A·D',G:'G / K'}[token]:{'1':'jab','2':'punch',S:'lean',G:'fists up'}[token];
+}
 function isTextEntry(target:EventTarget|null){const element=target as {tagName?:string;type?:string;isContentEditable?:boolean}|null;if(element?.tagName==='INPUT'&&['checkbox','radio','button'].includes(element.type??''))return false;return !!element?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(element?.tagName??'');}
 /** Crowd Trainer view and controller. The pure reducer owns all rules; this file only feeds and paints it. */
 export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElement;difficulty:()=>Difficulty;keyboard:()=>boolean;viewers:()=>number;liveTokenLoaded:()=>boolean;onCue?:(cue:TrainerCue)=>void;onAgain:()=>void;onExit:()=>void;onModeChange?:(mode:GameMode)=>void;onDone?:(state:TrainerState)=>void;now?:()=>number;search?:string}){
  const win=doc.defaultView!,now=options.now??(()=>win.performance.now());
- let mode=initialMode(options.search??win.location.search),state:TrainerState|null=null,crowd:ReturnType<typeof createTrainerCrowd>|null=null,lastTick=0,seed=20261101,southpaw=false,anyHand=false,renderKey='';
+ let mode=initialMode(options.search??win.location.search),state:TrainerState|null=null,practice:{keyboard:boolean;done:Set<Token>;paused:boolean;guardSince:number|null}|null=null,physical:{guard:boolean;lean:'L'|'R'|null}={guard:false,lean:null},gHeld=false,crowd:ReturnType<typeof createTrainerCrowd>|null=null,lastTick=0,seed=20261101,southpaw=false,anyHand=false,renderKey='';
  // Mode choice: the offline landing shows it above PLAY NOW; /play shows it at the top of step 3.
  const choice=doc.createElement('div');choice.className='setup-section trainer-mode-choice';
  choice.innerHTML='<h3>GAME MODE</h3><div class="option-group" role="group" aria-label="Game mode"><button type="button" data-trainer-mode="boss">Boss Fight<br><small>Chat votes attacks · you defend</small></button><button type="button" data-trainer-mode="trainer">Crowd Trainer<br><small>Chat calls combos · you throw them</small></button></div><div class="trainer-options" hidden><label><input type="checkbox" id="trainer-southpaw" data-trainer-option="southpaw" role="switch"><span><strong>Southpaw</strong><br>Right hand leads, so 1 is your right.</span></label><label><input type="checkbox" id="trainer-any-hand" data-trainer-option="any-hand" role="switch"><span><strong>Any hand counts</strong><br>Easier: the camera ignores which hand.</span></label></div>';
@@ -41,11 +49,13 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
  view.innerHTML=`<header class="trainer-top"><div class="trainer-round"><small>CROWD TRAINER</small><strong data-t="round"></strong></div><div class="trainer-clock" data-t="clock"></div><div class="trainer-badges"><span class="trainer-badge" data-t="badge"></span><span class="trainer-pace" data-t="pace"></span></div></header>
 <section class="trainer-call" aria-live="polite"><p class="trainer-call-name" data-t="name"></p><div class="trainer-chips" data-t="chips"></div><div class="trainer-window"><i data-t="window"></i></div><p class="trainer-result" data-t="result"></p></section>
 <aside class="trainer-votes"><h3>CHAT CALLS NEXT</h3><ol data-t="votes"></ol><p class="trainer-legend">${COMBOS.map(combo=>`<span>${combo.command}</span>`).join('')}<span>!faster</span><span>!slower</span></p></aside>
-<aside class="trainer-stats" data-t="stats"></aside><p class="trainer-keys" data-t="keys"><kbd>F</kbd> 1 · <kbd>J</kbd> 2 · <kbd>A</kbd>/<kbd>D</kbd> slip · <kbd>K</kbd> guard · <kbd>Esc</kbd> pause</p>
+<aside class="trainer-stats" data-t="stats"></aside><p class="trainer-keys" data-t="keys"></p>
+<section class="trainer-practice" data-t="practice" hidden role="dialog" aria-label="Your keys"><p class="trainer-eyebrow" data-t="practice-title"></p><p class="trainer-practice-lead">Chat calls combos like 1-2-slip. Throw them in order.</p><ol data-t="practice-moves"></ol><p class="trainer-practice-status" data-t="practice-status" role="status"></p><button type="button" data-t="practice-go"></button></section>
 <section class="trainer-rest" data-t="rest" hidden><p class="trainer-eyebrow">REST</p><strong data-t="rest-clock"></strong><p data-t="rest-next"></p><p>Chat: vote the first combo now.</p><p class="trainer-rest-stats" data-t="rest-stats"></p></section>
 <section class="trainer-summary" data-t="summary" hidden role="dialog" aria-label="Workout summary"><p class="trainer-eyebrow">CROWD TRAINER</p><h2>WORKOUT DONE</h2><dl data-t="summary-grid"></dl><p class="trainer-note" data-t="summary-note"></p><div class="trainer-actions"><button type="button" class="primary" data-t="again">GO AGAIN</button><button type="button" data-t="exit">Back to setup</button><button type="button" data-t="copy">Copy chat line</button></div></section>`;
  options.stage.append(view);
  const part=<T extends HTMLElement=HTMLElement>(name:string)=>view.querySelector<T>(`[data-t="${name}"]`)!;
+ part('practice-go').addEventListener('click',event=>{(event.currentTarget as HTMLElement).blur();if(practice&&!practice.paused)begin(now());});
  part('again').addEventListener('click',()=>options.onAgain());
  // No bot post for workouts yet: the streamer can paste this counts-only line into chat.
  part('copy').addEventListener('click',async()=>{if(!state)return;const line=formatWorkoutSummary(trainerSummary(state)),button=part('copy');try{await win.navigator.clipboard.writeText(line);button.textContent='Copied';}catch{button.textContent=line;}});part('exit').addEventListener('click',()=>options.onExit());
@@ -56,6 +66,26 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
   if(state.phase==='done'&&before!=='done'){crowd=null;options.onDone?.(state);}
   render();
  }
+ // Keys card: before round 1 the clock and chat wait. Keyboard players press each move once (or Skip); webcam players click I'm ready or hold their guard 1 s.
+ const practiceRows=(keyboard:boolean,southpaw:boolean):[Token,string,string][]=>{const [lead,rear]=southpaw?['J','F']:['F','J'],[leadSide,rearSide]=southpaw?['right','left']:['left','right'];
+  return keyboard?[['1','lead punch',`press <kbd>1</kbd> or <kbd>${lead}</kbd>`],['2','rear punch',`press <kbd>2</kbd> or <kbd>${rear}</kbd>`],['S','slip','press <kbd>S</kbd>, <kbd>A</kbd> or <kbd>D</kbd>'],['G','guard','hold <kbd>G</kbd> or <kbd>K</kbd>']]
+   :[['1','jab',`with your lead hand (${leadSide})`],['2','punch',`with your rear hand (${rearSide})`],['S','slip','lean either way'],['G','guard','fists up to your face and hold']];};
+ function renderPractice(){
+  const card=part('practice');card.hidden=!practice;if(!practice||!state)return;
+  const key=`${practice.keyboard}:${state.options.southpaw}:${[...practice.done].join('')}`;if(card.dataset.key===key)return;card.dataset.key=key;
+  part('practice-title').textContent=practice.keyboard?'YOUR KEYS':'YOUR MOVES';part('practice-go').textContent=practice.keyboard?'Skip':'I’m ready';
+  part('practice-moves').innerHTML=practiceRows(practice.keyboard,state.options.southpaw).map(([token,name,how])=>`<li data-token="${token}"${practice!.done.has(token)?' class="done"':''}><b>${token}</b><span>${name}</span><small>${how}</small></li>`).join('');
+  part('practice-status').textContent=practice.keyboard?`Press each once to start the clock · ${practice.done.size} of 4`:'Click I’m ready, or hold your guard up for 1 second.';
+ }
+ /** Ends the keys card: a fresh reducer so the clock, the first call and chat voting all start now. */
+ function begin(at:number,announce=true){
+  if(!state||!practice)return;practice=null;state=createTrainer(state.options,at);lastTick=at;renderKey='';if(announce)emit(state.cues);
+  const guard=physical.guard||gHeld;if(guard||physical.lean)state=trainerStep(state,{kind:'pose',guard,lean:physical.lean},at);render();
+ }
+ /** Webcam: a guard held for 1 s counts as I'm ready, so nobody has to walk back to the mouse. */
+ function ready(at:number){if(practice&&!practice.keyboard&&!practice.paused&&practice.guardSince!==null&&at-practice.guardSince>=1000)begin(at);}
+ function practise(token:Token,at=now()){if(!practice||practice.paused||!practice.keyboard)return;practice.done.add(token);if(practice.done.size===4)begin(at);else render();}
+ const stepPose=(at=now())=>step({kind:'pose',guard:physical.guard||gHeld,lean:physical.lean},at);
  function render(){
   if(!state){view.hidden=true;return;}
   const s=state,at=s.paused?s.pausedAt!:s.now;view.hidden=false;
@@ -67,7 +97,7 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
   part('name').textContent=combo?`${comboDef(combo.id).name}${combo.voted?'':' · autopilot'}`:s.phase==='work'?(s.last?'Chat is calling the next combo…':'Get ready · chat is voting the first combo'):'';
   const key=shown?`${shown.id}:${combo?.calledAt??s.last?.at}:${shown.marks.join()}:${combo?.index}:${southpaw}:${anyHand}`:'';
   if(key!==renderKey){renderKey=key;const chips=part('chips');chips.replaceChildren();
-   if(shown)shown.tokens.forEach((token,i)=>{const chip=doc.createElement('span');chip.className='trainer-chip';chip.dataset.token=token;chip.dataset.mark=shown.marks[i]??(combo&&i===combo.index?'next':'');const b=doc.createElement('b');b.textContent=token;const small=doc.createElement('small');small.textContent=tokenLabel(token);chip.append(b,small);chips.append(chip);});
+   if(shown)shown.tokens.forEach((token,i)=>{const chip=doc.createElement('span');chip.className='trainer-chip';chip.dataset.token=token;chip.dataset.mark=shown.marks[i]??(combo&&i===combo.index?'next':'');const b=doc.createElement('b');b.textContent=token;const small=doc.createElement('small');small.textContent=tokenLabel(token);const hint=doc.createElement('i');hint.textContent=tokenHint(token,options.keyboard(),s.options.southpaw);chip.append(b,small,hint);chips.append(chip);});
    chips.classList.toggle('trainer-chips-done',!combo);
   }
   part('window').style.width=combo?`${Math.max(0,Math.min(100,(combo.endsAt-at)/(combo.endsAt-combo.calledAt)*100))}%`:'0%';
@@ -81,9 +111,9 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
   if(stats.dataset.key!==statsKey){stats.dataset.key=statsKey;stats.textContent='';
   for(const [label,value,cls] of [['CLEAN',sum.clean,'clean'],['PARTIAL',sum.partial,'partial'],['MISSED',sum.missed,'missed'],['PUNCHES',`L ${sum.punchesL} · R ${sum.punchesR}`,'punches']] as const){const row=doc.createElement('p');row.className=`trainer-stat-${cls}`;const b=doc.createElement('b');b.textContent=String(value);row.append(label+' ',b);stats.append(row);}}
   part('keys').hidden=!options.keyboard();
+  view.dataset.phase=practice?'practice':s.phase;renderPractice();
   const rest=part('rest');rest.hidden=s.phase!=='rest';
   if(s.phase==='rest'){part('rest-clock').textContent=clock(s.phaseEndsAt-at);part('rest-next').textContent=`Round ${s.round+1} of 3 next`;part('rest-stats').textContent=`So far: ${sum.clean} clean · ${sum.partial} partial · ${sum.punches} punches`;}
-  view.dataset.phase=s.phase;
   const card=part('summary');card.hidden=s.phase!=='done';
   if(s.phase==='done'&&card.dataset.key!==String(s.now)){card.dataset.key=String(s.now);part('copy').textContent='Copy chat line';const grid=part('summary-grid');grid.replaceChildren();
    for(const [term,value] of [['Clean combos',sum.clean],['Partial combos',sum.partial],['Missed combos',sum.missed],['Punches thrown',`${sum.punches} (L ${sum.punchesL} · R ${sum.punchesR})`],['Slips',sum.slips],['Guards held',sum.guards],['Active minutes',sum.activeMinutes.toFixed(1)],['Chat’s favourite',sum.favourite?`${sum.favourite.name} (${sum.favourite.command})`:'Autopilot'],['Chatters who voted',sum.voters]] as const){const item=doc.createElement('div');const dt=doc.createElement('dt');dt.textContent=term;const dd=doc.createElement('dd');dd.textContent=String(value);item.append(dt,dd);grid.append(item);}
@@ -94,46 +124,66 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
  let padF:HTMLButtonElement|null=null,padJLabel:string|null=null;
  function pads(on:boolean){
   const row=doc.querySelector('.tap-pads > div'),j=doc.querySelector<HTMLButtonElement>('.tap-pads [data-tap=J]');if(!row||!j)return;
-  if(on){if(!padF){padF=doc.createElement('button');padF.type='button';padF.dataset.trainerTap='F';padF.innerHTML='<kbd>F</kbd> Left (1)';padF.addEventListener('pointerdown',event=>{event.preventDefault();// The reducer ignores punches while paused.
-   if(state&&state.phase!=='done')step({kind:'punch',side:'L'});});}row.prepend(padF);padJLabel??=j.innerHTML;j.innerHTML='<kbd>J</kbd> Right (2)';}
+  if(on){if(!padF){padF=doc.createElement('button');padF.type='button';padF.dataset.trainerTap='F';padF.addEventListener('pointerdown',event=>{event.preventDefault();// The reducer ignores punches while paused.
+   if(state&&state.phase!=='done'){if(practice)practise(punchToken('L',{southpaw:state.options.southpaw,anyHand:false}) as Token);else step({kind:'punch',side:'L'});}});}padF.innerHTML=`<kbd>F</kbd> Left (${southpaw?2:1})`;row.prepend(padF);padJLabel??=j.innerHTML;j.innerHTML=`<kbd>J</kbd> Right (${southpaw?1:2})`;}
   else{padF?.remove();if(padJLabel!==null){j.innerHTML=padJLabel;padJLabel=null;}}
  }
+ // Trainer-only keys (F/J, 1/2, S, G); Boss Fight never sees them because no workout state exists there.
  win.addEventListener('keydown',event=>{
-  if(!state||state.phase==='done'||!options.keyboard()||(event.code!=='KeyF'&&event.code!=='KeyJ')||isTextEntry(event.target))return;
-  event.preventDefault();if(event.repeat)return;step({kind:'punch',side:event.code==='KeyF'?'L':'R'});
+  const side=state?trainerKeySide(event.code,state.options.southpaw):null;
+  if(!state||state.phase==='done'||!options.keyboard()||(!side&&event.code!=='KeyS'&&event.code!=='KeyG')||isTextEntry(event.target))return;
+  event.preventDefault();if(event.repeat)return;
+  if(side){if(practice)practise(punchToken(side,{southpaw:state.options.southpaw,anyHand:false}) as Token);else step({kind:'punch',side});return;}
+  if(event.code==='KeyS'){if(practice)practise('S');else step({kind:'slip',side:'L'});return;}
+  // G is a second guard key: held, merged with K's pose.
+  if(gHeld)return;gHeld=true;if(practice)practise('G');else stepPose();
  });
+ const releaseG=()=>{if(!gHeld)return;gHeld=false;if(state&&!practice&&state.phase!=='done')stepPose();};
+ win.addEventListener('keyup',event=>{if(event.code==='KeyG')releaseG();});win.addEventListener('blur',releaseG);
  return {
   get mode(){return mode;},get selected(){return mode==='trainer';},
   /** Shown on stage: a workout runs or its summary is up. */
   get active(){return state!==null;},
   get running(){return state!==null&&state.phase!=='done';},
-  get paused(){return !!state?.paused;},
+  get paused(){return practice?practice.paused:!!state?.paused;},
+  /** The keys card is up: the clock and chat voting wait. */
+  get practising(){return !!practice;},
   get state(){return state;},
   start(at=now()){
    crowd=null;
    if(!options.live)try{crowd=createTrainerCrowd({viewers:options.viewers(),seed:seed+7,liveTokenLoaded:options.liveTokenLoaded()});}catch{crowd=null;}
-   state=createTrainer({difficulty:options.difficulty(),southpaw,anyHand,seed:seed++},at);lastTick=at;renderKey='';doc.body.classList.add('trainer-running');pads(true);emit(state.cues);render();
+   state=createTrainer({difficulty:options.difficulty(),southpaw,anyHand,seed:seed++},at);lastTick=at;renderKey='';doc.body.classList.add('trainer-running');pads(true);
+   practice={keyboard:options.keyboard(),done:new Set(),paused:false,guardSince:null};physical={guard:false,lean:null};part('practice').dataset.key='';
+   const [lead,rear]=southpaw?['J','F']:['F','J'];part('keys').innerHTML=`<kbd>1</kbd>/<kbd>${lead}</kbd> lead · <kbd>2</kbd>/<kbd>${rear}</kbd> rear · <kbd>S</kbd>/<kbd>A</kbd>/<kbd>D</kbd> slip · <kbd>G</kbd>/<kbd>K</kbd> guard · <kbd>Esc</kbd> pause`;render();
   },
   input(event:StreamerInput,at=now()){
    if(!state||state.phase==='done')return;
+   if(event.kind==='pose')physical={guard:event.guard,lean:event.lean};
+   if(practice){
+    if(event.kind==='control'){practice.paused=event.action!=='resume';render();return;}
+    if(event.kind!=='pose')return;
+    practice.guardSince=event.guard?practice.guardSince??at:null;if(event.guard)practise('G',at);if(event.lean)practise('S',at);ready(at);return;
+   }
    if(event.kind==='control'){step(event.action==='resume'?{kind:'resume'}:{kind:'pause'},at);return;}
-   if(event.kind==='pose'){step({kind:'pose',guard:event.guard,lean:event.lean},at);return;}
+   if(event.kind==='pose'){step({kind:'pose',guard:event.guard||gHeld,lean:event.lean},at);return;}
    // Punches come from F/J (keyboard) or the Trainer webcam detector via move(); the Boss Fight punch path is ignored.
   },
   /** Webcam punches and slips from capture/src/trainer-moves.ts. */
-  move(event:{kind:'punch'|'slip';side:'L'|'R'},at=now()){if(state&&state.phase!=='done')step(event,at);},
+  move(event:{kind:'punch'|'slip';side:'L'|'R'},at=now()){if(state&&state.phase!=='done'&&!practice)step(event,at);},
   chat(message:{userId:string;text:string;isMod?:boolean;isBroadcaster?:boolean},at=now()){
    if(mode!=='trainer'||!state||state.phase==='done')return;
-   if(isTrainerStop(message.text,!!message.isMod||!!message.isBroadcaster)){step({kind:'stop'},at);return;}
+   if(isTrainerStop(message.text,!!message.isMod||!!message.isBroadcaster)){begin(at,false);step({kind:'stop'},at);return;}
+   if(practice)return;
    const vote=parseTrainerCommand(message.text);if(vote)step({kind:'vote',user:message.userId,vote},at);
   },
   tick(at=now()){
    if(!state||state.phase==='done')return;
+   if(practice){lastTick=at;ready(at);return;}
    if(crowd&&!state.paused)for(const message of crowd.messages(at-lastTick)){const vote=parseTrainerCommand(message.text);if(vote){state=trainerStep(state,{kind:'vote',user:message.user,vote},Math.max(at,state.now));emit(state.cues);}}
    lastTick=at;step({kind:'advance'},at);
   },
-  stop(at=now()){if(state&&state.phase!=='done')step({kind:'stop'},at);},
-  exit(){state=null;crowd=null;renderKey='';doc.body.classList.remove('trainer-running');pads(false);render();},
+  stop(at=now()){if(state&&state.phase!=='done'){begin(at,false);step({kind:'stop'},at);}},
+  exit(){state=null;practice=null;crowd=null;renderKey='';doc.body.classList.remove('trainer-running');pads(false);render();},
   setMode(next:GameMode){if(state&&state.phase!=='done')return;mode=next;syncMode();},
  };
 }
