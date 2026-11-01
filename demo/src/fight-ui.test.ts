@@ -17,7 +17,7 @@ it('routes held K/A/D and J tap pads through keyboard events and releases on can
 });
 it('shows plain round results and waits for NEXT ROUND instead of advancing on a timer',()=>{
  const {doc,ui,actions,time}=setup();let game=createGame();game.round.over=true;game.log.rounds=[{number:1,winner:'streamer',reason:'ko',at:100,streamer_hp:90,boss_hp:0,boss_max_hp:135,duration_ms:100} as any];ui.render(game);expect(doc.querySelector('[data-result-title]')!.textContent).toBe('You won Round 1');expect(doc.querySelectorAll('.plain-stats p')).toHaveLength(3);for(const jargon of ['MVP','REACTED','!forgetme','AUTOPILOT','Stats only'])expect(doc.getElementById('round-results')!.textContent).not.toContain(jargon);
- expect(doc.querySelector('[data-result-countdown]')!.textContent).toBe('Next round starts when you press NEXT ROUND');time(2000);ui.setPaused(true);time(12000);ui.tick();ui.setPaused(false);time(600000);ui.tick();expect(actions.next).not.toHaveBeenCalled();expect(doc.getElementById('playtest-opt-in')!.closest('#round-results')).not.toBeNull();
+ expect(doc.querySelector('[data-result-countdown]')!.textContent).toBe('Next round starts when you press NEXT ROUND');time(2000);ui.setPaused(true);time(12000);ui.tick();ui.setPaused(false);time(600000);ui.tick();expect(actions.next).not.toHaveBeenCalled();const copy=doc.getElementById('export-playtest') as HTMLButtonElement;expect(copy.closest('#round-results')).not.toBeNull();expect(copy.disabled).toBe(false);expect(copy.textContent).toBe('Copy my stats');expect(doc.querySelector('#round-results input[type=checkbox]')).toBeNull();
 });
 it('practice text names the next move and never consumes a game beat',()=>{
  const tutorial=new InputTutorial(),game=createGame({difficulty:'hard'});expect(tutorial.status(true)).toContain('Practice: press K to guard (1 of 3)');tutorial.input({kind:'pose',guard:true,lean:null,source:'keyboard',at:100});expect(tutorial.status(true)).toContain('press A and D to lean left and right (2 of 3)');expect(game.round.elapsed_ms).toBe(0);expect(step(game,{kind:'advance'},0).difficulty).toBe('hard');
@@ -61,4 +61,16 @@ it('titles the match end with the match result and round score; round ends keep 
  ui.render(lost);expect(title()).toBe('CHAT WON THE MATCH 2–0');
  // End fight mid-round stays "Fight ended".
  const live=createGame({seed:3});ui.render(live,true);expect(title()).toBe('Fight ended');
+});
+it('reads as a scoreboard: eyebrow, winner colour hook, round score and big-number tiles, NEXT ROUND before End fight',()=>{
+ const {doc,ui}=setup(),results=doc.getElementById('round-results')!;let game=createGame();game.round.over=true;game.match.round_wins={streamer:1,boss:0};game.log.rounds=[{number:1,winner:'streamer',reason:'ko',at:100,streamer_hp:90,boss_hp:0,boss_max_hp:135,duration_ms:100} as any];
+ ui.render(game,false,{sim:{mvp:'sim_viewer_7'}});expect(results.dataset.resultWinner).toBe('streamer');expect(doc.querySelector('[data-result-eyebrow]')!.textContent).toBe('Round 1 of 3');
+ expect([doc.querySelector('[data-score-you]')!.textContent,doc.querySelector('[data-score-chat]')!.textContent]).toEqual(['1','0']);
+ expect([...doc.querySelectorAll('.plain-stats p')].map(tile=>[tile.querySelector('b')!.textContent,tile.textContent])).toEqual([['0','0 defences'],['135','135 damage dealt'],['0','0 damage taken']]);
+ expect(doc.querySelector('[data-result-sim] .result-tile')!.textContent).toBe('sim_viewer_7 Chat MVP · SIMULATED');
+ const actions=doc.querySelector('.result-actions')!;expect(actions.firstElementChild!.matches('[data-result-next]')).toBe(true);expect(actions.lastElementChild!.matches('[data-result-quit]')).toBe(true);
+ game=structuredClone(game);game.round.number=2;game.round.winner='boss';game.match.round_wins={streamer:1,boss:1};game.log.rounds=[...game.log.rounds,{number:2,winner:'boss',reason:'ko',at:200,streamer_hp:0,boss_hp:70,boss_max_hp:135,duration_ms:100} as any];
+ ui.render(game);expect(results.dataset.resultWinner).toBe('boss');expect(doc.querySelector('[data-score-chat]')!.textContent).toBe('1');
+ game=structuredClone(game);game.match.winner='boss';game.match.seed++;ui.render(game);expect(doc.querySelector('[data-result-eyebrow]')!.textContent).toBe('Match over');
+ ui.reset();ui.render(createGame({seed:9}),true);expect(results.dataset.resultWinner).toBe('none');expect(doc.querySelector('[data-result-eyebrow]')!.textContent).toBe('Fight over');
 });
