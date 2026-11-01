@@ -3,4 +3,5 @@ import type {WorkerEnv} from '../bindings';
 export interface Env extends WorkerEnv {
  TWITCH_CLIENT_SECRET?:string;
  OPENAI_API_KEY?:string;
+ ELEVENLABS_API_KEY?:string;
 }

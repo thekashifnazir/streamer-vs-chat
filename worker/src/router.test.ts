@@ -43,7 +43,7 @@ describe('structured hosted results',()=>{
   expect(await res.json()).toEqual({dropReason:'forbidden',pending:2});expect(s.status).toHaveBeenCalledWith('123');expect(res.headers.get('Cache-Control')).toBe('no-store');
  });
  it('health is public; every other API requires authentication, wrong-app tokens fail',async()=>{
-  const s=setup();expect(await(await s.route(new Request('https://demo.test/api/health'),s.env)).json()).toEqual({bot:true,clips:false,forge:false,memory:false});expect(s.fetcher).not.toHaveBeenCalled();
+  const s=setup();expect(await(await s.route(new Request('https://demo.test/api/health'),s.env)).json()).toEqual({bot:true,clips:false,forge:false,memory:false,coach:false});expect(s.fetcher).not.toHaveBeenCalled();
   expect((await s.route(post(round,''),s.env)).status).toBe(401);s.fetcher.mockImplementation(async()=>response('123','other-app'));expect((await s.route(post(round),s.env)).status).toBe(401);expect(s.enqueue).not.toHaveBeenCalled();
  });
  it('returns 503 while off and does not invoke the channel or sender',async()=>{

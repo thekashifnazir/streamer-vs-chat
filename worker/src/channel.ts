@@ -11,6 +11,7 @@ import type {Env} from './env.js';
 import {TwitchBotSender} from './app-token.js';
 import {enqueueClipResult} from './clip-results.js';
 import {HostedResultsQueue} from './queue.js';
+import {CoachCaps,type CoachReply} from './coach.js';
 /** One instance per validated Twitch user ID, selected by the authenticated API router. */
 export class ChannelHub extends DurableObject<Env> {
   private readonly results:HostedResultsQueue;
@@ -18,11 +19,13 @@ export class ChannelHub extends DurableObject<Env> {
   private readonly forge:HostedForgeService;
   private readonly caps:ForgeCaps;
   private readonly memory:HostedMemory;
+  private readonly coach:CoachCaps;
   constructor(ctx:DurableObjectState,env:Env) {
     super(ctx,env);
     const sender=this.sender=new TwitchBotSender({clientId:env.TWITCH_CLIENT_ID,clientSecret:env.TWITCH_CLIENT_SECRET??'',botUserId:env.BOT_USER_ID},fetch,Date.now);
     this.memory=new HostedMemory(new SqliteMemoryStorage(ctx.storage),Date.now,()=>this.env.HOSTED_MEMORY==='on',async channel=>{if(this.env.HOSTED_BOT==='on')await this.results.enqueue(channel,'Your viewer record has been deleted. You will not be recorded again.');});
     this.caps=new ForgeCaps(ctx.storage,Date.now);
+    this.coach=new CoachCaps(ctx.storage,Date.now);
     this.forge=new HostedForgeService({caps:this.caps,enabled:()=>this.env.HOSTED_FORGE==='on',configured:()=>!!this.env.OPENAI_API_KEY?.trim(),client:()=>createOpenAIForgeClient({apiKey:this.env.OPENAI_API_KEY??'',mode:'live',fetcher:fetch,redirect:'manual'}),reserveGlobal:()=>this.env.CHANNEL.get(this.env.CHANNEL.idFromName('forge-global')).reserveGlobalGeneration()});
     this.results=new HostedResultsQueue(ctx.storage,Date.now,()=>this.env.HOSTED_BOT==='on',(channel,message)=>sender.send(channel,message));
   }
@@ -33,6 +36,8 @@ export class ChannelHub extends DurableObject<Env> {
   async reserveGlobalGeneration():Promise<ForgeReply<null>>{if(this.env.HOSTED_FORGE!=='on')return {ok:false,reason:'feature-off'};try{await this.caps.reserveGlobal();return {ok:true,value:null};}catch(error){return {ok:false,reason:error instanceof ForgeLimitError?error.reason:'unavailable'};}}
   memoryEvents(channel:string,events:MemoryEvent[]){const valid=validateMemoryBatch({events});if(!valid)throw new Error('invalid-memory-events');return this.memory.events(channel,valid);}
   memorySnapshot(channel:string,sessionId?:string,mvpId?:string|null){return this.memory.snapshot(channel,sessionId,mvpId);}
+  coachReserveChannel(channel:string,max:number):Promise<CoachReply>{return this.env.HOSTED_COACH!=='on'?Promise.resolve({ok:false,reason:'feature-off'}):this.coach.reserveChannel(channel,max);}
+  coachReserveGlobal(ipHash:string,global:number,ip:number):Promise<CoachReply>{return this.env.HOSTED_COACH!=='on'?Promise.resolve({ok:false,reason:'feature-off'}):this.coach.reserveGlobal(ipHash,global,ip);}
   status(channel:string) {return this.results.status(channel);}
   alarm():Promise<void> {return this.results.alarm();}
 }
