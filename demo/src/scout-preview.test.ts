@@ -4,6 +4,7 @@ import type {Move} from '../../shared/src/index';
 import {setLiveCredentials} from './credentials';
 import {DEFAULT_SCOUTING_CONFIG} from '../../shared/src/scouting-config';
 import {SCOUT_PREVIEW_BADGE,scoutPreviewConfig} from './scout-preview';
+import {scoutingPresentation} from '../../overlay/src/hud';
 afterEach(()=>setLiveCredentials(false));
 const offline={liveMode:false,liveTokenLoaded:false};
 const location=(pathname='/',search='?scout=fast',hash='')=>({pathname,search,hash});
@@ -24,12 +25,16 @@ it('keeps default URLs and SPEC evidence defaults unchanged',()=>{
   expect(DEFAULT_SCOUTING_CONFIG).toEqual({minRound:2,minSamples:12,minShare:.65,minWilsonLower:.60});
   const state=scriptedDemo(undefined);
   expect(state.scouting.card).toBeNull();expect(state).not.toHaveProperty('scoutingConfig');
+  // Production evidence rules keep the card off the HUD in round one even if a card were set.
+  expect(scoutingPresentation({...state,scouting:{...state.scouting,card:'L'}})).toEqual({kind:'hidden'});
 });
 it('shows a labelled round-one preview after actual same-side successful dodges under scripted demo chat',()=>{
   const state=scriptedDemo(scoutPreviewConfig(location(),offline));
   expect(state.round.number).toBe(1);expect(state.round.over).toBe(false);
   expect(state.scouting.card).toBe('L');expect(state.scouting.n).toBe(3);
   expect(SCOUT_PREVIEW_BADGE).toBe('SCOUT PREVIEW · SIMULATED');
+  // The HUD must show the card the engine set: the preview's whole point is round one.
+  expect(scoutingPresentation(state)).toMatchObject({kind:'habit',side:'L',n:3,percent:100});
   const restarted=step(state,{kind:'restart'},state.now+1);
   expect(restarted.scoutingConfig).toEqual(state.scoutingConfig);
 });

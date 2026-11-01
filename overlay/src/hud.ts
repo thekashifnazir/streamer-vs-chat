@@ -3,6 +3,7 @@ import type {BossImpactBatch} from '../../shared/src/boss-impact';
 import {bossDamageLayout} from './damage-layout';
 import {finisherPresentation,renderFocus} from './focus-ui';
 import {FEEL} from '../../shared/src/feel';
+import {DEFAULT_SCOUTING_CONFIG} from '../../shared/src/scouting-config';
 import {createBossFeedback,playBossImpactSounds,renderBossDamageNumbers,type BossImpact} from './boss-feedback';
 import {chatCommand,chatCommandLegend,voteCountLabel} from '../../shared/src/chat-commands';
 import {difficultyName,tempoFor} from '../../shared/src/tempo';
@@ -53,7 +54,8 @@ export function nextBeatSeconds(state:GameState):string {const beat=tempoFor(sta
 export const FIXED_STAMP_MS=1800;
 /** Authoritative scouting state projected into presentation; no thresholds live in the HUD. */
 export function scoutingPresentation(state:GameState) {
-  if(state.round.number<2)return {kind:'hidden'} as const;
+  // Same first round as the engine's card rule, so the demo-only ?scout=fast preview (minRound 1) shows its card.
+  if(state.round.number<(state.scoutingConfig??DEFAULT_SCOUTING_CONFIG).minRound)return {kind:'hidden'} as const;
   const {card,last_fix:fix,cooldown}=state.scouting;
   if(card) {
     const observed=state.scouting.dodges.slice(state.scouting.since_fix);
