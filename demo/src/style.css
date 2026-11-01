@@ -597,3 +597,13 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 @media (prefers-reduced-motion:no-preference){#safety-card.needs-tick{animation:svc-needs-tick 1.2s ease-in-out 2}}
 @keyframes svc-needs-tick{50%{outline-color:transparent}}
 /* ── end calib ── */
+/* ── fightui (1 Nov playtest): confirmed Twitch clips as a row of tiles under the stats, and the on-stream camera
+   bubble moved to the bottom-left corner (outside every card) while a results, match-end or pause card is up. ── */
+.round-results .result-clips{order:4;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.round-results .result-clip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 16px;box-sizing:border-box;background:#1d1629;border-top:4px solid var(--pink);color:#f5f2fa;font:400 clamp(18px,1.6vw,24px)/1 Anton,Impact,sans-serif;letter-spacing:.03em;text-transform:uppercase;text-decoration:none}
+.round-results .result-clip span{color:var(--pink);font-size:.8em}
+.round-results .result-clip:hover,.round-results .result-clip:focus-visible{background:var(--pink);color:#0c0912}.round-results .result-clip:hover span,.round-results .result-clip:focus-visible span{color:#0c0912}
+@media(max-width:600px){.round-results .result-clips{order:5;gap:6px}.round-results .result-clip{font-size:16px;padding:4px 10px}}
+/* Cards span 14-86% of the stage (25.5-74.5% on desktop); a 12% bubble at 1% left never reaches them. Still on stream. */
+.hosted-flow #stage:has(>#round-results:not([hidden])) .stream-camera-bubble,.hosted-flow #stage:has(>#pause-screen:not([hidden])) .stream-camera-bubble{inset:auto auto 2% 1%;width:12%;height:17%}
+/* ── end fightui ── */
