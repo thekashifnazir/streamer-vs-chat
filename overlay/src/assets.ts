@@ -39,9 +39,22 @@ export class BossSprite {
     if(!this.atlas||!this.sheet.complete||!this.sheet.naturalWidth){this.drawFallback(ctx);return;}
     const frame=this.atlas.frames[animationFrame(this.atlas,clip,elapsed)]!;
     const placement=framePlacement(frame,this.canvas.width,this.canvas.height);
+    // Knocked out: the lying pose is shorter than standing, so grey it out and stamp K.O. over it,
+    // or it reads as the boss shrinking (a playtest thought it was a bug).
+    const ko=clip==='ko';
+    if(ko)ctx.filter='grayscale(0.85) brightness(0.7)';
     ctx.drawImage(this.sheet,frame.frame.x,frame.frame.y,frame.frame.w,frame.frame.h,placement.x,placement.y,placement.width,placement.height);
+    if(ko){ctx.filter='none';this.drawKoStamp(ctx,Math.min(1,elapsed/250));}
     if(flashOpacity>0){ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=flashOpacity;ctx.fillStyle=FEEL.bossHit.flashColor;
       ctx.fillRect((this.canvas.width-FEEL.bossHit.flashWidth)/2,this.canvas.height-FEEL.bossHit.flashHeight-FEEL.bossHit.flashBottomPx,FEEL.bossHit.flashWidth,FEEL.bossHit.flashHeight);ctx.restore();}
+  }
+  private drawKoStamp(ctx:CanvasRenderingContext2D,progress:number):void {
+    const w=this.canvas.width,h=this.canvas.height,size=Math.round(w*0.36);
+    ctx.save();ctx.globalAlpha=progress;ctx.translate(w/2,h*0.42);ctx.rotate(-0.12);ctx.scale(1.6-0.6*progress,1.6-0.6*progress);
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+    ctx.font=`${size}px Anton, Impact, sans-serif`;ctx.lineWidth=size*0.12;ctx.strokeStyle='#0b0712';ctx.strokeText('K.O.',0,0);ctx.fillStyle='#ff268a';ctx.fillText('K.O.',0,0);
+    ctx.font=`${Math.round(size*0.3)}px Anton, Impact, sans-serif`;ctx.lineWidth=size*0.06;ctx.strokeText('KNOCKED OUT',0,size*0.62);ctx.fillStyle='#f5f2fa';ctx.fillText('KNOCKED OUT',0,size*0.62);
+    ctx.restore();
   }
   private drawFallback(ctx:CanvasRenderingContext2D):void {
     const x=this.canvas.width/2,y=this.canvas.height-18;
