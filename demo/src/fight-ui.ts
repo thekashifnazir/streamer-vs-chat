@@ -33,7 +33,7 @@ export function mountFightUi(doc:Document,options:{offline:boolean;resume:()=>vo
   results.querySelector('[data-result-title]')!.textContent=resultTitle(state,ended,summary.winner);
   const stats=results.querySelector('.plain-stats')!;stats.replaceChildren();
   for(const text of [`${summary.stats.defended} defences`,`${Math.round(summary.stats.damageDealt)} damage dealt`,`${Math.round(summary.stats.damageTaken)} damage taken`]){const item=doc.createElement('p');item.textContent=text;stats.append(item);}
-  workout.hidden=!matchDone;workout.replaceChildren();if(matchDone){const label=doc.createElement('strong');label.textContent='Workout';workout.append(label,` ${workoutText(workoutStats(state))}`);}
+  workout.hidden=!matchDone;workout.replaceChildren();if(matchDone){const label=doc.createElement('strong');label.textContent='Workout';workout.append(label,' ');workoutText(workoutStats(state)).split(' · ').forEach((part,index)=>{const item=doc.createElement('span');item.textContent=part;workout.append(...(index?[' · ',item]:[item]));});}
   results.querySelector('[data-result-next]')!.textContent=matchDone?'NEW MATCH':'NEXT ROUND';results.querySelector('[data-result-countdown]')!.textContent='';due=matchDone?null:now()+5000;tick();
  }
  function tick(){if(due===null||paused)return;const remaining=Math.max(0,Math.ceil((due-now())/1000));results.querySelector('[data-result-countdown]')!.textContent=`Next round in ${remaining} s`;if(!remaining){due=null;options.next();}}
