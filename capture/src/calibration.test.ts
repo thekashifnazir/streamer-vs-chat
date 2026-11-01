@@ -224,7 +224,7 @@ test('the optional punch step measures one punch with each hand, waits for the c
   clear=true;hold(calibration,frame(.6),13400,600);calibration.update(punchFrame('L',1.6),14100);calibration.update(punchFrame('L',.4),14200);
   expect(calibration.snapshot).toMatchObject({stage:'punches',punchesThrown:{L:true,R:false},progress:.5});expect(calibration.snapshot.message).toContain('RIGHT');
   hold(calibration,frame(.6),14300,600);calibration.update(punchFrame('R',1.4),15000);calibration.update(frame(.6),15100);
-  expect(calibration.snapshot).toMatchObject({stage:'ready',ready:true,punchReach:{L:expect.closeTo(1.6),R:expect.closeTo(1.4)},punchThresholds:{L:expect.closeTo(.8),R:expect.closeTo(.7)}});
+  expect(calibration.snapshot).toMatchObject({stage:'ready',ready:true,punchReach:{L:expect.closeTo(1.6),R:expect.closeTo(1.4)},punchThresholds:{L:expect.closeTo(.7),R:expect.closeTo(.7)}});
 });
 test('punches can be skipped; without the option setup ends after the leans as before',()=>{
   const calibration=createCalibration({punches:true});guardCalibration(calibration);leans(calibration);

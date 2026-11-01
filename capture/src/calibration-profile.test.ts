@@ -44,7 +44,7 @@ it('a profile saved under the older 60% lean fraction loads with thresholds re-d
 });
 it('remembers the measured punch reach and re-derives per-side punch thresholds; older profiles keep the default',()=>{
  const {profiles,data}=setup();expect(profiles.save({...ready(),punchReach:{L:1.6,R:2.4},punchThresholds:{L:.8,R:.9}})).toBe(true);
- expect(profiles.load('standing')).toMatchObject({punchReach:{L:1.6,R:2.4},punchThresholds:{L:expect.closeTo(.8),R:.9}});
+ expect(profiles.load('standing')).toMatchObject({punchReach:{L:1.6,R:2.4},punchThresholds:{L:.7,R:.7}});
  const key='svc.calibration.v1.standing',saved=JSON.parse(data.get(key)!);
  data.set(key,JSON.stringify({...saved,settings:{...saved.settings,punchReach:{L:-1,R:2}}}));expect(profiles.load('standing')).toBeNull();
  const {punchReach:_,punchThresholds:__,...older}=saved.settings;data.set(key,JSON.stringify({...saved,settings:older}));

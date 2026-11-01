@@ -29,9 +29,17 @@ export const LEAN_THRESHOLD_FRACTION = 0.48;
  * (Pexels fixtures) register as leans, so the dwell stays above that.
  */
 export const LEAN_DWELL_MS = 170;
-/** Per-side activation from calibrated peaks; release stays at half of each. */
+/**
+ * Upper bound on a calibrated lean threshold. The 5-step setup asks for a held lean to each side, which many players
+ * make deeper than their fight leans: on the 31 Oct shallow-lean replay, setup peaks 25% deeper than recorded drop 3 of
+ * 6 leans to nothing and 50% deeper drop 5 of 6. 0.66 is the highest threshold validated there (18/18 shallow leans);
+ * the recorded jab that turned into a lean reached about 0.53, so the cap keeps a margin above it.
+ */
+export const LEAN_THRESHOLD_CAP = 0.66;
+/** Per-side activation from calibrated peaks, capped (above); release stays at half of each. */
 export function leanThresholdsFromPeaks(peaks:LeanThresholds, floor:number):LeanThresholds {
-  return {L:Math.max(floor,LEAN_THRESHOLD_FRACTION*peaks.L),R:Math.max(floor,LEAN_THRESHOLD_FRACTION*peaks.R)};
+  const side=(peak:number)=>Math.max(floor,Math.min(LEAN_THRESHOLD_CAP,LEAN_THRESHOLD_FRACTION*peak));
+  return {L:side(peaks.L),R:side(peaks.R)};
 }
 export type PoseCalibration = {guardThreshold:number;leanThresholds?:LeanThresholds;guardReleaseBand?:number;guardMedians?:GuardMedians;neutralSwayP95?:number;punchThresholds?:PunchThresholds|null};
 export type PoseMetrics = {
