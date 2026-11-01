@@ -428,7 +428,7 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  .offline-demo-page #demo-intro .landing-lede{font-size:18px}
  .landing-try{order:3;padding:12px}.landing-live{order:4}
  .landing-play{grid-template-columns:minmax(0,1fr);gap:10px}.landing-input{flex-direction:row}.offline-demo-page .landing-input button{justify-content:center;min-height:48px}.landing-input button small{display:none}
- .offline-demo-page #demo-intro #play-now{min-height:76px;font-size:40px}.offline-demo-page #demo-intro .landing-twitch{min-height:72px;gap:10px;padding:10px 12px;font-size:23px}
+ .offline-demo-page #demo-intro #play-now{min-height:76px;font-size:34px}.offline-demo-page #demo-intro .landing-twitch{min-height:72px;gap:10px;padding:10px 12px;font-size:23px}
  #landing-modes .option-group{gap:10px}#landing-modes [data-trainer-mode]{--plate-h:84px;height:230px;padding:0 10px 10px;font-size:22px}
  #landing-modes [data-trainer-mode]::before{bottom:88px;height:128px}#landing-modes [data-trainer-mode] small{font-size:14px}
  #landing-modes .trainer-options{grid-template-columns:minmax(0,1fr)}
