@@ -604,6 +604,7 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .round-results .result-clip span{color:var(--pink);font-size:.8em}
 .round-results .result-clip:hover,.round-results .result-clip:focus-visible{background:var(--pink);color:#0c0912}.round-results .result-clip:hover span,.round-results .result-clip:focus-visible span{color:#0c0912}
 @media(max-width:600px){.round-results .result-clips{order:5;gap:6px}.round-results .result-clip{font-size:16px;padding:4px 10px}}
-/* Cards span 14-86% of the stage (25.5-74.5% on desktop); a 12% bubble at 1% left never reaches them. Still on stream. */
-.hosted-flow #stage:has(>#round-results:not([hidden])) .stream-camera-bubble,.hosted-flow #stage:has(>#pause-screen:not([hidden])) .stream-camera-bubble{inset:auto auto 2% 1%;width:12%;height:17%}
+/* Cards span 14-86% of the stage (25.5-74.5% on desktop); a 11.5% bubble at 1.5% left never reaches them. It sits in the
+   left rail's empty band (under the ROUND OVER card, above the LIVE and SOUND labels) and stays on stream. */
+.hosted-flow #stage:has(>#round-results:not([hidden])) .stream-camera-bubble,.hosted-flow #stage:has(>#pause-screen:not([hidden])) .stream-camera-bubble{inset:auto auto 11.5% 1.5%;width:11.5%;height:16%}
 /* ── end fightui ── */
