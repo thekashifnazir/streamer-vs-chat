@@ -14,7 +14,7 @@
 | Sound on stream (OBS audio) | not yet confirmed live |
 | Go live from the page (WHIP, experimental) | Deployed; MEASURED live on kashruns on 31 October (a viewer saw only the fight stage with the camera bubble) · in-app go-live: used live on kashruns on 31 October; a pause bug in that run was then fixed in `3677761` |
 
-The repository commits every hosted flag off (`HOSTED_BOT`, `HOSTED_CLIPS`, `HOSTED_FORGE`, `HOSTED_MEMORY` in [wrangler.toml](../wrangler.toml)); the deployed Worker turns them on. Cheers and subs are local-server only.
+The repository commits every hosted flag off (`HOSTED_BOT`, `HOSTED_CLIPS`, `HOSTED_FORGE`, `HOSTED_MEMORY` in [wrangler.toml](../wrangler.toml)); the deployed Worker turns them on. Cheers and subs are local-server only. The optional voice corner coach has its own flag, `HOSTED_COACH`, also committed off: see [COACH.md](COACH.md).
 
 ## Permissions
 

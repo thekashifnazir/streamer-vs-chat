@@ -5,17 +5,20 @@ import type {ForgeReply} from './forge-service';
 import {formatHypeFull,formatRoundResult} from '../../shared/src/result-text';
 import {ApiAuthError,createUserValidator} from './auth';
 import {readJson,validateResult,type JsonRequest} from './validation';
+import {coachIpHash,coachLimits,fetchCoachToken,type CoachReply} from './coach';
 export interface ApiRequest extends JsonRequest {url:string;method:string;headers:{get(name:string):string|null}}
-export type Hub={memoryEvents:(channel:string,events:MemoryEvent[])=>Promise<MemorySnapshot>;memorySnapshot:(channel:string,sessionId?:string,mvpId?:string|null)=>Promise<MemorySnapshot>;forgeModerate:(channel:string,input:string[])=>Promise<ForgeReply<{results:{flagged:boolean}[]}>>;forgeRespond:(channel:string,body:ForgeRespondBody)=>Promise<ForgeReply<ForgeResponse>>;enqueueClip:(channel:string,clipId:string)=>Promise<boolean>;enqueue:(channel:string,message:string)=>Promise<void>;status:(channel:string)=>Promise<{dropReason:string|null;pending:number}>};
+export type Hub={memoryEvents:(channel:string,events:MemoryEvent[])=>Promise<MemorySnapshot>;memorySnapshot:(channel:string,sessionId?:string,mvpId?:string|null)=>Promise<MemorySnapshot>;forgeModerate:(channel:string,input:string[])=>Promise<ForgeReply<{results:{flagged:boolean}[]}>>;forgeRespond:(channel:string,body:ForgeRespondBody)=>Promise<ForgeReply<ForgeResponse>>;enqueueClip:(channel:string,clipId:string)=>Promise<boolean>;enqueue:(channel:string,message:string)=>Promise<void>;status:(channel:string)=>Promise<{dropReason:string|null;pending:number}>;coachReserveChannel?:(channel:string,max:number)=>Promise<CoachReply>;coachReleaseChannel?:(channel:string)=>Promise<void>;coachReserveGlobal?:(ipHash:string,global:number,ip:number)=>Promise<CoachReply>};
 /** Narrow injected binding surface; no platform runtime required by Node tests. */
-export type RoutingEnv<Id,RequestType extends ApiRequest=Request,AssetResponse=Response>={TWITCH_CLIENT_ID:string;HOSTED_BOT:string;HOSTED_CLIPS:string;HOSTED_FORGE:string;HOSTED_MEMORY:string;ASSETS:{fetch:(request:RequestType)=>Promise<AssetResponse>};CHANNEL:{idFromName:(name:string)=>Id;get:(id:Id)=>Hub}};
+export type RoutingEnv<Id,RequestType extends ApiRequest=Request,AssetResponse=Response>={TWITCH_CLIENT_ID:string;HOSTED_BOT:string;HOSTED_CLIPS:string;HOSTED_FORGE:string;HOSTED_MEMORY:string;HOSTED_COACH?:string;COACH_AGENT_ID?:string;ELEVENLABS_API_KEY?:string;COACH_DAILY_CHANNEL?:string;COACH_DAILY_IP?:string;COACH_DAILY_GLOBAL?:string;ASSETS:{fetch:(request:RequestType)=>Promise<AssetResponse>};CHANNEL:{idFromName:(name:string)=>Id;get:(id:Id)=>Hub}};
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export function createWorkerRouter(options:{fetch:typeof fetch;now:()=>number}){
  // Per-client validation cache contains SHA-256 keys and identity/scopes only, never tokens.
  const validators=new Map<string,ReturnType<typeof createUserValidator>>();
  return async<Id,RequestType extends ApiRequest,AssetResponse>(request:RequestType,env:RoutingEnv<Id,RequestType,AssetResponse>):Promise<Response|AssetResponse>=>{
   const url=new URL(request.url);if(!url.pathname.startsWith('/api/')&&url.pathname!=='/api')return env.ASSETS.fetch(request);
-  if(url.pathname==='/api/health'&&request.method==='GET')return json({bot:env.HOSTED_BOT==='on',clips:env.HOSTED_CLIPS==='on',forge:env.HOSTED_FORGE==='on',memory:env.HOSTED_MEMORY==='on'});
+  if(url.pathname==='/api/health'&&request.method==='GET')return json({bot:env.HOSTED_BOT==='on',clips:env.HOSTED_CLIPS==='on',forge:env.HOSTED_FORGE==='on',memory:env.HOSTED_MEMORY==='on',coach:env.HOSTED_COACH==='on'});
+  // Coach is checked before identity so an off flag never calls Twitch or ElevenLabs.
+  if(url.pathname==='/api/coach/token'&&env.HOSTED_COACH!=='on')return json({reason:'feature-off'},503);
   try{
    let validate=validators.get(env.TWITCH_CLIENT_ID);if(!validate){if(validators.size>=4)validators.clear();validate=createUserValidator({clientId:env.TWITCH_CLIENT_ID,...options});validators.set(env.TWITCH_CLIENT_ID,validate);}
    const user=await validate(request.headers.get('Authorization'));
@@ -47,6 +50,16 @@ export function createWorkerRouter(options:{fetch:typeof fetch;now:()=>number}){
     const result=url.pathname.endsWith('/moderate')?await hub.forgeModerate(user.userId,input!.input):await hub.forgeRespond(user.userId,body!);
     if(!result.ok)return json({reason:result.reason},result.reason==='daily-cap'?429:result.reason==='invalid-repair'?400:result.reason==='generation-busy'?409:503);
     return json(result.value);
+   }
+   if(url.pathname==='/api/coach/token'){
+    if(request.method!=='POST')return json({reason:'method-not-allowed'},405);
+    if(url.search)return json({reason:'invalid-query'},400);
+    const key=env.ELEVENLABS_API_KEY?.trim(),agent=env.COACH_AGENT_ID?.trim(),hub=env.CHANNEL.get(env.CHANNEL.idFromName(user.userId)),global=env.CHANNEL.get(env.CHANNEL.idFromName('coach-global'));
+    if(!key||!agent||!/^[\w-]{1,64}$/.test(agent)||!hub.coachReserveChannel||!global.coachReserveGlobal)return json({reason:'unavailable'},503);
+    // Reserve channel, then global+IP, before the paid upstream call; spent failures are not refunded.
+    const limits=coachLimits(env),own=await hub.coachReserveChannel(user.userId,limits.channel);if(!own.ok)return json({reason:own.reason},own.reason==='daily-cap'?429:503);
+    const shared=await global.coachReserveGlobal(await coachIpHash(request.headers.get('CF-Connecting-IP'),key,new Date(options.now()).toISOString().slice(0,10)),limits.global,limits.ip);if(!shared.ok){await hub.coachReleaseChannel?.(user.userId);return json({reason:shared.reason},shared.reason==='daily-cap'?429:503);}
+    const token=await fetchCoachToken(options.fetch,key,agent);return token?json({token}):json({reason:'unavailable'},503);
    }
    if(url.pathname!=='/api/results'&&url.pathname!=='/api/status')return json({reason:'not-found'},404);
    if(env.HOSTED_BOT!=='on')return json({reason:'feature-off'},503);
