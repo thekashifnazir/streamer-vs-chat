@@ -45,7 +45,8 @@ it('checklist and progress display calibration stages and exact help messages',(
  ui.calibration({...snapshot,stage:'lean-left',progress:.5});expect(byId('webcam-step-label').textContent).toBe('STEP 3 OF 5');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('3. Lean left');expect(byId('webcam-instruction').textContent).toBe('Lean left · hold 1.5 s');expect(byId('skip-punches').hidden).toBe(true);
  ui.calibration({...snapshot,stage:'lean-right',progress:.5});expect(byId('webcam-step-label').textContent).toBe('STEP 4 OF 5');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('4. Lean right');expect(doc.querySelectorAll('.webcam-step.done')).toHaveLength(3);
  ui.calibration({...snapshot,stage:'punches',progress:.5,punchesThrown:{L:true,R:false}});expect(byId('webcam-step-label').textContent).toBe('STEP 5 OF 5');expect(doc.querySelector('.webcam-step.active strong')!.textContent).toBe('5. Throw a punch with each hand');expect(byId('skip-punches').hidden).toBe(false);
- expect(byId('webcam-instruction').textContent).toBe('Tick “My space is clear”, then throw a punch with each hand');byId<HTMLInputElement>('clear-space').checked=true;byId('clear-space').dispatchEvent(new Event('change'));expect(byId('webcam-instruction').textContent).toBe('Left punch ✓ · now your right');
+ // The punch step needs no tick (Kash, 1 Nov); only START waits for it.
+ expect(byId<HTMLInputElement>('clear-space').checked).toBe(false);expect(byId('webcam-instruction').textContent).toBe('Left punch ✓ · now your right');
  ui.calibration({...snapshot,stage:'ready',ready:true,progress:1});expect(byId('webcam-step-label').textContent).toBe('SETUP COMPLETE');expect(doc.querySelectorAll('.webcam-step.done')).toHaveLength(5);expect(byId('skip-punches').hidden).toBe(true);
  expect(byId('calibration-saved').hidden).toBe(true);ui.restored(true);expect(byId('calibration-saved').hidden).toBe(false);
 });

@@ -97,7 +97,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  }
  function calibration(snapshot:CalibrationSnapshot){latestCalibration=snapshot;ready=snapshot.ready;
   const order=['idle','neutral','resting','guard','lean-left','lean-right','punches'] as const;const index=!snapshot.ready&&!framed?0:Math.max(0,order.indexOf(snapshot.stage as typeof order[number]));
-  const thrown=snapshot.punchesThrown,punchTitle=!space.checked?'Tick “My space is clear”, then throw a punch with each hand':thrown?.L?'Left punch ✓ · now your right':thrown?.R?'Right punch ✓ · now your left':'Throw a punch with each hand';
+  const thrown=snapshot.punchesThrown,punchTitle=thrown?.L?'Left punch ✓ · now your right':thrown?.R?'Right punch ✓ · now your left':'Throw a punch with each hand';
   const titles=['Get in frame','Arms relaxed · hold still 3 s','Hands at your waist · hold still 3 s','Guard up, fists at face height · hold still 3 s','Lean left · hold 1.5 s','Lean right · hold 1.5 s',punchTitle];
   get('webcam-instruction').textContent=snapshot.ready?options.workout?.()?'Ready to train':'Ready to fight':titles[index]!;get('calibration-status').textContent='';get('calibration-status').hidden=true;get<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
   skip.hidden=snapshot.ready||snapshot.stage!=='punches';
