@@ -51,6 +51,15 @@ describe('Crowd Trainer moves on Kash’s recorded drills (1 Nov, Logitech)',()=
   expect(count(left,'slip','L')).toBe(3);expect(count(right,'slip','R')).toBeGreaterThanOrEqual(2);expect(count(right,'lean','R')).toBe(3);
   expect(count(left,'lean','L')).toBeLessThanOrEqual(1);
  });
+ it('catches the jabs that start combos and reads no slip from a cross (1 Nov live playtest: the first token was dashed)',()=>{
+  // Frame-labelled from the drill video at 5 fps: 12 one-twos (6 in the one-two drill, 6 in the combo drill). Before the merge with
+  // the straight-punch detector: jabs 8, crosses 10. Before the slip confirm wait: 4 slips in the one-two drill, all mid-cross.
+  const jabs=[44.8,47.3,49.8,52.1,54.8,57.6,91.1,97.7,103.7,108.5,112.7,117.3],crosses=[45.6,47.9,50.3,52.8,55.5,58.3,92.1,98.5,104.5,109.3,113.5,117.9];
+  const punches=events.filter(e=>e.kind==='punch'),near=(t:number,side:'L'|'R')=>punches.some(e=>e.side===side&&Math.abs(e.t-t)<=.35);
+  expect(jabs.filter(t=>near(t,'L')).length).toBeGreaterThanOrEqual(11);expect(crosses.filter(t=>near(t,'R')).length).toBeGreaterThanOrEqual(10);
+  expect([...jabs.filter(t=>near(t,'R')&&!near(t,'L')),...crosses.filter(t=>near(t,'L')&&!near(t,'R'))]).toEqual([]);
+  expect(count(section('one-twos'),'slip')).toBeLessThanOrEqual(1);
+ });
  it('throws no punches or slips during guard holds, and the guard holds register',()=>{
   const s=section('guard holds');expect(count(s,'punch')+count(s,'slip')).toBe(0);expect(count(s,'guard')).toBe(2);
  });

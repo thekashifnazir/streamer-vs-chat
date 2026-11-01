@@ -1,5 +1,5 @@
 import type {Landmark} from './classifier';
-import {STRAIGHT_PUNCH} from './straight-punch';
+import {STRAIGHT_PUNCH,StraightPunchDetector} from './straight-punch';
 /**
  * Crowd Trainer only: punch side and slip from a front webcam. Boss Fight keeps PoseClassifier unchanged.
  * Straight punches at the camera barely lengthen the arm in 2D and the shoulders narrow as the body
@@ -15,7 +15,12 @@ export const TRAINER_MOVES={
  // down/edgeY/tiltGate (1 Nov playtest fix, shared with Boss Fight's straight-punch.ts): a dropping hand, a hand resting at the
  // bottom edge of the frame (tracking flips there) or a tilting torso is not a punch. Recorded false punches 32 -> 9, catches 41 -> 40.
  punch:{on:.6,off:.3,fall:.12,dominance:.35,minGapMs:250,down:.3,edgeY:.85,tiltGate:.5},
- slip:{on:.55,off:.3,minGapMs:400,shoulders:.25,afterPunchMs:300},
+ slip:{on:.55,off:.3,minGapMs:400,shoulders:.25,afterPunchMs:300,confirmMs:300},
+ // 1 Nov live playtest (CLEAN 6, PARTIAL 10; the first token was the one dashed): a jab driven straight at the camera barely moves
+ // the wrist in 2D, so this detector caught 8 of 12 jabs in the drill's one-twos (frame-labelled). Boss Fight's straight-punch.ts
+ // also counts forearm foreshortening and caught other jabs; a punch from either now counts once (same side within mergeMs):
+ // jabs 8 -> 11 of 12, crosses 10 of 12, no wrong side; false punches over the guard, lean and relaxed footage 9 -> 11.
+ mergeMs:600,
 } as const;
 type Sample={at:number;lx:number;ly:number;rx:number;ry:number;nx:number;sx:number;rawL:number;rawR:number;tilt:number};
 type Peak={armed:boolean;peak:number;peakAt:number;dominant:boolean;last:number};
@@ -27,16 +32,33 @@ export class TrainerMoveDetector {
  private punch:{L:Peak;R:Peak}={L:fresh(),R:fresh()};
  private slip={armed:true,last:-Infinity};
  private thresholds:{L:number;R:number}|null=null;
+ private straight=new StraightPunchDetector();
+ private emitted:{side:'L'|'R';at:number;own:boolean;paired:boolean}[]=[];
+ private pending:{side:'L'|'R';at:number}|null=null;
  /** Per-player thresholds from the punch setup step (Boss Fight units); null keeps the tuned default. This detector measures
   * in shoulder widths with its own default, so it takes the same ratio to its default, not the raw value (a raw 0.7-0.9 cut
   * Kash's recorded catches from 40 to 34 of 44). */
  setPunchThresholds(value:{L:number;R:number}|null){this.thresholds=value?{L:value.L,R:value.R}:null;}
- reset(){this.history=[];this.widths=[];this.punch={L:fresh(),R:fresh()};this.slip={armed:true,last:-Infinity};}
+ reset(){this.clear();this.straight.reset();this.emitted=[];}
+ private clear(){this.history=[];this.widths=[];this.punch={L:fresh(),R:fresh()};this.slip={armed:true,last:-Infinity};this.pending=null;}
+ /** Punches from this detector and the straight-punch one, each counted once; slips from this one, after their confirm wait. */
  update(landmarks:Landmark[],at:number):{punches:{side:'L'|'R';at:number}[];slips:{side:'L'|'R';at:number}[]}{
+  const own=this.moves(landmarks,at),straight=this.straight.update(landmarks,at,this.thresholds??{L:STRAIGHT_PUNCH.on,R:STRAIGHT_PUNCH.on});
+  const punches:{side:'L'|'R';at:number}[]=[];
+  // One punch seen by both detectors: each emitted punch absorbs at most one same-side punch from the other detector, so a fast
+  // double jab seen by one of them still counts twice.
+  for(const p of [...own.punches.map(({side,at})=>({side,at,own:true})),...straight.map(({side,at})=>({side,at,own:false}))].sort((a,b)=>a.at-b.at)){
+   const twin=this.emitted.find(q=>q.own!==p.own&&!q.paired&&q.side===p.side&&Math.abs(q.at-p.at)<TRAINER_MOVES.mergeMs);
+   if(twin){twin.paired=true;continue;}this.emitted.push({...p,paired:false});punches.push({side:p.side,at:p.at});
+  }
+  this.emitted=this.emitted.filter(q=>q.at>=at-1000);
+  return {punches,slips:own.slips};
+ }
+ private moves(landmarks:Landmark[],at:number):{punches:{side:'L'|'R';at:number}[];slips:{side:'L'|'R';at:number}[]}{
   const out={punches:[] as {side:'L'|'R';at:number}[],slips:[] as {side:'L'|'R';at:number}[]};
   const [nose,ls,rs,lw,rw]=[landmarks[0],landmarks[11],landmarks[12],landmarks[15],landmarks[16]];
-  if(!usable(nose)||!usable(ls)||!usable(rs)||!usable(lw)||!usable(rw)){this.reset();return out;}
-  const last=this.history.at(-1);if(last&&(at<last.at||at-last.at>500))this.reset();
+  if(!usable(nose)||!usable(ls)||!usable(rs)||!usable(lw)||!usable(rw)){this.clear();return out;}
+  const last=this.history.at(-1);if(last&&(at<last.at||at-last.at>500))this.clear();
   this.widths.push({at,w:Math.abs(ls!.x-rs!.x)});while(this.widths[0]!.at<at-TRAINER_MOVES.shoulderWindowMs)this.widths.shift();
   // The upper end of recent widths: a punch turns the shoulders and shrinks the live width.
   const sorted=this.widths.map(item=>item.w).sort((a,b)=>a-b),width=sorted[Math.floor(sorted.length*.8)]!;
@@ -61,8 +83,12 @@ export class TrainerMoveDetector {
    }
    if(!tracker.armed&&value<punch.off){tracker.armed=true;tracker.peak=0;}
   }
+  // A cross turns the head and shoulders towards the lead side before its wrist peaks, which read as a slip in 6 of 12 drill crosses
+  // and dashed the 2 in 2-S-2 and 1-2-S. A slip now waits confirmMs and is dropped if a punch peaks around it.
+  const pending=this.pending,lastPunch=Math.max(this.punch.L.last,this.punch.R.last);
+  if(pending&&lastPunch>=pending.at-slip.afterPunchMs)this.pending=null;else if(pending&&at-pending.at>=slip.confirmMs){out.slips.push(pending);this.pending=null;}
   // The shoulders must travel with the head: a punch turns the head but barely moves the shoulder midpoint.
-  if(this.slip.armed&&Math.abs(shift)>=slip.on&&Math.sign(body)===Math.sign(shift)&&Math.abs(body)>=slip.shoulders&&Math.max(e.L,e.R)<punch.on&&at-Math.max(this.punch.L.last,this.punch.R.last)>=slip.afterPunchMs&&at-this.slip.last>=slip.minGapMs){out.slips.push({side:shift>0?'L':'R',at});this.slip={armed:false,last:at};}
+  if(this.slip.armed&&Math.abs(shift)>=slip.on&&Math.sign(body)===Math.sign(shift)&&Math.abs(body)>=slip.shoulders&&Math.max(e.L,e.R)<punch.on&&at-Math.max(this.punch.L.last,this.punch.R.last)>=slip.afterPunchMs&&at-this.slip.last>=slip.minGapMs){this.pending={side:shift>0?'L':'R',at};this.slip={armed:false,last:at};}
   else if(!this.slip.armed&&Math.abs(shift)<slip.off)this.slip.armed=true;
   return out;
  }
