@@ -27,9 +27,10 @@ function score(detect:(frames:Frame[])=>number[]){
 describe('straight punches on Kash’s recorded webcam footage (44 punches; guard, lean and slip footage for false punches)',()=>{
  it('Boss Fight catches most ordinary punches without turning guard or leans into punches',()=>{
   // Before (1.6-width extension gate): 13 of 44 caught, 30 false punches. 1 Nov wrist excursion alone: 36, 3.
-  // With the forearm foreshortening cue: 42 caught (one-twos 9/10, from 5/10), 4 false punches.
+  // With the forearm foreshortening cue: 42 caught (one-twos 9/10, from 5/10), 4 false punches. ON 0.6 (1 Nov punch lab,
+  // test/pose/punch-lab-replay.test.ts): 42 caught, 6 false punches.
   const result=score(frames=>boss(frames));
-  expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(4);
+  expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(6);
  });
  it('Crowd Trainer keeps its catches and drops most false punches',()=>{
   // Before (no drop, edge or tilt filters): 41 of 44 caught, 32 false punches. With them: 40, 9. Merged with the straight-punch
@@ -39,16 +40,18 @@ describe('straight punches on Kash’s recorded webcam footage (44 punches; guar
   expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(11);
  });
  it('Crowd Trainer reads setup thresholds as a ratio to the Boss Fight default, not in its own units',()=>{
-  // Raw Boss Fight units (0.7-0.9) in the Trainer's shoulder-width units cut its catches from 40 to 34 of 44.
-  const calibrated=(frames:Frame[])=>{const d=new TrainerMoveDetector();d.setPunchThresholds({L:.7,R:.7});return frames.flatMap(f=>d.update(f.landmarks,f.at).punches.map(p=>p.at/1000));};
+  // Raw Boss Fight units (0.7-0.9) in the Trainer's shoulder-width units cut its catches from 40 to 34 of 44. The setup step now
+  // always gives the Boss Fight default, so the Trainer must read exactly as uncalibrated.
+  const calibrated=(frames:Frame[])=>{const d=new TrainerMoveDetector();d.setPunchThresholds(punchThresholdsFromReach({L:2.2,R:1.75}));return frames.flatMap(f=>d.update(f.landmarks,f.at).punches.map(p=>p.at/1000));};
   expect(score(calibrated)).toEqual(score(trainer));
  });
  it('derives per-side thresholds from a measured punch, keeping the default for a small one',()=>{
-  expect(STRAIGHT_PUNCH.on).toBe(.7);
-  // A big setup punch never raises the threshold (0.9 caught 33 of 44 here); a short one lowers it to at most 0.6.
-  expect(punchThresholdsFromReach({L:1.4,R:2.6})).toEqual({L:.7,R:.7});
-  expect(punchThresholdsFromReach({L:1.2,R:.8})).toEqual({L:.6,R:.7});
-  expect(punchThresholdsFromReach({L:1,R:1.3})).toEqual({L:.6,R:.65});
+  expect(STRAIGHT_PUNCH.on).toBe(.6);
+  // A big setup punch never raises the threshold (0.9 caught 33 of 44 here). The default is now the old 0.6 floor (1 Nov punch
+  // lab), so every measured punch keeps it.
+  expect(punchThresholdsFromReach({L:1.4,R:2.6})).toEqual({L:.6,R:.6});
+  expect(punchThresholdsFromReach({L:1.2,R:.8})).toEqual({L:.6,R:.6});
+  expect(punchThresholdsFromReach({L:1,R:1.3})).toEqual({L:.6,R:.6});
   const result=score(frames=>boss(frames,{...calibration,punchThresholds:punchThresholdsFromReach({L:2.2,R:1.75})}));
   expect(result.caught).toBeGreaterThanOrEqual(42);
  });

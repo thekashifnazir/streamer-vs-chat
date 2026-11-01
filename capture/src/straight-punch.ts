@@ -10,11 +10,16 @@ import type {Landmark} from './classifier';
  * A fist driven straight at the camera also foreshortens the forearm (elbow to wrist shrinks in 2D), so that shrink
  * counts towards the excursion (forearm weight 1): 42 of 44 against 36, false punches 4 against 3; one-twos 9/10
  * against 5/10. Wrist z from the lite model was too noisy to help (no extra catch before false punches rose to 12).
+ * Kash's guided punch-lab drill (1 Nov night, test/pose/punch-lab-replay.test.ts): right jabs there are a rear-hand cross that
+ * swings across the image with little forearm shrink, and the shoulders turn and travel with it, so the torso frame reads them at
+ * 0.4-0.66 against 0.74-0.99 for his left jabs. ON 0.7 caught 4 of 10 right jabs and 6 of 10 one-two punches; 0.6 catches 7 and
+ * 10, still no punch in the dodge drill, and 2 more false punches over all the older footage (4 -> 6; 0.55: 9). Making Boss Fight
+ * the union with the Crowd Trainer detector caught 7 and 7 at 0.7 (9 and 10 at 0.6) but tripled the false punches (11-12).
  */
 export const STRAIGHT_PUNCH={
  baselineMs:2000,widthMs:3000,widthPercentile:.8,maxGapMs:500,
  // on: excursion in shoulder lengths; dominance: the other hand must move this much less (a guard raise moves both).
- on:.7,off:.3,fall:.12,dominance:.25,refractoryMs:200,minGapMs:250,
+ on:.6,off:.3,fall:.12,dominance:.25,refractoryMs:200,minGapMs:250,
  // Not a punch: a hand dropping (guard falling), a hand resting at the bottom edge of the frame (tracking flips
  // there), or a torso that is tilting (a lean or slip carries the hands with it).
  down:.3,edgeY:.85,tiltGate:.5,
@@ -22,8 +27,9 @@ export const STRAIGHT_PUNCH={
  forearm:1,
  // Punch setup step: threshold = fraction of the player's own measured punch, clamped. A setup punch is a big deliberate
  // one (Kash's first punches reach 1.8-2.6), so the old 0.9 cap tuned fight punches out (26 of 44 at 0.9, one-twos 1/10):
- // the step may lower the threshold for a short punch, never raise it above the default.
- calibration:{probe:.45,fraction:.5,min:.6,max:.7,minReach:1},
+ // the step may lower the threshold for a short punch, never raise it above the default. With the default at 0.6 (the old floor,
+ // the lowest value measured clean) the step no longer moves it; the measured reach is still saved.
+ calibration:{probe:.45,fraction:.5,min:.6,max:.6,minReach:1},
 } as const;
 export type PunchThresholds={L:number;R:number};
 /** Per-side threshold from the player's measured punch reach; a side whose punch was too small keeps the default. */

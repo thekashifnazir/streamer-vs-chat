@@ -24,9 +24,9 @@ describe('punch lab session',()=>{
  it('shows each wrist’s live score and threshold for both detectors',()=>{
   const lab=createPunchLab({saved});let view=lab.frame(frames[0]!.landmarks,frames[0]!.at);
   for(const f of frames.slice(1,60))view=lab.frame(f.landmarks,f.at);
-  expect(view.phase).toBe('live');expect(view.boss!.threshold).toEqual({L:.7,R:.7});expect(view.trainer!.threshold).toEqual({L:.6,R:.6});
+  expect(view.phase).toBe('live');expect(view.boss!.threshold).toEqual({L:.6,R:.6});expect(view.trainer!.threshold).toEqual({L:.6,R:.6});
   for(const d of [view.boss!,view.trainer!])for(const side of ['L','R'] as const){expect(Number.isFinite(d.excursion[side])).toBe(true);expect(typeof d.armed[side]).toBe('boolean');}
-  expect(punchThresholdsInUse({L:.6,R:.7})).toEqual({boss:{L:.6,R:.7},trainer:{L:.6*.6/.7,R:.6}});
+  expect(punchThresholdsInUse({L:.5,R:.6})).toEqual({boss:{L:.5,R:.6},trainer:{L:.6*.5/.6,R:.6}});
  });
  it('takes a 3 s guard baseline when nothing is saved, and restarts it when tracking drops',()=>{
   const lab=createPunchLab();let view=lab.frame(frames[0]!.landmarks,0);expect(view.phase).toBe('baseline');

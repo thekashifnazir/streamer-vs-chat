@@ -21,6 +21,9 @@ export const TRAINER_MOVES={
  // also counts forearm foreshortening and caught other jabs; a punch from either now counts once (same side within mergeMs):
  // jabs 8 -> 11 of 12, crosses 10 of 12, no wrong side; false punches over the guard, lean and relaxed footage 9 -> 11.
  mergeMs:600,
+ // The merged straight-punch detector's own ON here, kept at the 0.7 measured above when Boss Fight's default dropped to 0.6
+ // (1 Nov punch lab): 0.6 here lifted the Trainer's false punches 11 -> 12. Setup thresholds scale it by the same ratio.
+ straightOn:.7,
 } as const;
 type Sample={at:number;lx:number;ly:number;rx:number;ry:number;nx:number;sx:number;rawL:number;rawR:number;tilt:number};
 type Peak={armed:boolean;peak:number;peakAt:number;dominant:boolean;last:number};
@@ -44,10 +47,11 @@ export class TrainerMoveDetector {
   * Kash's recorded catches from 40 to 34 of 44). */
  setPunchThresholds(value:{L:number;R:number}|null){this.thresholds=value?{L:value.L,R:value.R}:null;}
  reset(){this.clear();this.straight.reset();this.emitted=[];}
+ private straightOn(side:'L'|'R'){return this.thresholds?TRAINER_MOVES.straightOn*this.thresholds[side]/STRAIGHT_PUNCH.on:TRAINER_MOVES.straightOn;}
  private clear(){this.debug=null;this.history=[];this.widths=[];this.punch={L:fresh(),R:fresh()};this.slip={armed:true,last:-Infinity};this.pending=null;}
  /** Punches from this detector and the straight-punch one, each counted once; slips from this one, after their confirm wait. */
  update(landmarks:Landmark[],at:number):{punches:{side:'L'|'R';at:number}[];slips:{side:'L'|'R';at:number}[]}{
-  const own=this.moves(landmarks,at),straight=this.straight.update(landmarks,at,this.thresholds??{L:STRAIGHT_PUNCH.on,R:STRAIGHT_PUNCH.on});
+  const own=this.moves(landmarks,at),straight=this.straight.update(landmarks,at,{L:this.straightOn('L'),R:this.straightOn('R')});
   const punches:{side:'L'|'R';at:number}[]=[];
   // One punch seen by both detectors: each emitted punch absorbs at most one same-side punch from the other detector, so a fast
   // double jab seen by one of them still counts twice.
