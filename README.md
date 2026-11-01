@@ -53,7 +53,6 @@ Two ways to play: **Boss Fight** (chat votes the boss's attacks, you defend) or 
 3. Simulated chat (badged **SIMULATED**) plays the boss. The warning names the defence (**GUARD!**, **LEAN RIGHT!** or **LEAN LEFT!**; TILT when seated) and you have 1.0 s on Medium. Clean defences fill **FOCUS**; at **FINISHER READY**, hold **K** for **1 s** between attacks: **4 damage**, then **3 s** of double-damage punches.
 4. **[See the scouting card in one round](https://streamervschat.kashifnazir.com/?scout=fast)** (demo-only, badged **SCOUT PREVIEW · SIMULATED**; keep dodging to one side). Normally it shows from round 2, once there is enough evidence; pre-hold the defence for chat's favourite move for +25% counter damage and **READ IT**.
 
-<!-- VERIFY after trainer merge -->
 ### Crowd Trainer
 
 Open **[?mode=trainer](https://streamervschat.kashifnazir.com/?mode=trainer)**. Chat votes the next combo: `!12` (one-two), `!112`, `!121`, `!1212`, `!12s` (one-two, slip), `!s12`, `!12g` (one-two, guard), `!2s2`; `!faster` / `!slower` set the pace. **1** = left (lead) hand, **2** = right (rear), **S** = slip (lean), **G** = guard; keys **F**, **J**, **A/D**, **K**. Three 60 s rounds, 20 s rest, lenient scoring (**CLEAN / PARTIAL / MISSED**), **Southpaw** and **any hand counts** options, and a workout summary (no calorie or medical claims).

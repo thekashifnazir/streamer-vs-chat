@@ -13,7 +13,6 @@ Two ways to play: **Boss Fight** (Twitch chat votes the boss's attacks; the stre
 5. **Press Esc** to pause: Resume / Restart / Quit to setup.
 6. **Test a boss in Boss Forge.** On the start screen (**End fight** takes you back there), open **Boss Forge**, pick a boss and press **Test this boss** to see its before/after win rates.
 
-<!-- VERIFY after trainer merge -->
 ## The 60-second Crowd Trainer path
 
 For fitness and boxing or martial-arts streamers, and any streamer who wants chat to be part of a workout.
