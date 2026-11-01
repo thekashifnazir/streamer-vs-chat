@@ -1,5 +1,7 @@
 # Corner coach (optional live voice agent)
 
+> **Switched off for the submission (1 November 2026).** The flags `HOSTED_COACH` and `HOSTED_COACH_DEMO` are off on the live site, and the homepage demo at `/` no longer mounts the button (`demoCoachEnabled` in [coach-button.ts](../demo/src/coach-button.ts) reads `<body data-demo-coach="on">`, which `demo/index.html` does not set). On `/play` the button appears only when `/api/health` reports `coach: true`, so it is gone too. The code and tests are kept so it can return; the rest of this page describes it as built.
+
 Between rounds, or while the fight is paused, the streamer on [/play](https://streamervschat.kashifnazir.com/play) can press **Talk to your corner** and speak with an AI boxing corner coach. It answers out loud in one or two short sentences, using the current fight numbers. It runs on [ElevenLabs Agents](https://elevenlabs.io/docs/agents-platform/overview).
 
 It ships **off**. With the flag off there is no button, no extra request and no voice code in the page.

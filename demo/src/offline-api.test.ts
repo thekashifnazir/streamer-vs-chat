@@ -51,9 +51,9 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   expect(crowdLabel.hidden).toBe(true);
   for(let waited=0;waited<90000&&!last().round.over;waited+=250)await vi.advanceTimersByTimeAsync(250);
   expect(last().round.over).toBe(true);
-  // SIMULATED chat panel: sampled fake handles, then the line the bot would post; the corner coach button makes no request until clicked.
+  // SIMULATED chat panel: sampled fake handles, then the line the bot would post. The voice corner coach is switched off on /, so the card has no coach button.
   const simLines=[...doc2.querySelectorAll('.sim-chat li')].map(li=>li.textContent!);expect(doc2.querySelector<HTMLElement>('.sim-chat-layer')!.hidden).toBe(false);expect(doc2.querySelector('.sim-chat h3')!.textContent).toContain('SIMULATED CHAT');
-  expect(simLines.at(-1)).toMatch(/^streamervschatbot BOT · what your bot would post Streamer vs Chat · Round 1: /);expect(doc2.querySelectorAll('#round-results .corner-coach button')).toHaveLength(1);
+  expect(simLines.at(-1)).toMatch(/^streamervschatbot BOT · what your bot would post Streamer vs Chat · Round 1: /);expect(doc2.querySelectorAll('.corner-coach')).toHaveLength(0);
   expect(crowdLabel.hidden).toBe(false);expect(crowdSelect.disabled).toBe(false);expect(doc2.querySelector('.demo-controls')!.classList.contains('between-rounds')).toBe(true);
   crowdSelect.value='500';crowdSelect.dispatchEvent(new dom.window.Event('change'));
   doc2.getElementById('next-round')!.click();
