@@ -55,3 +55,15 @@ it('wires collapse to hosted connection and demo fight start, leaving all safety
   expect(html).toContain('id="attack-rows"');
  }
 });
+it('keeps a running fight in the fight-only view unless the streamer chose Show full page; the error code stays in the tooltip',()=>{
+ const bar=new Node(),body=new Node(),main=new Node(),stage=new Node(),original=new Node();
+ const doc={body,createElement:()=>bar,querySelector:()=>main,getElementById:(id:string)=>id==='stage'?stage:original} as unknown as Document;
+ const layout=mountStreamLayout({live:true,onEnd:()=>{}},doc);
+ layout.fightView();expect(layout.compact).toBe(true);
+ bar.querySelector('.stream-expand').click();expect(layout.compact).toBe(false);layout.fightView();expect(layout.compact).toBe(false);
+ bar.querySelector('.stream-expand').click();expect(layout.compact).toBe(true);
+ layout.expand();layout.fightView();expect(layout.compact).toBe(true);
+ const status=bar.querySelector('.stream-status') as unknown as {textContent:string;title:string};
+ layout.status('Chat bot can\'t post in your chat yet.','Bot error code: forbidden');expect(status.textContent).toBe('Chat bot can\'t post in your chat yet.');expect(status.title).toContain('forbidden');
+ const main_=readFileSync(new URL('./main.ts',import.meta.url),'utf8');expect(main_).toContain("document.body.dataset.playStep==='fight'&&(game||trainer.active||tutorialStarted)");
+});

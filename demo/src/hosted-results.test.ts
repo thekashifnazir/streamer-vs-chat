@@ -1,6 +1,6 @@
 import {afterEach,expect,it,vi} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {createHostedResults,BOT_POST_HINT} from './hosted-results';
+import {createHostedResults,BOT_POST_HINT,BOT_SEND_RETRY,botDropMessage} from './hosted-results';
 import {createGame,step,type GameState} from '../../shared/src/engine';
 import {validateResult} from '../../worker/src/validation';
 const flush=async()=>{await Promise.resolve();await Promise.resolve();await Promise.resolve();};
@@ -20,7 +20,7 @@ it('posts each round once and existing hype notice once, without awaiting delive
  vi.useFakeTimers();const s=setup();await s.client.initialize();const state=createGame({seed:1});s.client.observeGame(state);const over:GameState={...state,streamer:{...state.streamer,hp:22},log:{...state.log,rounds:[{number:1,winner:'streamer',at:75000,reason:'ko',streamer_hp:22,boss_hp:0,boss_max_hp:135}]},match:{...state.match,round_wins:{streamer:1,boss:0}}};s.client.observeGame(over,true);s.client.observeGame(over,false);await flush();const posts=s.backendRequest.mock.calls.filter(call=>call[0]==='/api/results');expect(posts).toHaveLength(2);expect(JSON.parse(posts[0]![1]!.body as string)).toMatchObject({kind:'round',number:1,winner:'streamer',hookL:'!left',hookR:'!right',bossName:'CHAT GOLEM',difficulty:'hard',score:{streamer:1,boss:0}});expect(JSON.parse(posts[1]![1]!.body as string)).toEqual({kind:'hype-full'});s.client.dispose();
 });
 it('delivery and status failures never clear credentials or control play; polling is bounded and stops on dispose',async()=>{
- vi.useFakeTimers();const s=setup();await s.client.initialize();await flush();s.backendRequest.mockRejectedValue(new Error('offline'));s.client.observeGame(createGame({seed:1}),true);await flush();expect(s.onStatus).toHaveBeenCalledWith('Bot result could not be queued; gameplay continues.');expect(s.auth.authenticated).toBe(true);s.backendRequest.mockResolvedValue(Response.json({dropReason:'missing_scope'}));await vi.advanceTimersByTimeAsync(15000);expect(s.onStatus).toHaveBeenCalledWith(`${BOT_POST_HINT} (missing_scope)`);s.client.dispose();const count=s.backendRequest.mock.calls.length;await vi.advanceTimersByTimeAsync(60000);expect(s.backendRequest).toHaveBeenCalledTimes(count);
+ vi.useFakeTimers();const s=setup();await s.client.initialize();await flush();s.backendRequest.mockRejectedValue(new Error('offline'));s.client.observeGame(createGame({seed:1}),true);await flush();expect(s.onStatus).toHaveBeenCalledWith('Bot result could not be queued; gameplay continues.');expect(s.auth.authenticated).toBe(true);s.backendRequest.mockResolvedValue(Response.json({dropReason:'missing_scope'}));await vi.advanceTimersByTimeAsync(15000);expect(s.onStatus).toHaveBeenCalledWith(BOT_POST_HINT,'Bot error code: missing_scope');s.client.dispose();const count=s.backendRequest.mock.calls.length;await vi.advanceTimersByTimeAsync(60000);expect(s.backendRequest).toHaveBeenCalledTimes(count);
 });
 it('does not replay results collected while disabled, and 503 is an isolated status',async()=>{
  vi.useFakeTimers();const s=setup();await s.client.initialize();s.client.setEnabled(false);const state=createGame({seed:1});s.client.observeGame(state,true);s.client.setEnabled(true);s.backendRequest.mockResolvedValue(new Response(null,{status:503}));s.client.observeGame(state,true);await flush();expect(s.onStatus).toHaveBeenCalledWith('Bot results unavailable.');expect(s.auth.authenticated).toBe(true);s.client.dispose();
@@ -49,4 +49,12 @@ it('posts validator-compatible R1/R2/R3 results exactly once and allows new resu
 });
 it('posts verified clip IDs only when the existing bot opt-in is enabled',async()=>{
  vi.useFakeTimers();const s=setup();await s.client.initialize();s.client.postClip('ConfirmedClip');await flush();const posts=s.backendRequest.mock.calls.filter(call=>call[0]==='/api/results');expect(posts).toHaveLength(1);expect(JSON.parse(posts[0]![1]!.body as string)).toEqual({kind:'clip',clipId:'ConfirmedClip'});s.client.setEnabled(false);s.client.postClip('NotPosted');await flush();expect(s.backendRequest.mock.calls.filter(call=>call[0]==='/api/results')).toHaveLength(1);s.client.dispose();
+});
+it('says plainly what to do when the bot cannot post, and keeps the error code for the tooltip only',async()=>{
+ expect(BOT_POST_HINT).toBe("Chat bot can't post in your chat yet. In your Twitch chat, type /mod streamervschatbot and it will post the next result.");
+ for(const code of ['forbidden','http_403','followers_only','channel_requires_verified_phone_number','not_sent'])expect(botDropMessage(code)).toBe(BOT_POST_HINT);
+ for(const code of ['send_failed','unauthorized','invalid_response','http_401','http_429','http_502'])expect(botDropMessage(code)).toBe(BOT_SEND_RETRY);
+ for(const line of [BOT_POST_HINT,BOT_SEND_RETRY])expect(line).not.toMatch(/channel:bot|_/);
+ vi.useFakeTimers();const s=setup();await s.client.initialize();await flush();s.backendRequest.mockImplementation(async()=>Response.json({dropReason:'send_failed'}));await vi.advanceTimersByTimeAsync(15000);
+ expect(s.onStatus).toHaveBeenCalledWith(BOT_SEND_RETRY,'Bot error code: send_failed');s.client.dispose();
 });

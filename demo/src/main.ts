@@ -204,6 +204,8 @@ function paint() {
   // The compact fight layout hides the setup card. If the flow leaves step 3 mid-fight (Twitch
   // authorization revoked or expired), expand it so the Reconnect card is not hidden behind a blank page.
   if(liveMode&&document.body.dataset.playStep!=='fight'&&document.body.classList.contains('stream-compact'))streamLayout.expand();
+  // /play: a running fight or workout (between rounds too) shows only the stage, its controls and the top bar until End fight or Show full page.
+  else if(liveMode&&document.body.dataset.playStep==='fight'&&(game||trainer.active||tutorialStarted)&&!document.body.classList.contains('webcam-open'))streamLayout.fightView();
   leaveGuard.sync();
 }
 function drawCrowd(at:number) {
@@ -433,7 +435,7 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game||trainer.running)pauseWith(reason);};
-  hosted=mountHostedPlay({getState:()=>game,coachOff:()=>trainer.selected||trainer.active,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>trainer.selected?null:parseChatVote(text,user,at,false,game?.bossDef),onChatMessage:message=>trainer.chat(message),onCoach:active=>fightUi?.hold(active),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  hosted=mountHostedPlay({getState:()=>game,coachOff:()=>trainer.selected||trainer.active,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>trainer.selected?null:parseChatVote(text,user,at,false,game?.bossDef),onChatMessage:message=>trainer.chat(message),onCoach:active=>fightUi?.hold(active),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:(message,detail)=>streamLayout.status(message,detail),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
