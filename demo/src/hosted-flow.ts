@@ -9,7 +9,15 @@ export function mountHostedFlow(doc:Document){
  setup.prepend(choices);
  const more=doc.createElement('details');more.id='play-more-options';more.innerHTML='<summary>More options ▸</summary>';setup.append(more);
  for(const id of ['start-difficulty','no-punch','stream-sound']){const input=get(id);more.append(input.closest('.setup-section,.defence-only')!);}
- for(const selector of ['.stream-extras','.privacy-disclosure']){const node=doc.querySelector(selector);if(node)more.append(node);}
+ // Step 3 reads top to bottom: game mode, how you defend, what your stream gets; difficulty, sound and voices stay in More options.
+ const mode=setup.querySelector<HTMLElement>('.trainer-mode-choice');if(mode){choices.before(mode);const title=mode.querySelector('h3');if(title)title.textContent='CHOOSE YOUR FIGHT';}
+ const extras=doc.querySelector('.stream-extras');if(extras)more.before(extras);
+ const privacy=doc.querySelector('.privacy-disclosure');if(privacy)more.append(privacy);
+ // PLAIN sits in the HUD footer, which goes on stream. Hide it there (CSS) and offer it here in plain words, mirroring the HUD input so prefs keep working.
+ const plain=doc.querySelector<HTMLInputElement>('#game-hud [data-id=plain]');
+ if(plain){const row=doc.createElement('label');row.className='defence-only';row.innerHTML='<input id="steady-bars" type="checkbox" role="switch" /><span><strong>Steady bars</strong><br />Health, hype and vote bars jump to each new value instead of sliding.</span>';more.append(row);doc.body.classList.add('play-plain-moved');
+  const mirror=row.querySelector('input')!,sync=()=>{mirror.checked=plain.checked;};plain.addEventListener('change',sync);sync();
+  mirror.addEventListener('change',()=>{plain.checked=mirror.checked;plain.dispatchEvent(new doc.defaultView!.Event('change'));});}
  // Move posture's source control into the webcam header; its existing toggle is shared.
  const posture=get('posture');get('webcam-settings').querySelector('.webcam-header')!.append(posture.closest('.setup-section')!.querySelector('select')!.closest('label')!);
  posture.closest('label')!.classList.add('source-only');

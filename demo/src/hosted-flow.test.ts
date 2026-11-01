@@ -21,3 +21,15 @@ it('keyboard starts without the webcam safety checkbox; webcam retains it and al
  doc.querySelector<HTMLButtonElement>('[data-defend=keyboard]')!.click();expect(onStart).toHaveBeenCalledOnce();expect((doc.getElementById('clear-space') as HTMLInputElement).checked).toBe(false);
  doc.querySelector<HTMLButtonElement>('[data-defend=pose]')!.click();expect(doc.getElementById('webcam-settings')!.hidden).toBe(false);expect((doc.getElementById('play-webcam') as HTMLButtonElement).disabled).toBe(true);expect(doc.querySelectorAll('[data-calibration-group]')).toHaveLength(3);expect(doc.querySelectorAll('[data-calibration-step]')).toHaveLength(5);dom.window.close();vi.unstubAllGlobals();
 });
+it('step 3 reads mode, defence, then a visible extras row; PLAIN becomes Steady bars in More options and mirrors the HUD switch',()=>{
+ const dom=new JSDOM(readFileSync(new URL('../play/index.html',import.meta.url),'utf8'),{url:'https://game.example/play'}),doc=dom.window.document;
+ const get=(id:string)=>doc.getElementById(id)!;get('game-hud').innerHTML='<footer><div class="hud-options"><label><input data-id="plain" type="checkbox"> PLAIN</label></div></footer>';
+ const mode=doc.createElement('div');mode.className='setup-section trainer-mode-choice';mode.innerHTML='<h3>GAME MODE</h3>';get('fight-setup').querySelector('h2')!.after(mode);
+ mountHostedFlow(doc);const setup=get('fight-setup'),order=['.trainer-mode-choice','#defend-choice','.stream-extras','#play-more-options'].map(selector=>setup.querySelector(selector)!);
+ for(let i=1;i<order.length;i++)expect(order[i-1]!.compareDocumentPosition(order[i]!)&dom.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+ expect(mode.querySelector('h3')!.textContent).toBe('CHOOSE YOUR FIGHT');expect(doc.querySelector('.stream-extras')!.closest('#play-more-options')).toBeNull();expect(doc.querySelector('.privacy-disclosure')!.closest('#play-more-options')).not.toBeNull();
+ const hud=doc.querySelector<HTMLInputElement>('[data-id=plain]')!,steady=get('steady-bars') as HTMLInputElement;let changes=0;hud.addEventListener('change',()=>changes++);
+ expect(steady.closest('#play-more-options')).not.toBeNull();expect(hud.closest('label')!.hidden).toBe(false);expect(doc.body.classList.contains('play-plain-moved')).toBe(true);
+ steady.checked=true;steady.dispatchEvent(new dom.window.Event('change'));expect(hud.checked).toBe(true);expect(changes).toBe(1);
+ hud.checked=false;hud.dispatchEvent(new dom.window.Event('change'));expect(steady.checked).toBe(false);dom.window.close();
+});

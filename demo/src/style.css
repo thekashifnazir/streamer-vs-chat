@@ -460,3 +460,33 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .trainer-stage[data-phase=practice] .trainer-call{visibility:hidden}.trainer-keys kbd{min-width:0;padding:0 .3cqw}
 .trainer-chip{height:auto;min-height:9.5cqw;padding:.5cqw 0}.trainer-chip i{font-style:normal;font-size:1.3cqw;font-weight:900;color:#faf8ff;white-space:nowrap}.trainer-chip[data-mark=hit] i{color:#0c0912}
 @container (max-width:700px){.trainer-practice{inset:2cqh 2cqw;gap:1.4cqw;padding:2cqw}.trainer-practice .trainer-eyebrow{font-size:3.2cqw}.trainer-practice-lead,.trainer-practice-status{font-size:3.2cqw}.trainer-practice li{padding:1.2cqw .6cqw;font-size:3cqw;gap:.4cqw}.trainer-practice li b{font-size:6.4cqw}.trainer-practice li small{font-size:2.6cqw}.trainer-practice kbd{min-width:3.4cqw}.trainer-practice li.done::after{font-size:3.6cqw}body>main .trainer-practice button{min-height:40px;padding:0 5cqw}.trainer-chip{min-height:12cqw;width:14cqw}.trainer-chip i{font-size:3cqw}}
+
+/* ── /play signed-in journey (1 Nov, playflow): plain steps for a first-time streamer. ──
+   Markup: hosted-onboarding.ts (step 1 permissions line, extras meanings), hosted-flow.ts (step 3 order, Steady bars), stream-layout.ts.
+   The mode cards are a compact copy of the landing's CHOOSE YOUR FIGHT cards (same boss-sheet frames). */
+.hosted-flow .connect-permissions{max-width:660px;margin:18px auto 0;font-size:15px;line-height:1.5;color:#c2bdcd}
+.hosted-flow #twitch-disconnect{font-size:14px;font-weight:600;color:#c2bdcd;text-decoration:underline}
+.hosted-flow #fight-setup>.trainer-mode-choice{margin:0 0 28px}
+.hosted-flow #fight-setup>.trainer-mode-choice h3,.hosted-flow #defend-choice h1,.hosted-flow #fight-setup .stream-extras h2{margin:0 0 12px;font:400 28px/1.1 Anton,Impact,sans-serif;letter-spacing:.3px;color:#f5f2fa}
+.hosted-flow .trainer-mode-choice .option-group{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.hosted-flow .trainer-mode-choice [data-trainer-mode]{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-width:0;height:184px;margin:0;padding:0 14px 12px;overflow:hidden;border:3px solid #3a2f4d;border-radius:10px;--plate-h:72px;background:linear-gradient(to top,#0c0912 0 var(--plate-h),transparent var(--plate-h)),repeating-linear-gradient(135deg,#1d1629 0 14px,#191324 14px 28px);color:#f5f2fa;font:400 26px/1 Anton,Impact,sans-serif;text-transform:uppercase;text-align:left;cursor:pointer;transition:border-color .2s}
+.hosted-flow .trainer-mode-choice [data-trainer-mode]::before{content:'';position:absolute;left:50%;bottom:76px;height:100px;transform:translateX(-50%);background:url('../../assets/boss/boss-sheet@1x.webp') no-repeat;background-size:calc(4096 / var(--fw) * 100%) calc(1315 / var(--fh) * 100%);background-position:calc(var(--fx) / (4096 - var(--fw)) * 100%) calc(var(--fy) / (1315 - var(--fh)) * 100%);aspect-ratio:var(--fw) / var(--fh)}
+.hosted-flow .trainer-mode-choice [data-trainer-mode=boss]::before{--fx:2105;--fy:479;--fw:384;--fh:416}
+.hosted-flow .trainer-mode-choice [data-trainer-mode=trainer]::before{--fx:768;--fy:902;--fw:375;--fh:407}
+.hosted-flow .trainer-mode-choice [data-trainer-mode] small{display:block;margin-top:5px;font:700 15px/1.15 Barlow,'Arial Narrow',sans-serif;text-transform:none;color:#c2bdcd}
+.hosted-flow .trainer-mode-choice [data-trainer-mode]:hover{border-color:#7a6a96}
+.hosted-flow .trainer-mode-choice [data-trainer-mode].selected{border-color:var(--yellow);background:linear-gradient(to top,var(--yellow) 0 var(--plate-h),transparent var(--plate-h)),repeating-linear-gradient(135deg,#3a2a12 0 14px,#33240f 14px 28px);color:#0c0912}
+.hosted-flow .trainer-mode-choice [data-trainer-mode].selected small{color:#3a2f1a}
+.hosted-flow .trainer-mode-choice [data-trainer-mode].selected::after{content:'✓ Picked';position:absolute;top:10px;left:10px;padding:5px 9px;border-radius:4px;background:var(--yellow);color:#0c0912;font:900 15px/1 Barlow,sans-serif;text-transform:none}
+.hosted-flow .defend-cards button{min-height:132px;gap:8px}
+/* Stream extras: a visible row with the on/off state and one line each; the tooltip keeps runtime notices. */
+.hosted-flow #fight-setup .stream-extras{margin:28px 0 0}
+.hosted-flow #fight-setup .extras-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.hosted-flow #fight-setup .extra-tile{grid-template-columns:minmax(0,1fr) auto;align-content:start;align-items:start;min-height:0;padding:12px;gap:6px 10px}
+.hosted-flow .extra-meaning{grid-column:1/-1;grid-row:2;font-size:14px;line-height:1.35;color:#c2bdcd}
+.hosted-flow #fight-setup .extra-pill{grid-row:3}
+/* One way to end each thing per screen: End fight (bottom bar), End stream (LIVE bar), Finish & copy results (setup page, after a round). */
+.hosted-flow .stream-bar .stream-end{display:none}
+/* PLAIN moved to More options as Steady bars (hosted-flow.ts); the HUD footer keeps only SOUND. */
+.play-plain-moved #game-hud .hud-options label:has(input[data-id=plain]){display:none}
+@media(max-width:760px){.hosted-flow #fight-setup .extras-grid{grid-template-columns:1fr 1fr}.hosted-flow .trainer-mode-choice [data-trainer-mode]{height:160px;font-size:22px}.hosted-flow .trainer-mode-choice [data-trainer-mode]::before{height:80px}}
