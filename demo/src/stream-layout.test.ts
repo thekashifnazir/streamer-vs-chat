@@ -27,12 +27,12 @@ class Node extends EventTarget{
  querySelector(selector:string){if(!this.nodes.has(selector))this.nodes.set(selector,new Node());return this.nodes.get(selector)!;}
  prepend(_node:Node){}click(){this.dispatchEvent(new Event('click'));}
 }
-it('collapses on explicit readiness, keeps status/green/end accessible and restores setup with Expand',()=>{
+it('collapses on explicit readiness, keeps status/green/end accessible and restores setup with Show full page',()=>{
  const bar=new Node(),body=new Node(),main=new Node(),stage=new Node(),original=new Node();let ended=0;
  const doc={body,createElement:()=>bar,querySelector:()=>main,getElementById:(id:string)=>id==='stage'?stage:original} as unknown as Document;
  const layout=mountStreamLayout({live:true,onEnd:()=>ended++},doc);
- expect(bar.hidden).toBe(true);expect(bar.querySelector('.stream-expand').textContent).toBe('Collapse');expect(bar.querySelector('.stream-expand').attrs.get('aria-expanded')).toBe('true');
- layout.collapse();expect(bar.hidden).toBe(false);expect(body.attrs.get('stream-compact')).toBe('true');
+ expect(bar.hidden).toBe(true);expect(bar.querySelector('.stream-expand').textContent).toBe('Fight view only');expect(bar.querySelector('.stream-expand').attrs.get('aria-expanded')).toBe('true');
+ layout.collapse();expect(bar.hidden).toBe(false);expect(body.attrs.get('stream-compact')).toBe('true');expect(bar.querySelector('.stream-expand').textContent).toBe('Show full page');
  layout.status(SCOUT_PREVIEW_BADGE);expect(bar.querySelector('.stream-status').textContent).toBe('SCOUT PREVIEW · SIMULATED');
  // Conservative14px per character plus the other toolbar controls fits even720p.
  expect(SCOUT_PREVIEW_BADGE.length*14+170+110+100+3*20+24).toBeLessThan(1280);
