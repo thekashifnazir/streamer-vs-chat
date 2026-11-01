@@ -13,7 +13,7 @@ export function createTrainerCrowd(options:{viewers:number;seed:number;liveToken
   const out:{user:string;text:string}[]=[],scale=tickMs/100;
   for(const viewer of viewers){
    if(random()>=viewer.rate*scale)continue;
-   const roll=random(),text=roll<.04?'!faster':roll<.06?'!slower':roll<.75?viewer.favourite:COMBOS[Math.floor(random()*COMBOS.length)]!.command;
+   const roll=random(),text=roll<.03?'!faster':roll<.06?'!slower':roll<.75?viewer.favourite:COMBOS[Math.floor(random()*COMBOS.length)]!.command;
    out.push({user:viewer.user,text:random()<.2?text.toUpperCase():text});
   }
   return out;
