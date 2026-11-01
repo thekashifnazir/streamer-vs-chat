@@ -91,3 +91,14 @@ it('bottom-bar End fight ends the fight from the results card, the match end and
  ui.setPaused(false);game.match.winner='boss';ui.render(game);ui.end();expect(actions.quit).toHaveBeenCalledTimes(3);
  doc.querySelector<HTMLButtonElement>('[data-result-quit]')!.click();expect(actions.quit).toHaveBeenCalledTimes(4);
 });
+it('holds a round results card back for revealMs so the KO shows first; End fight from the bar still quits meanwhile',()=>{
+ const dom=new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8'));windows.push(dom);const doc=dom.window.document,actions={resume:vi.fn(),restart:vi.fn(),quit:vi.fn(),end:vi.fn(),next:vi.fn()};let at=10000;
+ const ui=mountFightUi(doc,{offline:true,...actions,now:()=>at,revealMs:1500}),game=createGame(),card=doc.getElementById('round-results')!;
+ ui.render(game);expect(card.hidden).toBe(true);
+ game.round.over=true;game.log.rounds=[{number:1,winner:'streamer',reason:'ko',at:100,streamer_hp:50,boss_hp:0,duration_ms:100} as any];
+ ui.render(game);expect(card.hidden).toBe(true);at=11000;ui.render(game);expect(card.hidden).toBe(true);
+ ui.end();expect(actions.quit).toHaveBeenCalledOnce();expect(actions.end).not.toHaveBeenCalled();
+ at=11500;ui.render(game);expect(card.hidden).toBe(false);expect(doc.querySelector('[data-result-title]')!.textContent).toBe('You won Round 1');
+ // End fight mid-round shows its card at once.
+ game.round.over=false;ui.render(game);expect(card.hidden).toBe(true);ui.render(game,true);expect(card.hidden).toBe(false);
+});
