@@ -48,8 +48,8 @@ Two ways to play: **Boss Fight** (chat votes the boss's attacks, you defend) or 
 
 ### Try it in a few clicks
 
-1. Open **[streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com)**: no account, no install.
-2. Press **PLAY NOW · KEYBOARD** and practise **K → A → J** (**K → A → D** in **Defence only**). Medium by default; **Options** offers Easy / Hard / Expert; **Use my webcam instead** starts on **Easy** (1.2 s warning). **Esc** pauses.
+1. Open **[streamervschat.kashifnazir.com](https://streamervschat.kashifnazir.com)**: no account, no install. The big **PLAY ON YOUR TWITCH STREAM** button is the real game (`/play`: connect Twitch, go live, viewers vote in chat). The **Try it now · fake chat, no login** box under it is the demo.
+2. In **Try it now**, pick **Webcam** (the default on a computer, it starts on **Easy**, 1.2 s warning) or **Keyboard** (the default on a phone; Medium), then press **TRY THE DEMO**. On the keyboard, practise **K → A → J** (**K → A → D** in **Defence only**). **Options** offers Easy / Medium / Hard / Expert. **Esc** pauses; browser **Back** pauses too, and Back again returns to the homepage.
 3. Simulated chat (badged **SIMULATED**) plays the boss. The warning names the defence (**GUARD!**, **LEAN RIGHT!** or **LEAN LEFT!**; TILT when seated) and you have 1.0 s on Medium. Clean defences fill **FOCUS**; at **FINISHER READY**, hold **K** for **1 s** between attacks: **4 damage**, then **3 s** of double-damage punches.
 4. **[See the scouting card in one round](https://streamervschat.kashifnazir.com/?scout=fast)** (demo-only, badged **SCOUT PREVIEW · SIMULATED**; keep dodging to one side). Normally it shows from round 2, once there is enough evidence; pre-hold the defence for chat's favourite move for +25% counter damage and **READ IT**.
 
@@ -138,7 +138,7 @@ GitHub Actions runs all four plus a two-minute local soak on every push. Balance
 
 ## Boss Forge
 
-In the demo, open **Boss Forge**, pick a prebaked boss (including **Nak Muay**) and press **Test this boss**; no key needed. Live, chat sends `!forge <idea>` (`!forge +1` to endorse) and a mod sends plain `!forge` between rounds; OpenAI (`gpt-6-luna`) drafts a boss, then validation, moderation and the balance gate decide whether it fights. Ideas never reach the announcer's voice. [Hosted caps](docs/HOSTED.md#boss-forge-on-play) · [review](docs/boss-forge-review.md).
+Boss Forge runs on `/play`: chat sends `!forge <idea>` (`!forge +1` to endorse) and a mod sends plain `!forge` between rounds; OpenAI (`gpt-6-luna`) drafts a boss, then validation, moderation and the balance gate decide whether it fights. Ideas never reach the announcer's voice. [Hosted caps](docs/HOSTED.md#boss-forge-on-play) · [review](docs/boss-forge-review.md).
 
 ## How Codex built this
 
