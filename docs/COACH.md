@@ -18,7 +18,7 @@ It ships **off**. With the flag off there is no button, no extra request and no 
 
 - **The coach never sees chat.** The prompt is built in [corner-coach.ts](../demo/src/corner-coach.ts) from an allowlist of numbers and fixed labels: round, score, health, counts of hits/chips/blocks/perfects/dodges, chat's most picked attack (as a fixed move name such as "left hook"), the streamer's dodge-side habit and the difficulty. No chat text, usernames, votes, MVP names or Forge boss names (those come from chat ideas). A custom boss is just "the boss". The builder re-clamps every field, so even a tampered object cannot pass a string through. Tests feed it a state full of chat fields and check none of them appear.
 - **Never while an attack can come.** The button only works when the round is over or the game is paused. The session ends at once when the next round starts or play resumes (checked on every game step and every 250 ms). A round that starts while it is still connecting cancels it before any audio.
-- **Hard limits.** 60 s per session, counted from the click (client) and enforced again by the agent's own `max_duration_seconds`. 15 s to connect. While a session runs, the next-round countdown waits; NEXT ROUND still works and ends the session.
+- **Hard limits.** 60 s per session, counted from the click (client) and enforced again by the agent's own `max_duration_seconds`. 15 s to connect, counted after the mic prompt so a slow Allow click is not punished. While a session runs, the next-round countdown waits; NEXT ROUND still works and ends the session.
 - **Tone.** PG, encouraging, boxing-corner voice, one or two sentences, never discusses viewers, never gives medical, health or diet advice (it tells the streamer to stop and take a break). Base prompt: [coach-prompt.ts](../demo/src/coach-prompt.ts).
 - **Mic.** The page asks for the microphone before it asks for a token, so a blocked mic costs nothing and shows "Microphone blocked. Allow the mic for this site in your browser, then try again."
 - **No secrets in the browser.** The Worker holds the ElevenLabs key and mints a short-lived conversation token per session. The agent requires auth, so its id alone cannot start a call.
@@ -31,12 +31,12 @@ It ships **off**. With the flag off there is no button, no extra request and no 
 3. `POST /api/coach/token` ([router.ts](../worker/src/router.ts), [coach.ts](../worker/src/coach.ts)) checks the flag first (off: `503 {reason:"feature-off"}`, no Twitch or ElevenLabs call), validates the Twitch login like every other `/api` route, reserves the daily caps, then calls `GET https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=<COACH_AGENT_ID>` with `xi-api-key`. It returns only `{token}`. Upstream errors become `503 {reason:"unavailable"}` with no upstream text. Nothing is logged.
 4. The browser starts a WebRTC session with that token and overrides only the prompt (base rules plus fight numbers) and first message.
 
-Caps are UTC-day counters in Durable Object storage. They are reserved before the paid call and not refunded on failure (same as Forge). Over a cap the route returns `429 {reason:"daily-cap"}` and the page says the corner is resting.
+Caps are UTC-day counters in Durable Object storage. They are reserved before the paid call and not refunded when ElevenLabs fails (same as Forge). One exception: if the shared global or IP cap refuses, the streamer's own channel slot is given back, so a busy shared IP cannot drain a streamer's quota. Over a cap the route returns `429 {reason:"daily-cap"}` and the page says the corner is resting.
 
 | Worker var | Default | Meaning |
 |---|---|---|
 | `COACH_DAILY_CHANNEL` | 20 | Sessions per streamer (Twitch user id) per day |
-| `COACH_DAILY_IP` | 10 | Sessions per hashed IP per day. The hash is SHA-256 of IP + day + the secret key, kept only in the `coach-global` Durable Object for that day |
+| `COACH_DAILY_IP` | 10 | Sessions per hashed IP per day. The hash is SHA-256 of IP + day + the secret key, kept only in the `coach-global` Durable Object for that day. Rotating the key resets that day's IP counts |
 | `COACH_DAILY_GLOBAL` | 200 | Sessions for everyone per day (the agent's own daily limit is also 200) |
 
 ## What Kash must set to turn it on

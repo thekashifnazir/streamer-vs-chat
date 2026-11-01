@@ -47,16 +47,16 @@ const openMic=async()=>{const stream=await navigator.mediaDevices.getUserMedia({
 /** One voice session at a time; it ends the moment play may resume, at the hard maximum, or on any error. */
 export function createCornerCoach(options:{requestToken:()=>Promise<string>;allowed:()=>boolean;facts:()=>CoachFacts|null;onChange:(view:CoachView)=>void;startSession?:StartCoachSession;requestMic?:()=>Promise<void>;maxMs?:number;connectMs?:number;now?:()=>number}){
  const now=options.now??(()=>Date.now()),maxMs=Math.min(options.maxMs??COACH_MAX_SECONDS*1000,COACH_MAX_SECONDS*1000),connectMs=options.connectMs??15000;
- let epoch=0,status:CoachView['status']='idle',startedAt=0,session:CoachSession|null=null,timer:ReturnType<typeof setInterval>|null=null;
+ let epoch=0,status:CoachView['status']='idle',startedAt=0,connectFrom=0,session:CoachSession|null=null,timer:ReturnType<typeof setInterval>|null=null;
  const emit=(message='')=>options.onChange({status,message,remainingS:status==='idle'?0:Math.max(0,Math.ceil((startedAt+maxMs-now())/1000))});
  function end(message=''){epoch++;if(timer!==null)clearInterval(timer);timer=null;const live=session;session=null;status='idle';void live?.endSession().catch(()=>{});emit(message);}
- // The hard limit counts from the click, connecting included.
- function check(){if(status==='idle')return;if(!options.allowed())end('Round starting. Corner talk ended.');else if(now()-startedAt>=maxMs)end('Time. Back to the fight.');else if(status==='connecting'&&now()-startedAt>=connectMs)end('Your corner could not connect. Try again.');else emit();}
+ // The hard limit counts from the click, connecting included; the connect timeout starts after the mic prompt.
+ function check(){if(status==='idle')return;if(!options.allowed())end('Round starting. Corner talk ended.');else if(now()-startedAt>=maxMs)end('Time. Back to the fight.');else if(status==='connecting'&&connectFrom&&now()-connectFrom>=connectMs)end('Your corner could not connect. Try again.');else emit();}
  async function start(){
   if(status!=='idle')return;if(!options.allowed()){emit('Your corner opens between rounds or while paused.');return;}
-  const turn=++epoch,stale=()=>{if(turn!==epoch)return true;if(options.allowed())return false;end('Round starting. Corner talk ended.');return true;};status='connecting';startedAt=now();timer=setInterval(check,250);emit('Connecting to your corner…');
+  const turn=++epoch,stale=()=>{if(turn!==epoch)return true;if(options.allowed())return false;end('Round starting. Corner talk ended.');return true;};status='connecting';startedAt=now();connectFrom=0;timer=setInterval(check,250);emit('Connecting to your corner…');
   try{
-   await (options.requestMic??openMic)();if(stale())return;
+   await (options.requestMic??openMic)();if(stale())return;connectFrom=now();
    const token=await options.requestToken();if(stale())return;
    const facts=options.facts();if(!facts){end();return;}
    const started=await (options.startSession??startElevenLabs)({conversationToken:token,connectionType:'webrtc',overrides:{agent:{prompt:{prompt:coachPrompt(facts)}, firstMessage:COACH_FIRST_MESSAGE}},

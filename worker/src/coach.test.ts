@@ -17,7 +17,7 @@ function setup(options:{upstream?:()=>Promise<Response>}={}){
  const caps=(name:string)=>{let value=hubs.get(name);if(!value){value=new CoachCaps(new Store(),()=>now);hubs.set(name,value);}return value;};
  const idFromName=vi.fn((name:string)=>name);
  const env:RoutingEnv<string>={TWITCH_CLIENT_ID:'client',HOSTED_BOT:'off',HOSTED_CLIPS:'off',HOSTED_FORGE:'off',HOSTED_MEMORY:'off',HOSTED_COACH:'on',COACH_AGENT_ID:'agent_abc123',ELEVENLABS_API_KEY:KEY,COACH_DAILY_CHANNEL:'3',COACH_DAILY_IP:'2',COACH_DAILY_GLOBAL:'4',ASSETS:{fetch:async()=>new Response('asset')},
-  CHANNEL:{idFromName,get:(name:string)=>({coachReserveChannel:(channel:string,max:number)=>caps(name).reserveChannel(channel,max),coachReserveGlobal:(hash:string,global:number,ip:number)=>caps(name).reserveGlobal(hash,global,ip)}) as unknown as Hub}};
+  CHANNEL:{idFromName,get:(name:string)=>({coachReserveChannel:(channel:string,max:number)=>caps(name).reserveChannel(channel,max),coachReserveGlobal:(hash:string,global:number,ip:number)=>caps(name).reserveGlobal(hash,global,ip),coachReleaseChannel:(channel:string)=>caps(name).releaseChannel(channel)}) as unknown as Hub}};
  return {env,fetcher,upstream,idFromName,route:createWorkerRouter({fetch:fetcher as typeof fetch,now:()=>now}),setTime:(value:number)=>{now=value;}};
 }
 const post=(ip='203.0.113.7',authorization='Bearer streamer-token',path='/api/coach/token')=>new Request(`https://demo.test${path}`,{method:'POST',headers:{Authorization:authorization,'CF-Connecting-IP':ip}});
@@ -50,8 +50,10 @@ describe('corner coach token route',()=>{
   const s=setup();
   expect((await s.route(post('10.0.0.1'),s.env)).status).toBe(200);expect((await s.route(post('10.0.0.1'),s.env)).status).toBe(200);
   const ip=await s.route(post('10.0.0.1'),s.env);expect(ip.status).toBe(429);expect(await ip.json()).toEqual({reason:'daily-cap'});
-  expect((await s.route(post('10.0.0.2'),s.env)).status).toBe(429);// channel cap of 3 was spent by the IP-capped attempt too
-  expect(s.upstream).toHaveBeenCalledTimes(2);
+  // The IP-capped attempt gave its channel slot back, so another address still gets the third.
+  expect((await s.route(post('10.0.0.2'),s.env)).status).toBe(200);
+  const channel=await s.route(post('10.0.0.3'),s.env);expect(channel.status).toBe(429);expect(await channel.json()).toEqual({reason:'daily-cap'});
+  expect(s.upstream).toHaveBeenCalledTimes(3);
   s.setTime(Date.UTC(2026,10,2,0,0,1));expect((await s.route(post('10.0.0.1'),s.env)).status).toBe(200);
  });
  it('caps every channel together at the global limit',async()=>{

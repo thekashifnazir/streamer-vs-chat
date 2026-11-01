@@ -37,6 +37,7 @@ export class ChannelHub extends DurableObject<Env> {
   memoryEvents(channel:string,events:MemoryEvent[]){const valid=validateMemoryBatch({events});if(!valid)throw new Error('invalid-memory-events');return this.memory.events(channel,valid);}
   memorySnapshot(channel:string,sessionId?:string,mvpId?:string|null){return this.memory.snapshot(channel,sessionId,mvpId);}
   coachReserveChannel(channel:string,max:number):Promise<CoachReply>{return this.env.HOSTED_COACH!=='on'?Promise.resolve({ok:false,reason:'feature-off'}):this.coach.reserveChannel(channel,max);}
+  coachReleaseChannel(channel:string):Promise<void>{return this.coach.releaseChannel(channel);}
   coachReserveGlobal(ipHash:string,global:number,ip:number):Promise<CoachReply>{return this.env.HOSTED_COACH!=='on'?Promise.resolve({ok:false,reason:'feature-off'}):this.coach.reserveGlobal(ipHash,global,ip);}
   status(channel:string) {return this.results.status(channel);}
   alarm():Promise<void> {return this.results.alarm();}

@@ -18,6 +18,8 @@ export class CoachCaps {
   const day=this.day();let state=await storage.get<ChannelCount>('coach-caps');if(!state||state.day!==day)state={day,count:0};
   if(state.count>=max)return {ok:false,reason:'daily-cap'};state.count++;await storage.put('coach-caps',state);return {ok:true};
  });}
+ /** Gives back a channel slot when the shared global/IP cap refused, so a busy IP cannot drain a streamer's own quota. */
+ releaseChannel(channel:string):Promise<void>{return this.storage.transaction(async storage=>{const state=await storage.get<ChannelCount>('coach-caps');if(state&&state.day===this.day()&&state.count>0){state.count--;await storage.put('coach-caps',state);}});}
  /** The global counter bounds the IP map: at most `global` entries exist per day. */
  reserveGlobal(ipHash:string,global:number,ip:number):Promise<CoachReply>{return this.storage.transaction(async storage=>{
   if(!/^[0-9a-f]{64}$/.test(ipHash))return {ok:false,reason:'unavailable'};

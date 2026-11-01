@@ -52,6 +52,11 @@ describe('coach session lifecycle (fake Conversation)',()=>{
   vi.useFakeTimers();const s=lifecycle();await s.coach.start();s.time(30000);vi.advanceTimersByTime(250);expect(s.views.at(-1)).toMatchObject({status:'live',remainingS:30});
   s.time(60000);vi.advanceTimersByTime(250);expect(s.coach.active).toBe(false);expect(s.end).toHaveBeenCalledOnce();expect(s.views.at(-1)!.message).toBe('Time. Back to the fight.');
  });
+ it('the 15 s connect timeout starts after the mic prompt, so a slow Allow click is not punished',async()=>{
+  vi.useFakeTimers();let allow!:()=>void,hang!:(token:string)=>void;const s=lifecycle({mic:()=>new Promise(resolve=>{allow=resolve;}),token:()=>new Promise(resolve=>{hang=resolve;})});const started=s.coach.start();
+  s.time(20000);vi.advanceTimersByTime(250);expect(s.coach.status).toBe('connecting');allow();await Promise.resolve();await Promise.resolve();
+  s.time(34000);vi.advanceTimersByTime(250);expect(s.coach.status).toBe('connecting');s.time(35000);vi.advanceTimersByTime(250);expect(s.coach.active).toBe(false);expect(s.views.at(-1)!.message).toBe('Your corner could not connect. Try again.');hang('t');await started;expect(s.startSession).not.toHaveBeenCalled();
+ });
  it('refuses to start while an attack can be coming and never asks for a token',async()=>{const token=vi.fn(async()=>'t');const s=lifecycle({token});s.setAllowed(false);await s.coach.start();expect(s.coach.active).toBe(false);expect(token).not.toHaveBeenCalled();expect(s.startSession).not.toHaveBeenCalled();});
  it('a round that starts while the token is in flight never opens a session',async()=>{
   let release!:(token:string)=>void;const s=lifecycle({token:()=>new Promise(resolve=>{release=resolve;})});const started=s.coach.start();await Promise.resolve();s.setAllowed(false);release('t');await started;
