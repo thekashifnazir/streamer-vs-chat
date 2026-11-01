@@ -311,9 +311,11 @@ function restoreCalibration(){const mode=posture.value==='seated'?'seated':'stan
 function applyCalibration(calibrated:ReturnType<typeof calibration.update>){if(!calibrated.ready||calibrated.guardThreshold===null)return;classifier.setCalibration({guardThreshold:calibrated.guardThreshold,leanThresholds:calibrated.leanThresholds??undefined,guardReleaseBand:calibrated.guardReleaseBand??undefined,guardMedians:calibrated.guardMedians??undefined,neutralSwayP95:calibrated.neutralSwayP95??undefined,punchThresholds:calibrated.punchThresholds});trainerMoves.setPunchThresholds(calibrated.punchThresholds);}
 setup.calibration(calibration.snapshot);
 restoreCalibration();
-// Offline demo: a small camera circle with the skeleton during webcam fights and workouts (pose-preview.ts); /play has its stream bubble.
-const posePreview=liveMode?null:mountPosePreview(stage,video);
-const previewShown=()=>source.value==='pose'&&cameraRunning&&!fightUi?.paused&&!showSessionSummary&&coldOpenAt===null&&(trainer.running||(!!game&&!game.round.over&&!game.paused));
+// One camera presentation (Kash, 1 Nov): the camera circle in the stage's camera lane during webcam practice, fights and workouts, never the
+// full-size camera behind the fight. The demo draws it (pose-preview.ts); /play has its stream bubble and adds only the opt-in skeleton on top.
+const showSkeleton=()=>document.querySelector<HTMLInputElement>('#show-skeleton')?.checked===true;
+const posePreview=mountPosePreview(stage,video,{skeleton:showSkeleton,mode:liveMode?'skeleton-only':'video'});
+const previewShown=()=>source.value==='pose'&&cameraRunning&&!fightUi?.paused&&!showSessionSummary&&coldOpenAt===null&&(!liveMode||!!stage.querySelector('.stream-camera-bubble:not([hidden])'))&&(trainer.running||(tutorialStarted&&!game)||(!!game&&!game.round.over&&!game.paused));
 const camera=new PoseCamera(video,sample=>{
   lastFrameAt=performance.now();
   const before=calibration.snapshot;
@@ -456,6 +458,8 @@ if(liveMode){
   await Promise.race([hosted.settled,new Promise(resolve=>setTimeout(resolve,2500))]);
 }
 // Setup choices survive a reload (localStorage, guarded); URL values win for the visit. The demo starts on webcam on a computer unless a choice is saved.
+// Opt-in tracking skeleton on the camera circle, remembered with the other setup prefs (Kash, 1 Nov: "looks better on stream without it").
+{const row=document.createElement('label');row.className='defence-only skeleton-option';row.innerHTML='<input id="show-skeleton" type="checkbox" role="switch" /><span><strong>Show tracking skeleton on my camera</strong><br />Webcam only. Draws the lines the camera tracks on your camera circle. Setup always shows it.</span>';(document.getElementById('demo-more-options')??document.getElementById('play-more-options'))?.append(row);}
 bindSetupPrefs(document,{store:createPrefs(()=>window.localStorage),visit:()=>window.sessionStorage,search:location.search,...(liveMode?{}:{defaults:{input:defaultLandingInput(window)}}),setup,sound:{get:()=>hud.soundRequested(),set:on=>{void hud.setSoundRequested(on);},target:host},plain:host.querySelector<HTMLInputElement>('[data-id=plain]')});
 // After hosted flow has moved the Sound switch into its options, so the picker sits beside it.
 // Before game sound starts, ▶ plays through a plain audio element (still only with Sound on).
