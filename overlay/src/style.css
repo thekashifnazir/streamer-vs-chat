@@ -363,3 +363,5 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .boss .vote-header.practice-voting{white-space:normal;line-height:1.15}
 .boss .vote-header.practice-voting [data-id=beat]{display:block;white-space:normal;overflow-wrap:normal}
 .boss .vote-header [data-id=vote-count-label][hidden]{display:none}
+/* Hosted /play shows the connected Twitch login here: long logins end in an ellipsis (full name in the title). */
+.rails-hud .streamer h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}

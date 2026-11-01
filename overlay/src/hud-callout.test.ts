@@ -80,3 +80,10 @@ it('does not repeat the voice after a mid-round reconnect that already had a gua
  await hud.activateSound();heard();hud.render(resumed);expect(heard()).toEqual(['sting']);
  hud.dispose();
 });
+it('names the streamer on the HUD: a hosted login replaces the default, blank falls back to YOU',()=>{
+ const {hud,host}=setup();
+ const name=()=>host.querySelector<HTMLElement>('[data-id=player-name]')!;
+ hud.setPlayerName('TESTSTREAMER');expect(name().textContent).toBe('TESTSTREAMER');expect(name().title).toBe('TESTSTREAMER');
+ hud.setPlayerName('  ');expect(name().textContent).toBe('YOU');
+ hud.dispose();
+});

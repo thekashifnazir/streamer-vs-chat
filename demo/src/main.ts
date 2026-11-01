@@ -153,6 +153,8 @@ function paint() {
   hud.setBossReceipts(impactLedger.snapshot());hud.setSuperNotices(superNotices.snapshot());
   hud.render(game??createSelectedGame(difficulty,{seed,viewers:liveMode?0:Number(crowdSize.value),now:0,...(previewConfig?{scoutingConfig:previewConfig}:{})}),!liveMode);
   hud.setConnection(previewConfig?SCOUT_PREVIEW_BADGE:liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
+  // /play is any streamer's broadcast: name the connected Twitch login, never the default HUD name.
+  if(liveMode)hud.setPlayerName(hosted?.login?hosted.login.toUpperCase():'YOU');
   trackFight();trackLocalRound();
   hud.setPractice(tutorialStarted&&!game);
   if(previewConfig){const badge=host.querySelector('[data-id=simulated]');if(badge)badge.textContent=SCOUT_PREVIEW_BADGE;}
