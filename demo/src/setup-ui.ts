@@ -3,6 +3,7 @@ import type {CalibrationSnapshot} from '../../capture/src/calibration';
 import type {Landmark} from '../../capture/src/classifier';
 import {superHelp} from './defence-copy';
 import {difficultyLabel,KEYBOARD_DIFFICULTY,WEBCAM_DIFFICULTY} from './difficulty-choice';
+import {HANDS_SETUP_RULE} from './hands-warning';
 /** Presentation adapter: the original form controls remain the only settings state. */
 export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcamStart:()=>void;onWebcamCountdown?:()=>void;webcamFramed?:()=>boolean;now?:()=>number;keyboardRequiresClearSpace?:boolean;simplifiedCalibration?:boolean;workout?:()=>boolean;onSkipPunches?:()=>void}){
  const get=<T extends HTMLElement>(id:string)=>root.getElementById(id) as T;
@@ -25,6 +26,8 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  }
  function begin(){if(!space.checked||!camera||!ready)return;close(false);due=now()+5000;countdown.hidden=false;options.onWebcamCountdown?.();tick(now());stage.scrollIntoView?.({block:'start',behavior:'smooth'});}
  root.addEventListener('keydown',event=>{if(event.code==='Escape')cancel();});
+ // Step 1 (both pages): leans and punches need both wrists, so say so plainly under the step title (Kash, 1 Nov).
+ const handsRule=root.createElement('p');handsRule.id='hands-rule';handsRule.className='hands-rule';handsRule.textContent=HANDS_SETUP_RULE;get('webcam-instruction').after(handsRule);
  let commandKey='',latestCalibration:CalibrationSnapshot|null=null;
  // Step 5 (punches) is a bonus: a Skip link sits under the progress bar on / and /play while that step is live.
  const skip=root.createElement('button');skip.type='button';skip.id='skip-punches';skip.className='text-button';skip.textContent='Skip punches';skip.hidden=true;
@@ -104,9 +107,10 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
   for(const item of root.querySelectorAll<HTMLElement>('[data-calibration-step]')){const n=Number(item.dataset.calibrationStep);item.classList.toggle('done',snapshot.ready||n<index);item.classList.toggle('active',!snapshot.ready&&n===index);}
   // / and /play show the same 5 steps over the 7 calibration stages: frame and the two still poses are step 1; each lean and the punches are their own step.
   {const group=index<=2?0:index-2;get('webcam-step-label').textContent=snapshot.ready?'SETUP COMPLETE':`STEP ${group+1} OF 5`;for(const item of root.querySelectorAll<HTMLElement>('[data-calibration-group]')){const n=Number(item.dataset.calibrationGroup);item.classList.toggle('done',snapshot.ready||n<group);item.classList.toggle('active',!snapshot.ready&&n===group);}const instruction=root.querySelector<HTMLElement>('[data-group-instruction]');if(instruction)instruction.textContent=group===0?titles[index]!:'';}
+  handsRule.hidden=snapshot.ready||(index<=2?0:index-2)!==0;
   sync();
  }
- function frame(landmarks:Landmark[],isFramed:boolean){framed=isFramed;const body=[0,11,12].every(i=>{const p=landmarks[i];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});if(body)noBodySince=null;else noBodySince??=now();const chips=get('framing-chips');chips.hidden=!camera;chips.replaceChildren();for(const [label,indices]of [['Head',[0]],['Shoulders',[11,12]],['Left hand',[15]],['Right hand',[16]]] as const){const valid=indices.every(i=>{const p=landmarks[i];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});const chip=root.createElement('span');chip.className=valid?'framed':'missing';chip.textContent=`${valid?'✓':'✕'} ${label}`;chips.append(chip);}if(latestCalibration)calibration(latestCalibration);sync();}
+ function frame(landmarks:Landmark[],isFramed:boolean){framed=isFramed;const body=[0,11,12].every(i=>{const p=landmarks[i];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});if(body)noBodySince=null;else noBodySince??=now();const chips=get('framing-chips');chips.hidden=!camera;chips.replaceChildren();for(const [label,indices]of [['Head',[0]],['Shoulders',[11,12]],['Left hand',[15]],['Right hand',[16]]] as const){const valid=indices.every(i=>{const p=landmarks[i];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});const chip=root.createElement('span');chip.className=valid?'framed':'missing';chip.textContent=`${valid?'✓':'✕'} ${label}`;chips.append(chip);}handsRule.classList.toggle('hands-missing',camera&&![15,16].every(i=>{const p=landmarks[i];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;}));if(latestCalibration)calibration(latestCalibration);sync();}
  defaultDifficulty();sync();commands();
  return {sync,open,close,commands,calibration,frame,tick,cancel,camera(running:boolean){camera=running;if(!running)framed=false;noBodySince=running?now():null;if(options.simplifiedCalibration){get('start-calibration').hidden=!running;get('stop-camera').hidden=!running;}get('camera-start-overlay').hidden=running;get('framing-chips').hidden=!running;sync();},restored(value:boolean){restored=value;sync();},
   // Saved preferences: a stored level counts as picked by hand; reset hands the default back to the input choice.

@@ -6,6 +6,8 @@ import type {BossImpact} from './boss-feedback';
  * renders in the camera lane; the camera circle (demo and /play: 20% x 28% of the stage, 3% off the bottom, so y 745 to 1048) sits in it. */
 export const STAGE_LANES={centre:{left:470,right:1450},clock:{top:24,bottom:130},call:{top:142,bottom:548},prompt:{top:556,bottom:676},camera:{top:700,bottom:1080}} as const;
 export type PromptKind='counter'|'finisher'|'super-denied'|'super-ready';
+/** Webcam play, lowest priority in the prompt lane: shown only while no other prompt is up. */
+export const HANDS_PROMPT='STEP BACK · KEEP BOTH HANDS IN VIEW';
 export type PromptCandidate={kind:PromptKind;key:string};
 /** Read-only view of the engine's counter window (RULES.counter, opened by a clean block or dodge). Keyboard play names the key. */
 export function counterPrompt(state:GameState,modes:{keyboard?:boolean;noPunch?:boolean}={}){
@@ -29,9 +31,10 @@ export function createPromptLane(){
   return best;
  }};
 }
-/** "PUNCH! −1.5": every punch the engine records gets a big pop by the boss; counters and finishers name themselves. */
-export function punchPopText(impact:Pick<BossImpact,'kind'|'amount'|'brace'>){
- const label=impact.kind==='finisher'?'FINISHER!':impact.kind==='counter'?impact.brace?'READ IT!':'COUNTER!':'PUNCH!';
+/** "PUNCH! −1.5" only for a punch the camera or J key threw; the automatic counter after a clean defence names that defence
+ * ("BLOCK HIT", "DODGE HIT"; Kash, 1 Nov: "COUNTER!" after a dodge read as a detected punch). Finishers name themselves. */
+export function punchPopText(impact:Pick<BossImpact,'kind'|'amount'|'brace'|'defence'>){
+ const label=impact.kind==='finisher'?'FINISHER!':impact.kind==='counter'?impact.brace?'READ IT!':impact.defence==='lean'?'DODGE HIT':impact.defence==='guard'?'BLOCK HIT':'DEFENCE HIT':'PUNCH!';
  return `${label}\n−${Number(impact.amount.toFixed(2))}`;
 }
 /** While nobody in chat has voted this round, the vote table becomes a how-to-join panel with this boss's own commands. */

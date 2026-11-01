@@ -69,6 +69,9 @@ describe('prompt lane, counter and pop words',()=>{
  it('names each boss hit in the pop',()=>{
   expect(punchPopText({kind:'punch',amount:1,brace:false})).toBe('PUNCH!\n−1');expect(punchPopText({kind:'punch',amount:1.5,brace:false})).toBe('PUNCH!\n−1.5');
   expect(punchPopText({kind:'counter',amount:2.5,brace:true})).toBe('READ IT!\n−2.5');expect(punchPopText({kind:'finisher',amount:4,brace:false})).toBe('FINISHER!\n−4');
+  // The automatic counter after a clean defence names that defence, never PUNCH (Kash, 1 Nov: "COUNTER!" after a dodge read as a punch).
+  expect(punchPopText({kind:'counter',amount:2,brace:false,defence:'guard'})).toBe('BLOCK HIT\n−2');expect(punchPopText({kind:'counter',amount:2,brace:false,defence:'lean'})).toBe('DODGE HIT\n−2');
+  expect(punchPopText({kind:'counter',amount:2,brace:false})).toBe('DEFENCE HIT\n−2');
  });
  it('lists the boss\'s own commands for the join panel and spots the round\'s first vote',()=>{
   const state=createGame();expect(joinCommands(state)).toBe('!jab · !left · !right · !combo');expect(roundHasVotes(state)).toBe(false);
@@ -89,6 +92,16 @@ function mount(){
  const host=dom.window.document.getElementById('host')!;return {host,hud:createRailsHud(host,{simulated:false}),q:(id:string)=>host.querySelector<HTMLElement>(`[data-id="${id}"]`)!};
 }
 describe('HUD wiring',()=>{
+ it('shows STEP BACK · KEEP BOTH HANDS IN VIEW in the prompt lane only while no other prompt is up',()=>{
+  const {hud,q}=mount(),state=createGame();state.round.elapsed_ms=1000;hud.render(state);expect(q('hands-prompt').hidden).toBe(true);
+  hud.setHandsOut(true);hud.render(state);expect(q('hands-prompt').hidden).toBe(false);expect(q('hands-prompt').textContent).toBe('STEP BACK · KEEP BOTH HANDS IN VIEW');
+  hud.render(counterState());expect(q('counter-prompt').hidden).toBe(false);expect(q('hands-prompt').hidden,'below the counter prompt').toBe(true);
+  hud.setHandsOut(false);hud.render(state);expect(q('hands-prompt').hidden).toBe(true);
+ });
+ it('pops BLOCK HIT for the counter after a clean block, PUNCH! only for a thrown punch',()=>{
+  const {hud,q}=mount(),before=counterState();before.log.resolved=[];before.counter={open:false,closes_at:0};hud.render(before);
+  const after=counterState();after.boss.hp=before.boss.hp-2;hud.render(after);expect(q('punch-pop').textContent).toBe('BLOCK HIT\n−2');expect(q('punch-pop').dataset.kind).toBe('counter');
+ });
  it('says BLOCKED! in the call lane and COUNTER · PUNCH NOW in the prompt lane, with the body move for webcam',()=>{
   const {hud,q}=mount();hud.setModes({keyboard:false});hud.render(counterState());
   expect(q('banner').textContent).toBe('BLOCKED!');expect(q('move').textContent).toBe('JAB');expect(q('cue').textContent).toBe('GUARD ✓');

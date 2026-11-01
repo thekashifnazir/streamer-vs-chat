@@ -1,24 +1,29 @@
 import type {GameState} from './engine';
 /** Bounded presentation receipts, outside combat state; no identities or chat text. */
-export type BossImpactReceipt={id:number;kind:'counter'|'punch'|'finisher';amount:number;brace:boolean;round:number;at:number};
+/** `defence`: which clean defence earned an automatic counter (presentation only: the pop says BLOCK HIT or DODGE HIT, not PUNCH). */
+export type BossImpactReceipt={id:number;kind:'counter'|'punch'|'finisher';amount:number;brace:boolean;round:number;at:number;defence?:'guard'|'lean'};
+/** The defence behind a counter: the recorded reaction, else the outcome (a DODGE is a lean, a BLOCK a guard). */
+export function counterDefence(result:{defence:'guard'|'lean'|'none';outcome:string}|undefined):'guard'|'lean'|undefined{
+ if(!result)return undefined;if(result.defence!=='none')return result.defence;return result.outcome==='DODGE'?'lean':result.outcome==='BLOCK'?'guard':undefined;
+}
 export type BossImpactBatch={source:string;entries:BossImpactReceipt[]};
 export function createBossImpactLedger(source:string){
  let sequence=0;const entries:BossImpactReceipt[]=[];
- const add=(entry:Omit<BossImpactReceipt,'id'>)=>{entries.push({id:++sequence,...entry});while(entries.length>48)entries.shift();};
+ const add=(entry:Omit<BossImpactReceipt,'id'>)=>{if(entry.defence===undefined)delete entry.defence;entries.push({id:++sequence,...entry});while(entries.length>48)entries.shift();};
  return {
   observe(before:GameState,after:GameState){
    if(before.match.seed!==after.match.seed||before.round.number!==after.round.number||after.round.elapsed_ms<before.round.elapsed_ms)return;
    if(after.log.bossDamage){
     for(const hit of after.log.bossDamage.slice(before.log.bossDamage?.length??0)){
      const resolution=hit.kind==='counter'?after.log.resolved.find(result=>result.round===hit.round&&result.beat===hit.beat&&result.at===hit.at):undefined;
-     if(hit.damage>0)add({kind:hit.kind,amount:hit.damage,brace:!!resolution?.braced,round:hit.round,at:hit.at});
+     if(hit.damage>0)add({kind:hit.kind,amount:hit.damage,brace:!!resolution?.braced,round:hit.round,at:hit.at,defence:counterDefence(resolution)});
     }
     return;
    }
    let remaining=Math.max(0,before.boss.hp-after.boss.hp);
    for(const result of after.log.resolved.slice(before.log.resolved.length)){
     const amount=Math.min(remaining,result.actual_counter_dmg??result.counter_dmg);
-    if(amount>0){add({kind:'counter',amount,brace:!!result.braced,round:after.round.number,at:result.at});remaining-=amount;}
+    if(amount>0){add({kind:'counter',amount,brace:!!result.braced,round:after.round.number,at:result.at,defence:counterDefence(result)});remaining-=amount;}
    }
    if(remaining>0&&after.input.last_punch_at>before.input.last_punch_at)add({kind:'punch',amount:remaining,brace:false,round:after.round.number,at:after.input.last_punch_at});
   },

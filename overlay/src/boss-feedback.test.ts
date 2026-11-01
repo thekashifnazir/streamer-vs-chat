@@ -3,6 +3,7 @@ import {expect,it} from 'vitest';
 import {createGame,step} from '../../shared/src/engine';
 import {FEEL} from '../../shared/src/feel';
 import {createBossFeedback} from './boss-feedback';
+import {counterDefence} from '../../shared/src/boss-impact';
 import {createFxScheduler} from './fx';
 it('shows exact punch and counter loss, including a same-snapshot bonus',()=>{
  let state=createGame({moves:['JAB']});const feedback=createBossFeedback();feedback.observe(state,0);
@@ -14,6 +15,13 @@ it('shows exact punch and counter loss, including a same-snapshot bonus',()=>{
  expect(feedback.observe(state,3300)).toMatchObject([{kind:'counter',amount:8},{kind:'punch',amount:1.5}]);
  expect(feedback.frame(3300).numbers.at(-1)?.text).toBe('−1.5');
  expect(feedback.frame(3300).numbers[0]?.lane).not.toBe(feedback.frame(3300).numbers[1]?.lane);
+});
+it('names the defence behind each counter, from both the snapshot path and the receipts ledger',()=>{
+ let state=createGame({moves:['JAB']});const feedback=createBossFeedback(),ledger=createBossImpactLedger('test');feedback.observe(state,0);
+ const before=step(state,{kind:'pose',guard:true,lean:null,source:'keyboard',at:200},200);feedback.observe(before,200);
+ state=step(before,{kind:'advance'},3200);ledger.observe(before,state);
+ expect(feedback.observe(state,3200)).toMatchObject([{kind:'counter',defence:'guard'}]);expect(ledger.snapshot().entries).toMatchObject([{kind:'counter',defence:'guard'}]);
+ expect(counterDefence({defence:'none',outcome:'DODGE'})).toBe('lean');expect(counterDefence({defence:'lean',outcome:'PERFECT'})).toBe('lean');expect(counterDefence({defence:'none',outcome:'HIT'})).toBeUndefined();
 });
 it('preserves braced counter amounts and clips overkill to actual boss HP lost',()=>{
  let state=createGame({roundNumber:2,moves:['JAB']});

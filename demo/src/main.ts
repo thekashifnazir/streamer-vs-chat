@@ -40,6 +40,8 @@ import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
 import {mountPosePreview} from './pose-preview';
+import {createHandsWatch} from './hands-warning';
+import {HANDS_PROMPT} from '../../overlay/src/stage-lanes';
 import {createSimChatFeed,mountSimChat,simHandle,simVoteText,type SimChatMode} from './sim-chat';
 import {demoCoachEnabled,mountDemoCornerCoach} from './coach-button';
 import {formatHypeFull,formatRoundResult,roundResultBody} from '../../shared/src/result-text';
@@ -327,6 +329,7 @@ const camera=new PoseCamera(video,sample=>{
   const result=classifier.update(sample.landmarks,sample.at);
   const framed=[0,11,12,15,16].every(index=>{const p=sample.landmarks[index];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});
   const seatedTooClose=posture.value==='seated'&&result.metrics&&result.metrics.shoulderWidth>.20;
+  handsWatch.frame(sample.landmarks,lastFrameAt);
   poseFramed=framed&&!seatedTooClose;setup.frame(sample.landmarks,poseFramed);posePreview?.draw(sample.landmarks,previewShown());
   const ready=calibrated.ready&&poseFramed&&safetyCleared();
   lastPose=ready?result.state:{kind:'pose',guard:false,lean:null,source:'pose',at:sample.at};
@@ -417,6 +420,7 @@ const timer=window.setInterval(()=>{
   if(posePreview&&(!previewShown()||tickAt-lastFrameAt>=500))posePreview.hide();
   setup.tick(tickAt);fightUi?.tick();
   if(trainer.running)trainer.tick(performance.now());
+  syncHands(tickAt);
   if(!game)syncSimChat();
   // A workout can finish or end between paints; the guard follows it within a tick.
   leaveGuard.sync();
@@ -437,6 +441,14 @@ const timer=window.setInterval(()=>{
   }
   drawCrowd(at);paint();
 },100);
+// Webcam fight or workout: "STEP BACK · KEEP BOTH HANDS IN VIEW" once a wrist has been out of view for 0.5 s (leans and punches need
+// both). Fights show it in the HUD prompt lane below every other prompt; workouts hide the HUD, so the trainer stage carries its own line.
+const handsWatch=createHandsWatch();
+const trainerHands=document.createElement('p');trainerHands.className='trainer-hands';trainerHands.setAttribute('role','status');trainerHands.textContent=HANDS_PROMPT;trainerHands.hidden=true;(stage.querySelector('.trainer-stage')??stage).append(trainerHands);
+function syncHands(at:number){
+  const out=source.value==='pose'&&cameraRunning&&!fightUi?.paused&&!showSessionSummary&&coldOpenAt===null&&handsWatch.out(at);
+  hud.setHandsOut(out&&!!game&&!game.paused&&!game.round.over);trainerHands.hidden=!(out&&trainer.running);
+}
 // pagehide, not beforeunload: a cancelled leave warning must not tear down the live stream or fight.
 window.addEventListener('pagehide',()=>{leaveGuard.dispose();window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();demoCoach?.dispose();playtest.dispose();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});

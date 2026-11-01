@@ -1,7 +1,7 @@
-import type {BossImpactBatch} from '../../shared/src/boss-impact';
+import {counterDefence,type BossImpactBatch} from '../../shared/src/boss-impact';
 import type {GameState} from '../../shared/src/engine';
 import {FEEL} from '../../shared/src/feel';
-export type BossImpact={id:string;kind:'counter'|'punch'|'finisher';amount:number;brace:boolean};
+export type BossImpact={id:string;kind:'counter'|'punch'|'finisher';amount:number;brace:boolean;defence?:'guard'|'lean'};
 export function impactStamp(kind:BossImpact['kind'],brace=false):string|null{return kind==='finisher'?'FINISHER!':kind==='counter'?brace?'READ IT!':'COUNTER HIT!':null;}
 export function playBossImpactSounds(impacts:readonly BossImpact[],play:()=>void){for(const impact of impacts)if(impact.kind==='punch')play();}
 /** Snapshot observer only: exact visible HP loss, never invented nominal overkill. */
@@ -17,11 +17,11 @@ export function createBossFeedback(){
   observe(state:GameState,now:number):BossImpact[]{
    const before=previous;previous=state;
    if(!before||before.match.seed!==state.match.seed||before.round.number!==state.round.number||state.round.elapsed_ms<before.round.elapsed_ms){active=[];lastReceipt=batch?.entries.at(-1)?.id??lastReceipt;return [];}
-   if(batch){const impacts=batch.entries.filter(entry=>entry.id>lastReceipt).map(entry=>({id:`${batch!.source}:${entry.id}`,kind:entry.kind,amount:entry.amount,brace:entry.brace}));lastReceipt=batch.entries.at(-1)?.id??lastReceipt;for(const impact of impacts)present(impact,now);return impacts;}
+   if(batch){const impacts=batch.entries.filter(entry=>entry.id>lastReceipt).map(entry=>({id:`${batch!.source}:${entry.id}`,kind:entry.kind,amount:entry.amount,brace:entry.brace,...(entry.defence?{defence:entry.defence}:{})}));lastReceipt=batch.entries.at(-1)?.id??lastReceipt;for(const impact of impacts)present(impact,now);return impacts;}
    let remaining=Math.max(0,before.boss.hp-state.boss.hp);const impacts:BossImpact[]=[];
    for(const result of state.log.resolved.slice(before.log.resolved.length)){
     const amount=Math.min(remaining,result.actual_counter_dmg??result.counter_dmg);
-    if(amount>0){impacts.push({id:`counter:${result.round}:${result.beat}:${serial++}`,kind:'counter',amount,brace:!!result.braced});remaining-=amount;}
+    if(amount>0){const defence=counterDefence(result);impacts.push({id:`counter:${result.round}:${result.beat}:${serial++}`,kind:'counter',amount,brace:!!result.braced,...(defence?{defence}:{})});remaining-=amount;}
    }
    if(remaining>0)impacts.push({id:`punch:${serial++}`,kind:'punch',amount:remaining,brace:false});
    for(const impact of impacts)present(impact,now);return impacts;

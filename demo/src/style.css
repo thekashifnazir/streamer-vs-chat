@@ -659,3 +659,6 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
  .trainer-keys{top:60cqh;bottom:auto}
 }
 .trainer-votes li.trainer-vote-empty{flex-direction:column;gap:.3cqw}.trainer-vote-empty b{color:#faf8ff;font-weight:800}.trainer-vote-empty small{font-size:1.4cqw}
+/* Wrists out of view (demo/src/hands-warning.ts): the workout's line, between the combo call and the camera circle; setup step 1's rule. */
+.trainer-hands{position:absolute;left:50%;top:57cqh;transform:translateX(-50%);margin:0;padding:.8cqw 2cqw;background:#08050cf2;border:.3cqw solid var(--t-pink);color:#fff;font:400 2.6cqw/1.1 Anton,Impact,sans-serif;letter-spacing:.1cqw;white-space:nowrap;z-index:3}.trainer-hands[hidden]{display:none}
+#webcam-settings .webcam-instructions p.hands-rule{margin:6px 0 8px;padding:8px 12px;border-left:4px solid var(--yellow);background:#ffdc4314;color:#f5f2fa;font-size:17px;font-weight:700;line-height:1.35}#webcam-settings .webcam-instructions p.hands-rule.hands-missing{border-color:var(--pink);background:#ff268a1f}.hands-rule[hidden]{display:none}
