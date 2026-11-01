@@ -1,25 +1,25 @@
 # Codex build evidence
 
-Snapshot measured on Kash's Mac on **31 October 2026**, with entry `HEAD` at `74cc38d` (before the docs commit that records it). This is a dated snapshot, not a claim that later work has stopped. The earlier snapshots (29 October: 52/51 turns, 38 commits, 642 tests at `0be805d`; 31 October morning: 76/76 turns, 56 commits, 991 tests at `69eca5d`) stay in git history.
+Snapshot measured on Kash's Mac on **1 November 2026**, with entry `main` at `ee1a6e2`, the live build (before the docs commits that record it). The Codex thread counts are unchanged since 31 October, because there were no Codex turns after 13w. The earlier snapshots (29 October: 52/51 turns, 38 commits, 642 tests at `0be805d`; 31 October morning: 76/76 turns, 56 commits, 991 tests at `69eca5d`; 31 October evening: 74 commits, 1,029 tests at `74cc38d`) stay in git history.
 
 | Evidence | Count / identity |
 |---|---|
 | Main root thread | `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f` |
-| Root task-start / task-complete events | 77 / 77 |
+| Root task-start / task-complete events | 77 / 77 (re-counted 1 November; the last task started 31 October, 13:43 UK) |
 | Completed root turns with tools / without tools | 54 / 23 (without tools includes usage-limit retries) |
 | Codex plan | ChatGPT Plus. Weekly limit about 94% used by the last Codex turn (13w, `3677761`, 31 October); **96% used, 4% left** on 1 November at 10:39 UK, resetting 5 November at 23:47, after the deadline ([screenshot](img/codex-limit-1nov.png)). No Codex turns after 13w |
-| Entry git commits through `74cc38d` | 74 = 57 code commits made in the Codex thread + 16 "fix (Claude Code)" + 1 "docs (Claude Code)". Later counts: [Codex vs Claude Code split](#codex-vs-claude-code-split) |
-| Docs-only commits by Claude Code | 1 before this one, plus this one (messages start "docs (Claude Code)") |
-| Passing offline tests at `74cc38d` | 1,029, from Claude's fresh-clone check; sim output identical to `0be805d`, no golden vector changes |
-| Automated end-to-end suites at `74cc38d` | demo flows 8/8, hosted `/play` journey 9/9, responsive/a11y at 6 widths in Chromium and WebKit (Lighthouse accessibility 100 on `/` and `/play`); 10 bugs found and fixed |
+| Entry git commits through `ee1a6e2` | 171 = 57 code commits made in the Codex thread + 57 "fix (Claude Code)" + 25 "feat (Claude Code)" + 16 "docs (Claude Code)" + 16 merges of Claude Code branches. Lines: [Codex vs Claude Code split](#codex-vs-claude-code-split) |
+| Docs-only commits by Claude Code | 16 through `ee1a6e2`, plus the commits that record this snapshot (messages start "docs (Claude Code)") |
+| Passing offline tests at `ee1a6e2` | 1,226 in 159 files (`npx vitest run`, Claude's clone); sim output identical to `0be805d`, no golden vector changes |
+| Automated end-to-end checks, 1 November | local Playwright runs on the live build: 9 offline demo flows, 41 Crowd Trainer checks, all 9 steps of the mocked `/play` journey. Earlier, at `74cc38d`: responsive/a11y at 6 widths in Chromium and WebKit (Lighthouse accessibility 100 on `/` and `/play`); 10 bugs found and fixed |
 | Scratch resume probe | `01a17fb6-76f6-78f2-9c20-e7926e5aba23`, working directory `/private/tmp/cx-resume-test` |
 | Scratch resume probe | `01a17fb7-0a50-70b1-af8e-edcee261d14d`, working directory `/Users/kash/cx-resume-test` |
 
 The scratch threads tested CLI resume behaviour, not entry code. The second contains the ONE, TWO and THREE reply probes. Subagent lanes are part of the main build's work; they are separate from those scratch probes.
 
-One main Codex thread wrote the entry's code up to its last turn, 13w (`3677761`): 57 code commits. Kash directed and approved every brief; the briefs were drafted with Claude Code from his notes and queued into the thread with `codex exec resume`, and Claude Code checked each result in a fresh clone and deployed. Codex planned each task, split it into subagent lanes, made the design calls inside the brief and wrote the code. Devin wrote task prompts and reviewed results until 30 October. From 31 October Claude Code writes the Markdown docs, to save Codex budget for the site. From 31 October, with the Codex weekly limit used up and its reset after the deadline, Claude Code also writes code fixes, each a separate commit whose message starts "fix (Claude Code)": mostly polish and bug fixes from live tests, plus the Crowd Trainer mode and recorded voice lines. The README lists the fixes under [Finished with Claude Code](../README.md#finished-with-claude-code). Kash supplied the live Twitch, camera and physical playtest checks. Codex reviewed each commit with an independent subagent pass, except some late small turns where Claude's fresh-clone and browser checks replaced it to save budget.
+One main Codex thread wrote the entry's code up to its last turn, 13w (`3677761`): 57 code commits. Kash directed and approved every brief; the briefs were drafted with Claude Code from their notes and queued into the thread with `codex exec resume`, and Claude Code checked each result in a fresh clone and deployed. Codex planned each task, split it into subagent lanes, made the design calls inside the brief and wrote the code. Devin wrote task prompts and reviewed results until 30 October. From 31 October Claude Code writes the Markdown docs, to save Codex budget for the site. From 31 October, with the Codex weekly limit used up and its reset after the deadline, Claude Code also writes code, each a separate commit whose message starts "fix (Claude Code)" or "feat (Claude Code)". On 31 October and overnight that was polish and bug fixes from live tests. On 1 November it was larger: the Crowd Trainer mode, recorded voice lines, a homepage redesign, the 5-step webcam setup and a new straight-punch detector, plus a voice corner coach that is switched off for the submission. The README lists these commits under [Finished with Claude Code](../README.md#finished-with-claude-code). Kash supplied the live Twitch, camera and physical playtest checks. Codex reviewed each commit with an independent subagent pass, except some late small turns where Claude's fresh-clone and browser checks replaced it to save budget.
 
-The three end-to-end suites are scripts in the owner's scratch folders, outside this repository, so they are described rather than linked. Demo flows include a full best-of-3 played by a bot that reads the callouts, and the webcam path driven by a recorded clip of Kash as a fake camera. The hosted `/play` journey mocks Twitch OAuth, Helix, EventSub, WHIP and the Worker inside the browser, with zero off-origin requests.
+The end-to-end checks are local Playwright scripts in the owner's scratch folders, outside this repository, so they are described rather than linked. Demo flows include a full best-of-3 played by a bot that reads the callouts, and the webcam path driven by a recorded clip of Kash as a fake camera. The hosted `/play` journey mocks Twitch OAuth, Helix, EventSub, WHIP and the Worker inside the browser, with zero off-origin requests.
 
 ## How the counts were measured
 
@@ -28,10 +28,12 @@ The root rollout is the matching `rollout-*-01a17e04-f4f0-7d12-ac96-ff47bf3cc88f
 For commits, run:
 
 ```sh
-git rev-list --count 74cc38d                                   # 74
-git log --oneline 74cc38d | grep -c 'fix (Claude Code)'        # 16
-git log --oneline 74cc38d | grep -c 'docs (Claude Code)'       # 1
-git log --oneline 74cc38d | grep -vc '(Claude Code)'           # 57, the Codex thread's commits
+git rev-list --count ee1a6e2                                          # 171
+git rev-list --count --merges ee1a6e2                                 # 16
+git log --oneline ee1a6e2 | grep -c 'fix (Claude Code)'               # 57
+git log --oneline ee1a6e2 | grep -c 'feat (Claude Code)'              # 25
+git log --oneline ee1a6e2 | grep -c 'docs (Claude Code)'              # 16
+git log --oneline --no-merges ee1a6e2 | grep -vc '(Claude Code)'      # 57, the Codex thread's commits
 ```
 
 Scratch identities and working directories were read from their rollout metadata. Only counts and identities are published here; transcript contents, credentials and private prompts are not copied into this repository. Later `npm test` results belong to the current queue's review document, while the test count above stays tied to its source commit.
@@ -54,6 +56,7 @@ The entry was built on ChatGPT Plus, so the build ran into Codex usage limits of
 | Sat 31 Oct, afternoon | Weekly budget 92% used before 13v | `69eca5d` (13v, 13:05) |
 | Sat 31 Oct, 13:55 | 13w, the last Codex turn; weekly limit about 94% used. Claude Code takes over code fixes to meet the deadline | `3677761` |
 | Sun 1 Nov, 10:39 | Usage panel: 4% left, weekly, resets 5 Nov at 23:47 ([screenshot](img/codex-limit-1nov.png)) | none |
+| Sun 1 Nov, all day | No Codex turns. Claude Code lands 52 code commits: Crowd Trainer, recorded voice lines, homepage redesign, webcam setup and punch detection, `/play` and results polish | up to `ee1a6e2` (19:48) |
 
 ### Plan usage page (Kash's screenshots, 1 Nov)
 
@@ -71,26 +74,31 @@ So on top of the weekly limit, the build spent both limit resets that fell insid
 
 ## Codex vs Claude Code split
 
-**MEASURED** at `3dfc4df` (1 November 2026). Regenerated at submit, because Claude Code commits (Crowd Trainer, voice lines) land on 1 November; the README table is the one place these numbers are shown.
+**MEASURED** at `ee1a6e2` (1 November 2026, 19:48 UK), the build live on the night of 1 November. The README table shows the same numbers. To regenerate later, replace `ee1a6e2` with `HEAD`.
 
-"Codex" = every commit up to and including `3677761` whose message does not contain "(Claude Code)". "Claude Code" = commits after `3677761` whose message contains "(Claude Code)". Source = the folders `capture demo overlay scripts server shared test worker`; Markdown docs, images and assets outside those folders are not counted. Tests are files under `test/` or named `*.test.ts`. Binary files (one pose model) are skipped.
+"Codex" = every commit up to and including `3677761` whose message does not contain "(Claude Code)". "Claude Code" = commits after `3677761` whose message contains "(Claude Code)": "fix" and "feat" commits change code; "docs" commits change only Markdown and images, so they add no source lines. Merge commits add no lines of their own. Source = the folders `capture demo overlay scripts server shared test worker`; Markdown docs, images and assets outside those folders (including the recorded voice bank's audio and its manifests) are not counted. Tests are files under `test/` or named `*.test.ts`. Binary files (one pose model) are skipped. Run in bash (zsh does not split the folder list the same way).
 
 ```sh
 SPLIT='$1!="-" && NF==3 {t=($3~/^test\//||$3~/\.test\.ts$/)?"tests":"app"; a[t]+=$1; d[t]+=$2} END {for (t in a) print t, "+" a[t], "-" d[t]}'
-git log --oneline 3677761 | grep -vc '(Claude Code)'                    # Codex code commits: 57
-git log --oneline 3677761..HEAD | grep -c 'fix (Claude Code)'            # Claude Code fixes: 30
-git log --oneline | grep -c 'docs (Claude Code)'                         # docs-only: 8
-git log --numstat --format= --invert-grep --grep='(Claude Code)' 3677761 -- capture demo overlay scripts server shared test worker | awk -F'\t' "$SPLIT"
-git log --numstat --format= --grep='(Claude Code)' 3677761..HEAD -- capture demo overlay scripts server shared test worker | awk -F'\t' "$SPLIT"
+SRC="capture demo overlay scripts server shared test worker"
+git log --oneline 3677761 | grep -vc '(Claude Code)'                                  # Codex code commits: 57
+git log --oneline 3677761..ee1a6e2 | grep -c 'fix (Claude Code)'                       # 57
+git log --oneline 3677761..ee1a6e2 | grep -c 'feat (Claude Code)'                      # 25
+git log --oneline 3677761..ee1a6e2 | grep -c 'docs (Claude Code)'                      # 15 (16 in all, one before 13w)
+git log --numstat --format= --invert-grep --grep='(Claude Code)' 3677761 -- $SRC | awk -F'\t' "$SPLIT"
+git log --numstat --format= --grep='(Claude Code)' 3677761..ee1a6e2 -- $SRC | awk -F'\t' "$SPLIT"
+git log --numstat --format= --grep='(Claude Code)' 3dfc4df..ee1a6e2 -- $SRC | awk -F'\t' "$SPLIT"   # 1 November only
 ```
 
 | | Codex | Claude Code |
 |---|---|---|
-| Code commits | 57 | 30 "fix (Claude Code)" |
-| App lines added / removed | 10,187 / 2,021 | 394 / 100 |
-| Test and fixture lines added / removed | 11,211 / 360 | 800 / 71 |
-| All source lines added / removed | 21,398 / 2,381 | 1,194 / 171 |
-| Share of source lines added | 94.7% | 5.3% |
+| Code commits | 57 | 82 (57 "fix", 25 "feat") |
+| App lines added / removed | 10,187 / 2,021 | 3,039 / 497 |
+| Test and fixture lines added / removed | 11,211 / 360 | 2,421 / 206 |
+| All source lines added / removed | 21,398 / 2,381 | 5,460 / 703 |
+| Share of source lines added | 79.7% | 20.3% |
+
+How the Claude Code share grew. At `3dfc4df` (early 1 November) it was 30 fixes and 1,194 source lines added (5.3%). The 52 code commits after `3dfc4df`, all on 1 November, added 4,266 lines and removed 532: app 2,645 / 397, tests 1,621 / 135. By group (source lines added): Crowd Trainer 8 commits, 1,045 · recorded voice lines 3, 804 · homepage redesign and demo extras 7, 664 · voice corner coach (switched off) 10, 567 · webcam setup and punch detection 5, 450 · saved preferences 4, 274 · fight and results polish 8, 266 · `/play` journey and clips 7, 196. The README lists each commit.
 
 Lines added count edits as well as new code, so this is a size measure, not a value judgement.
 
