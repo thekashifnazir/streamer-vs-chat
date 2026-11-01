@@ -37,7 +37,7 @@ import {mountStreamLayout} from './stream-layout';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
-import {createBossTaunts,createVoiceBank,mountVoicePicker,PREVIEW_CUE,setActiveVoiceBank} from './voice-bank';
+import {COACH_CUES,createBossTaunts,createVoiceBank,mountVoicePicker,playCoach,PREVIEW_CUE,setActiveVoiceBank,type CoachCue} from './voice-bank';
 
 const impactLedger=createBossImpactLedger('browser');
 const superNotices=createSuperNotices();
@@ -263,7 +263,7 @@ function input(event:StreamerInput) {
   if(event.kind==='control'&&event.action==='resume'&&!game.paused){fightUi?.setPaused(false);if(coldOpenAt!==null&&coldOpenPausedAt!==null){coldOpenAt+=at-coldOpenPausedAt;coldOpenPausedAt=null;}}
   drawCrowd(at);paint();
 }
-const trainer=mountTrainer(document,{live:liveMode,stage,difficulty:()=>difficulty.value as Difficulty,keyboard:()=>source.value==='keyboard',viewers:()=>Number(crowdSize.value),liveTokenLoaded:()=>hosted?.hasToken??false,onCue:cue=>hud.playSound(defaultCueSound(cue)),onAgain:()=>{trainer.exit();el('start-fight').click();},onExit:()=>document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click(),onDone:()=>{fightUi?.setPaused(false);updateModes();}});
+const trainer=mountTrainer(document,{live:liveMode,stage,difficulty:()=>difficulty.value as Difficulty,keyboard:()=>source.value==='keyboard',viewers:()=>Number(crowdSize.value),liveTokenLoaded:()=>hosted?.hasToken??false,onCue:cue=>{const bell=cue==='round-start'||cue==='rest'||cue==='time'||cue==='workout-done';if(bell)hud.playSound(defaultCueSound(cue));void ((COACH_CUES as readonly string[]).includes(cue)?playCoach(cue as CoachCue):Promise.resolve(false)).then(spoke=>{if(!spoke&&!bell)hud.playSound(defaultCueSound(cue));});},onAgain:()=>{trainer.exit();el('start-fight').click();},onExit:()=>document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click(),onDone:()=>{fightUi?.setPaused(false);updateModes();}});
 const avatarPose=createKeyboardAvatar(avatar,{punchEnabled:()=>!noPunch.checked});
 const keyboard=createKeyboard({emit:input,label:avatarPose.label});
 keyboard.setEnabled(true);
