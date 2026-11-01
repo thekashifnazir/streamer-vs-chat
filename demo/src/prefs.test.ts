@@ -4,9 +4,9 @@ function memoryStorage(seed:Record<string,string>={}):Storage{
  const data=new Map(Object.entries(seed));
  return {get length(){return data.size;},key:i=>[...data.keys()][i]??null,getItem:key=>data.get(key)??null,setItem:(key,value)=>{data.set(key,String(value));},removeItem:key=>{data.delete(key);},clear:()=>data.clear()};
 }
-it('starts on defaults, including the unused mode field, and saves a versioned key',()=>{
+it('starts on defaults, including the mode and Trainer fields, and saves a versioned key',()=>{
  const storage=memoryStorage(),prefs=createPrefs(()=>storage);
- expect(prefs.load()).toEqual({difficulty:null,input:'keyboard',posture:'standing',noPunch:false,sound:true,plain:false,crowd:50,mode:'boss'});
+ expect(prefs.load()).toEqual({difficulty:null,input:'keyboard',posture:'standing',noPunch:false,sound:true,plain:false,crowd:50,mode:'boss',southpaw:false,anyHand:false});
  prefs.save({difficulty:'hard',crowd:500,mode:'trainer'});expect(PREFS_KEY).toBe('svc.prefs.v1');
  expect(JSON.parse(storage.getItem(PREFS_KEY)!)).toEqual({difficulty:'hard',crowd:500,mode:'trainer'});
  expect(createPrefs(()=>storage).load()).toMatchObject({difficulty:'hard',crowd:500,mode:'trainer',input:'keyboard'});

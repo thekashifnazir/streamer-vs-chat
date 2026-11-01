@@ -13,6 +13,11 @@ it('warns while the browser broadcast is live or a match is still being fought, 
  expect(shouldWarnBeforeLeave({live:false,game:fighting,ended:true})).toBe(false);
  expect(shouldWarnBeforeLeave({live:true,game:matchOver,ended:true})).toBe(true);
 });
+it('warns while a Crowd Trainer workout runs (paused included), not on its summary',()=>{
+ expect(shouldWarnBeforeLeave({live:false,game:null,workout:true})).toBe(true);
+ expect(shouldWarnBeforeLeave({live:false,game:null,workout:false})).toBe(false);
+ expect(shouldWarnBeforeLeave({live:true,game:null,workout:false})).toBe(true);
+});
 it('adds one beforeunload listener only while a warning applies and removes it cleanly',()=>{
  const listeners=new Set<(event:BeforeUnloadEvent)=>void>();
  const target={addEventListener:vi.fn((_type:string,listener:any)=>listeners.add(listener)),removeEventListener:vi.fn((_type:string,listener:any)=>listeners.delete(listener))};
