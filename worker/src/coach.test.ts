@@ -16,7 +16,7 @@ function setup(options:{upstream?:()=>Promise<Response>}={}){
  const fetcher=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>String(input).startsWith('https://id.twitch.tv/')?twitch():upstream(input,init));
  const caps=(name:string)=>{let value=hubs.get(name);if(!value){value=new CoachCaps(new Store(),()=>now);hubs.set(name,value);}return value;};
  const idFromName=vi.fn((name:string)=>name);
- const env:RoutingEnv<string>={TWITCH_CLIENT_ID:'client',HOSTED_BOT:'off',HOSTED_CLIPS:'off',HOSTED_FORGE:'off',HOSTED_MEMORY:'off',HOSTED_COACH:'on',COACH_AGENT_ID:'agent_abc123',ELEVENLABS_API_KEY:KEY,COACH_DAILY_CHANNEL:'3',COACH_DAILY_IP:'2',COACH_DAILY_GLOBAL:'4',ASSETS:{fetch:async()=>new Response('asset')},
+ const env:RoutingEnv<string>={TWITCH_CLIENT_ID:'client',HOSTED_BOT:'off',HOSTED_CLIPS:'off',HOSTED_FORGE:'off',HOSTED_MEMORY:'off',HOSTED_COACH:'on',COACH_AGENT_ID:'agent_abc123',COACH_DEMO_AGENT_ID:'agent_demo456',ELEVENLABS_API_KEY:KEY,COACH_DAILY_CHANNEL:'3',COACH_DAILY_IP:'2',COACH_DAILY_GLOBAL:'4',ASSETS:{fetch:async()=>new Response('asset')},
   CHANNEL:{idFromName,get:(name:string)=>({coachReserveChannel:(channel:string,max:number)=>caps(name).reserveChannel(channel,max),coachReserveGlobal:(hash:string,global:number,ip:number)=>caps(name).reserveGlobal(hash,global,ip),coachReleaseChannel:(channel:string)=>caps(name).releaseChannel(channel),coachReserveDemo:(hash:string,global:number,ip:number)=>caps(name).reserveGlobal(hash,global,ip)}) as unknown as Hub}};
  return {env,fetcher,upstream,idFromName,route:createWorkerRouter({fetch:fetcher as typeof fetch,now:()=>now}),setTime:(value:number)=>{now=value;}};
 }
@@ -82,6 +82,8 @@ describe('homepage demo coach token route',()=>{
  });
  it('needs no Twitch login: mints a token from the demo global object only, never calling Twitch',async()=>{
   const s=setup();s.env.HOSTED_COACH_DEMO='on';s.env.HOSTED_COACH='off';const response=await s.route(demo(),s.env);expect(response.status).toBe(200);const text=await response.text();
+  // The demo spends its own agent's limits, never the streamers' agent.
+  expect(String(s.upstream.mock.calls[0]![0])).toBe('https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=agent_demo456');
   expect(JSON.parse(text)).toEqual({token:'eyJ.conversation.token'});expect(text).not.toContain(KEY);
   expect(s.idFromName.mock.calls.map(call=>call[0])).toEqual(['coach-demo-global']);expect(s.fetcher.mock.calls.every(call=>!String(call[0]).startsWith('https://id.twitch.tv/'))).toBe(true);
   expect((await s.route(demo('1.1.1.1',{method:'GET'}),s.env)).status).toBe(405);expect((await s.route(demo('1.1.1.1',{method:'POST'},'/api/coach/demo-token?agent_id=other'),s.env)).status).toBe(400);expect(s.upstream).toHaveBeenCalledTimes(1);
@@ -96,7 +98,7 @@ describe('homepage demo coach token route',()=>{
   s.setTime(Date.UTC(2026,10,2,0,0,1));expect((await s.route(demo('10.0.0.1'),s.env)).status).toBe(200);
  });
  it('returns a safe 503 when the key or agent is missing or upstream fails',async()=>{
-  for(const change of [{ELEVENLABS_API_KEY:''},{COACH_AGENT_ID:''}]){const s=setup();s.env.HOSTED_COACH_DEMO='on';Object.assign(s.env,change);expect((await s.route(demo(),s.env)).status).toBe(503);expect(s.upstream).not.toHaveBeenCalled();}
+  for(const change of [{ELEVENLABS_API_KEY:''},{COACH_DEMO_AGENT_ID:''}]){const s=setup();s.env.HOSTED_COACH_DEMO='on';Object.assign(s.env,change);expect((await s.route(demo(),s.env)).status).toBe(503);expect(s.upstream).not.toHaveBeenCalled();}
   const s=setup({upstream:async()=>new Response('{"detail":"sk_private_test_key"}',{status:401})});s.env.HOSTED_COACH_DEMO='on';const response=await s.route(demo(),s.env);expect(response.status).toBe(503);expect(await response.text()).not.toContain(KEY);
  });
 });

@@ -9,7 +9,7 @@ import {coachDemoLimits,coachIpHash,coachLimits,fetchCoachToken,type CoachReply}
 export interface ApiRequest extends JsonRequest {url:string;method:string;headers:{get(name:string):string|null}}
 export type Hub={memoryEvents:(channel:string,events:MemoryEvent[])=>Promise<MemorySnapshot>;memorySnapshot:(channel:string,sessionId?:string,mvpId?:string|null)=>Promise<MemorySnapshot>;forgeModerate:(channel:string,input:string[])=>Promise<ForgeReply<{results:{flagged:boolean}[]}>>;forgeRespond:(channel:string,body:ForgeRespondBody)=>Promise<ForgeReply<ForgeResponse>>;enqueueClip:(channel:string,clipId:string)=>Promise<boolean>;enqueue:(channel:string,message:string)=>Promise<void>;status:(channel:string)=>Promise<{dropReason:string|null;pending:number}>;coachReserveChannel?:(channel:string,max:number)=>Promise<CoachReply>;coachReleaseChannel?:(channel:string)=>Promise<void>;coachReserveGlobal?:(ipHash:string,global:number,ip:number)=>Promise<CoachReply>;coachReserveDemo?:(ipHash:string,global:number,ip:number)=>Promise<CoachReply>};
 /** Narrow injected binding surface; no platform runtime required by Node tests. */
-export type RoutingEnv<Id,RequestType extends ApiRequest=Request,AssetResponse=Response>={TWITCH_CLIENT_ID:string;HOSTED_BOT:string;HOSTED_CLIPS:string;HOSTED_FORGE:string;HOSTED_MEMORY:string;HOSTED_COACH?:string;COACH_AGENT_ID?:string;ELEVENLABS_API_KEY?:string;COACH_DAILY_CHANNEL?:string;COACH_DAILY_IP?:string;COACH_DAILY_GLOBAL?:string;HOSTED_COACH_DEMO?:string;COACH_DEMO_DAILY_IP?:string;COACH_DEMO_DAILY_GLOBAL?:string;ASSETS:{fetch:(request:RequestType)=>Promise<AssetResponse>};CHANNEL:{idFromName:(name:string)=>Id;get:(id:Id)=>Hub}};
+export type RoutingEnv<Id,RequestType extends ApiRequest=Request,AssetResponse=Response>={TWITCH_CLIENT_ID:string;HOSTED_BOT:string;HOSTED_CLIPS:string;HOSTED_FORGE:string;HOSTED_MEMORY:string;HOSTED_COACH?:string;COACH_AGENT_ID?:string;ELEVENLABS_API_KEY?:string;COACH_DAILY_CHANNEL?:string;COACH_DAILY_IP?:string;COACH_DAILY_GLOBAL?:string;HOSTED_COACH_DEMO?:string;COACH_DEMO_AGENT_ID?:string;COACH_DEMO_DAILY_IP?:string;COACH_DEMO_DAILY_GLOBAL?:string;ASSETS:{fetch:(request:RequestType)=>Promise<AssetResponse>};CHANNEL:{idFromName:(name:string)=>Id;get:(id:Id)=>Hub}};
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export function createWorkerRouter(options:{fetch:typeof fetch;now:()=>number}){
  // Per-client validation cache contains SHA-256 keys and identity/scopes only, never tokens.
@@ -25,7 +25,8 @@ export function createWorkerRouter(options:{fetch:typeof fetch;now:()=>number}){
    if(request.method!=='POST')return json({reason:'method-not-allowed'},405);
    if(url.search)return json({reason:'invalid-query'},400);
    try{
-    const key=env.ELEVENLABS_API_KEY?.trim(),agent=env.COACH_AGENT_ID?.trim(),global=env.CHANNEL.get(env.CHANNEL.idFromName('coach-demo-global'));
+    // The demo uses its own ElevenLabs agent (own daily and concurrency limits), so demo traffic never uses up the streamers' coach.
+    const key=env.ELEVENLABS_API_KEY?.trim(),agent=env.COACH_DEMO_AGENT_ID?.trim(),global=env.CHANNEL.get(env.CHANNEL.idFromName('coach-demo-global'));
     if(!key||!agent||!/^[\w-]{1,64}$/.test(agent)||!global.coachReserveDemo)return json({reason:'unavailable'},503);
     const limits=coachDemoLimits(env),shared=await global.coachReserveDemo(await coachIpHash(request.headers.get('CF-Connecting-IP'),key,new Date(options.now()).toISOString().slice(0,10)),limits.global,limits.ip);
     if(!shared.ok)return json({reason:shared.reason},shared.reason==='daily-cap'?429:503);
