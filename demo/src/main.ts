@@ -21,6 +21,7 @@ import { step as engineStep, type GameState } from '../../shared/src/engine';
 import {parseChatVote} from '@svc/shared';
 import type { PoseState, StreamerInput } from '@svc/shared';
 import { createKeyboard } from '../../capture/src/keyboard';
+import { createKeyboardAvatar } from './keyboard-avatar';
 import { PoseCamera } from '../../capture/src/camera';
 import { PoseClassifier } from '../../capture/src/classifier';
 import { createCalibration } from '../../capture/src/calibration';
@@ -243,9 +244,8 @@ function input(event:StreamerInput) {
   if(event.kind==='control'&&event.action==='resume'&&!game.paused){fightUi?.setPaused(false);if(coldOpenAt!==null&&coldOpenPausedAt!==null){coldOpenAt+=at-coldOpenPausedAt;coldOpenPausedAt=null;}}
   drawCrowd(at);paint();
 }
-const keyboard=createKeyboard({emit:input,label:label=>{
-  avatar.classList.toggle('guard',label.guard);avatar.classList.toggle('lean-L',label.lean==='L');avatar.classList.toggle('lean-R',label.lean==='R');
-}});
+const avatarPose=createKeyboardAvatar(avatar,{punchEnabled:()=>!noPunch.checked});
+const keyboard=createKeyboard({emit:input,label:avatarPose.label});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
 const setup=mountFightSetup(document,{keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,onStart:()=>{void hud.activateSound();if(game){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});

@@ -5,11 +5,18 @@ html,body{height:auto;min-height:100%;overflow:auto;background:#0c0912;color:#f5
 #game-hud{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:top left;z-index:2}
 #camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:0}
 #keyboard-avatar{position:absolute;left:50%;top:53%;width:24%;height:60%;transform:translate(-50%,-50%);transition:rotate .16s,translate .16s;color:#aaa0ba;z-index:0}
-#keyboard-avatar.lean-L{translate:-12% 0;rotate:-12deg}#keyboard-avatar.lean-R{translate:12% 0;rotate:12deg}
+#keyboard-avatar.lean-L{translate:-12% 0;rotate:-14deg}#keyboard-avatar.lean-R{translate:12% 0;rotate:14deg}
 .avatar-head{position:absolute;width:32%;height:25%;background:#67547d;border:3px solid #a28ab9;border-radius:50%;left:34%;top:0}
 .avatar-body{position:absolute;width:64%;height:65%;background:linear-gradient(#58466b,#382943);border:3px solid #8f76a6;border-radius:40% 40% 18% 18%;left:18%;top:27%}
 .avatar-arm{position:absolute;width:19%;height:48%;background:#67547d;border:3px solid #a28ab9;border-radius:40px;top:32%;transform-origin:50% 10%;transition:transform .15s}.avatar-arm.left{left:5%;transform:rotate(10deg)}.avatar-arm.right{right:5%;transform:rotate(-10deg)}
 #keyboard-avatar.guard .avatar-arm.left{transform:translate(45%,-45%) rotate(-25deg)}#keyboard-avatar.guard .avatar-arm.right{transform:translate(-45%,-45%) rotate(25deg)}
+/* Keyboard figure reacts to the held keys (presentation only): K guard lights the arms, A/D lean
+   from the hips, J throws the arm toward the boss rail. Reduced motion snaps between poses. */
+#keyboard-avatar{transform-origin:50% 85%}
+#keyboard-avatar.guard .avatar-arm{border-color:#2ef2ff;box-shadow:0 0 14px #2ef2ff80}
+#keyboard-avatar.lean-L .avatar-head,#keyboard-avatar.lean-R .avatar-head{border-color:#2ef2ff}
+#keyboard-avatar.punch .avatar-arm.right{transform:translate(10%,-30%) rotate(-95deg) scaleY(1.15);border-color:#ffdc43;box-shadow:0 0 14px #ffdc4380;transition-duration:.06s}
+@media(prefers-reduced-motion:reduce){#keyboard-avatar,#keyboard-avatar .avatar-arm{transition:none}}
 #keyboard-avatar>span{position:absolute;bottom:-6%;width:100%;text-align:center;font-size:clamp(8px,1vw,13px);letter-spacing:2px}
 .tutorial{position:absolute;z-index:5;left:50%;top:48%;transform:translate(-50%,-50%);width:min(630px,85%);padding:30px 36px;border-radius:12px;border:1px solid #756084;background:#17101ff5;box-shadow:0 20px 100px #000a;text-align:center}
 .tutorial-eyebrow{font-size:11px;color:#ffdc43;font-weight:800;letter-spacing:2px;margin-bottom:12px}.tutorial h1{font-family:Impact,'Arial Narrow',sans-serif;font-weight:500;font-size:clamp(24px,3vw,42px);letter-spacing:-.5px}.tutorial p:not(.tutorial-eyebrow){font-size:14px;line-height:1.6;color:#c9bfd4;margin:12px 0}.tutorial small{display:block;font-size:11px;color:#aaa0b8}
