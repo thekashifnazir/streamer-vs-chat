@@ -74,3 +74,31 @@ it('reads as a scoreboard: eyebrow, winner colour hook, round score and big-numb
  game=structuredClone(game);game.match.winner='boss';game.match.seed++;ui.render(game);expect(doc.querySelector('[data-result-eyebrow]')!.textContent).toBe('Match over');
  ui.reset();ui.render(createGame({seed:9}),true);expect(results.dataset.resultWinner).toBe('none');expect(doc.querySelector('[data-result-eyebrow]')!.textContent).toBe('Fight over');
 });
+it('shows confirmed clips as a tile row under the stats, each opening in a new tab',()=>{
+ const {doc,ui}=setup(false),game=createGame();game.round.over=true;game.log.rounds=[{number:1,winner:'streamer',reason:'ko',at:100,streamer_hp:50,boss_hp:0,duration_ms:100} as any];
+ ui.render(game,false,{clips:[{label:'KO',url:'https://clips.twitch.tv/One'},{label:'PERFECT',url:'https://clips.twitch.tv/Two'},{label:'Bad',url:'javascript:alert(1)'}]});
+ const tiles=[...doc.querySelectorAll<HTMLAnchorElement>('#round-results .result-clips a.result-clip')];expect(tiles.map(tile=>tile.textContent)).toEqual(['▶ KO clip','▶ PERFECT clip']);
+ for(const tile of tiles){expect(tile.target).toBe('_blank');expect(tile.rel.split(' ')).toContain('noopener');expect(tile.querySelector('span')!.getAttribute('aria-hidden')).toBe('true');}
+ ui.render(game,false,{clips:[]});expect(doc.querySelector('#round-results .result-clips')).toBeNull();
+ const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');expect(css).toContain('.round-results .result-clips{order:4;');
+});
+it('bottom-bar End fight ends the fight from the results card, the match end and a between-rounds pause, like the card link',()=>{
+ const {doc,ui,actions}=setup(false),game=createGame();
+ ui.end();expect(actions.end).toHaveBeenCalledOnce();expect(actions.quit).not.toHaveBeenCalled();// mid-round: stop and show the Fight ended card
+ game.round.over=true;game.log.rounds=[{number:1,winner:'boss',reason:'ko',at:100,streamer_hp:0,boss_hp:70,duration_ms:100} as any];ui.render(game);
+ ui.end();expect(actions.quit).toHaveBeenCalledTimes(1);expect(actions.end).toHaveBeenCalledOnce();
+ ui.setPaused(true,'Esc');ui.end();expect(actions.quit).toHaveBeenCalledTimes(2);
+ ui.setPaused(false);game.match.winner='boss';ui.render(game);ui.end();expect(actions.quit).toHaveBeenCalledTimes(3);
+ doc.querySelector<HTMLButtonElement>('[data-result-quit]')!.click();expect(actions.quit).toHaveBeenCalledTimes(4);
+});
+it('holds a round results card back for revealMs so the KO shows first; End fight from the bar still quits meanwhile',()=>{
+ const dom=new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8'));windows.push(dom);const doc=dom.window.document,actions={resume:vi.fn(),restart:vi.fn(),quit:vi.fn(),end:vi.fn(),next:vi.fn()};let at=10000;
+ const ui=mountFightUi(doc,{offline:true,...actions,now:()=>at,revealMs:1500}),game=createGame(),card=doc.getElementById('round-results')!;
+ ui.render(game);expect(card.hidden).toBe(true);
+ game.round.over=true;game.log.rounds=[{number:1,winner:'streamer',reason:'ko',at:100,streamer_hp:50,boss_hp:0,duration_ms:100} as any];
+ ui.render(game);expect(card.hidden).toBe(true);at=11000;ui.render(game);expect(card.hidden).toBe(true);
+ ui.end();expect(actions.quit).toHaveBeenCalledOnce();expect(actions.end).not.toHaveBeenCalled();
+ at=11500;ui.render(game);expect(card.hidden).toBe(false);expect(doc.querySelector('[data-result-title]')!.textContent).toBe('You won Round 1');
+ // End fight mid-round shows its card at once.
+ game.round.over=false;ui.render(game);expect(card.hidden).toBe(true);ui.render(game,true);expect(card.hidden).toBe(false);
+});

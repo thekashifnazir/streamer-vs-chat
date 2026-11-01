@@ -11,12 +11,15 @@ export function mountStreamLayout(options:{live:boolean;onEnd:()=>void},doc:Docu
  bar.innerHTML='<span class="stream-status" role="status"></span><label title="Flat green behind the fight, so an OBS Chroma Key filter can cut it out"><input type="checkbox" class="stream-green"> Green screen (for OBS)</label><button class="stream-end" title="Ends this session: shows the session card and copies counts-only results">Finish &amp; copy results</button><button class="stream-expand" aria-expanded="false">Show full page</button>';
  doc.querySelector('main')!.prepend(bar);
  const status=bar.querySelector<HTMLElement>('.stream-status')!,green=bar.querySelector<HTMLInputElement>('.stream-green')!,expand=bar.querySelector<HTMLButtonElement>('.stream-expand')!;
- let compact=false;
+ let compact=false,fullPageChosen=false;
  const setCompact=(value:boolean)=>{compact=value;if(value){bar.hidden=false;const controls=doc.querySelector<HTMLElement>('.demo-controls');if(controls)controls.hidden=false;}doc.body.classList.toggle('stream-compact',value);expand.textContent=value?'Show full page':'Fight view only';expand.title=value?'Show setup, options and how to play under the fight':'Hide setup and fill the window with the fight';expand.setAttribute('aria-expanded',String(!value));};
  bar.querySelector('.stream-end')!.addEventListener('click',()=>{options.onEnd();setCompact(false);});
- expand.addEventListener('click',()=>setCompact(!compact));
+ expand.addEventListener('click',()=>{fullPageChosen=compact;setCompact(!compact);});
  green.addEventListener('change',()=>{doc.getElementById('stage')!.classList.toggle('chroma-green',green.checked);const original=doc.getElementById('green-background') as HTMLInputElement|null;if(original){original.checked=green.checked;original.dispatchEvent(new Event('change'));}});
  status.textContent=options.live?'LIVE · CONNECT TWITCH':'SIMULATED · NO LOGIN';
  setCompact(false);
- return {collapse:()=>setCompact(true),expand:()=>setCompact(false),status:(text:string)=>{status.textContent=text;},green:(checked:boolean)=>{green.checked=checked;}};
+ // collapse() starts a fight in the fight-only view; fightView() keeps it there on every repaint unless the streamer pressed Show full page.
+ return {collapse:()=>{fullPageChosen=false;setCompact(true);},expand:()=>{fullPageChosen=false;setCompact(false);},fightView:()=>{if(!compact&&!fullPageChosen)setCompact(true);},get compact(){return compact;},
+  /** The detail (an error code) goes in the tooltip only, never the visible line. */
+  status:(text:string,detail?:string)=>{status.textContent=text;status.title=detail?`${text} · ${detail}`:text;},green:(checked:boolean)=>{green.checked=checked;}};
 }

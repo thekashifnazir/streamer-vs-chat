@@ -53,6 +53,9 @@ export function mountCornerCoach(doc:Document,options:{auth:Auth;getHealth:Healt
   dispose(){disposed=true;buttons.dispose();},
  };
 }
+/** Switched off for the submission (1 Nov): the homepage demo mounts no corner coach. The code stays (and stays in the
+ * build, so chunking is unchanged) and returns with <body data-demo-coach="on"> in demo/index.html. */
+export const demoCoachEnabled=(doc:Document)=>doc.body.dataset.demoCoach==='on';
 export const DEMO_COACH_RESTING='The corner coach is resting. Try it on /play or later.';
 /** 429 daily-cap: the demo allows 3 corner talks a day per person. */
 export const DEMO_COACH_DAILY_CAP='You\'ve used today\'s free corner talks. Streamers get more on /play.';

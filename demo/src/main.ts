@@ -39,7 +39,7 @@ import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
 import {createSimChatFeed,mountSimChat,simHandle,simVoteText,type SimChatMode} from './sim-chat';
-import {mountDemoCornerCoach} from './coach-button';
+import {demoCoachEnabled,mountDemoCornerCoach} from './coach-button';
 import {formatHypeFull,formatRoundResult,roundResultBody} from '../../shared/src/result-text';
 import {formatWorkoutSummary,trainerSummary} from '../../shared/src/trainer';
 import {COACH_CUES,createBossTaunts,createVoiceBank,mountVoicePicker,playCoach,PREVIEW_CUE,setActiveVoiceBank,type CoachCue} from './voice-bank';
@@ -91,6 +91,8 @@ let forgeSnapshot:ForgeSnapshot|null=null;
 let forgePanel:ReturnType<typeof import('./forge').mountDemoForge>|null=null;
 let game:GameState|null=null;
 let fightUi:ReturnType<typeof mountFightUi>|null=null;
+/** The round results card waits 1.5 s after the round ends, so the KO blow and stamp are seen on stream and in clips. */
+const RESULT_REVEAL_MS=1500;
 let crowd:ReturnType<typeof createSimulationSource>|null=null;
 let crowdBeat='';
 let cameraRunning=false;
@@ -204,6 +206,8 @@ function paint() {
   // The compact fight layout hides the setup card. If the flow leaves step 3 mid-fight (Twitch
   // authorization revoked or expired), expand it so the Reconnect card is not hidden behind a blank page.
   if(liveMode&&document.body.dataset.playStep!=='fight'&&document.body.classList.contains('stream-compact'))streamLayout.expand();
+  // /play: a running fight or workout (between rounds too) shows only the stage, its controls and the top bar until End fight or Show full page.
+  else if(liveMode&&document.body.dataset.playStep==='fight'&&(game||trainer.active||tutorialStarted)&&!document.body.classList.contains('webcam-open'))streamLayout.fightView();
   leaveGuard.sync();
 }
 function drawCrowd(at:number) {
@@ -288,9 +292,9 @@ const keyboard=createKeyboard({emit:input,label:avatarPose.label});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
 const setup=mountFightSetup(document,{onSkipPunches:()=>applyCalibration(calibration.skipPunches()),keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,workout:()=>trainer.selected,onStart:()=>{void hud.activateSound();if(game||trainer.selected){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
-fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{trainer.exit();updateModes();if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(trainer.active){trainer.exit();updateModes();}if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
-// Offline demo: the real voice coach (Boss Fight only), no request until the click; see coach-button.ts.
-const demoCoach=liveMode?null:mountDemoCornerCoach(document,{getState:()=>trainer.selected||trainer.active||coldOpenAt!==null?null:game,onActive:active=>fightUi?.hold(active)});
+fightUi=mountFightUi(document,{offline:!liveMode,revealMs:RESULT_REVEAL_MS,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{trainer.exit();updateModes();if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(trainer.active){trainer.exit();updateModes();}if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
+// Offline demo voice coach: switched off for the submission (demoCoachEnabled); see coach-button.ts and docs/COACH.md.
+const demoCoach=liveMode||!demoCoachEnabled(document)?null:mountDemoCornerCoach(document,{getState:()=>trainer.selected||trainer.active||coldOpenAt!==null?null:game,onActive:active=>fightUi?.hold(active)});
 // Offline demo: browser Back returns to the homepage hero instead of leaving the site; mid-round it pauses first.
 if(!liveMode)mountLandingHistory(window,{away:()=>document.body.classList.contains('fight-started')||document.body.classList.contains('webcam-open'),midFight:()=>!showSessionSummary&&(trainer.running||(tutorialStarted&&!game)||(!!game&&!game.round.over&&!game.match.winner)),paused:()=>!!fightUi?.paused,pause:()=>{setup.cancel();keyboard.release();pauseWith('you pressed Back · Back again goes to the homepage');},home:()=>{setup.cancel();if(document.body.classList.contains('webcam-open'))setup.close(false);if(document.body.classList.contains('fight-started'))document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click();el('onboarding-row').scrollIntoView?.({block:'start'});}});
 /** Leave a rehearsal take for the landing page, keeping its result line on screen. */
@@ -433,7 +437,7 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game||trainer.running)pauseWith(reason);};
-  hosted=mountHostedPlay({getState:()=>game,coachOff:()=>trainer.selected||trainer.active,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>trainer.selected?null:parseChatVote(text,user,at,false,game?.bossDef),onChatMessage:message=>trainer.chat(message),onCoach:active=>fightUi?.hold(active),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:message=>streamLayout.status(message),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  hosted=mountHostedPlay({getState:()=>game,coachOff:()=>trainer.selected||trainer.active,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>trainer.selected?null:parseChatVote(text,user,at,false,game?.bossDef),onChatMessage:message=>trainer.chat(message),onCoach:active=>fightUi?.hold(active),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:(message,detail)=>streamLayout.status(message,detail),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
