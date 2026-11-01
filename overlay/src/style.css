@@ -365,3 +365,5 @@ html,body{margin:0;width:100%;height:100%;background:transparent}
 .boss .vote-header [data-id=vote-count-label][hidden]{display:none}
 /* Hosted /play shows the connected Twitch login here: long logins end in an ellipsis (full name in the title). */
 .rails-hud .streamer h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* Plain-words HUD labels (hudclarity): the FOCUS hint wraps to two lines at the 36px floor, so it sits tighter under the defence text. */
+.status-card .focus-guide{margin-top:8px;line-height:1.05}

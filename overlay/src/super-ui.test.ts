@@ -32,7 +32,7 @@ import {readFileSync} from 'node:fs';
 it('gives locked SUPER a full-width wrapping status line at the36px floor',()=>{
  const css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),hud=readFileSync(new URL('./hud.ts',import.meta.url),'utf8');
  expect(css).toContain('.vote-row.super-locked>.super-lock{display:flex;flex-wrap:wrap;');expect(css).toContain('.super-lock>span{white-space:nowrap}');
- expect(hud).toContain('· HYPE ${Math.round(current?.hype??0)}%');expect(hud).toContain('CHAT VOTES FILL HYPE<br>MORE VOTERS = FASTER');
+ expect(hud).toContain('<span>SUPER UNLOCKS</span><span>AT 100% HYPE</span>');expect(hud).toContain('· NOW ${Math.round(current?.hype??0)}%');expect(hud).toContain('EACH VOTE ADDS HYPE<br>MORE VOTERS, FASTER HYPE');
  expect(css).toContain('font:400 36px/1 Anton');
 });
 it('keeps the SUPER READY / denied banners clear of the telegraph callout and move chip',()=>{

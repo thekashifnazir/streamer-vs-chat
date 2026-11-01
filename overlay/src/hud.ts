@@ -95,7 +95,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   <aside class="rail boss" aria-label="Boss"><header><p class="eyebrow">BOSS · CHAT-CONTROLLED</p><h2>CHAT GOLEM</h2></header><div class="hp"><strong data-id="boss-hp">100</strong><span>%</span></div>
   <div class="health-bar" data-id="boss-bar" role="progressbar" aria-label="boss HP 135 / 135" aria-valuemin="0" aria-valuemax="135" aria-valuenow="135"><i></i><span></span></div><p class="hype">HYPE <b data-id="hype">0%</b> <span data-id="super-command">→ !super/!s</span></p><div class="hype-bar"><span data-id="hype-fill"></span></div><section data-id="raid-phase" class="raid-phase" hidden><strong data-id="raid-label"></strong><span>RAIDERS 2× · CAP 50%</span></section>
   <section class="chat-habit scouting" data-id="chat-habit" hidden aria-label="Chat habit" aria-live="polite"><p class="eyebrow">CHAT LEANS ON</p><h2><span data-id="chat-habit-move"></span> <span data-id="chat-habit-share"></span></h2><p class="chat-habit-evidence"><span data-id="chat-habit-n"></span></p><p data-id="chat-habit-instruction"></p></section><div class="read-it-stamp" data-id="read-it" hidden>READ IT!<small>+25% COUNTER</small></div><section class="nemesis-card" data-id="nemesis" hidden><h2>YOUR NEMESIS IS VOTING</h2><p data-id="nemesis-name"></p><p data-id="nemesis-kos"></p></section><div class="vote-header"><span data-id="vote-count-label"><strong data-id="voters">0</strong> VOTING</span> <span data-id="beat">· NEXT IN 2.4s</span></div><div class="votes" data-id="votes" aria-label="Chat vote tally"></div>
-  <p class="hype-vote-legend">CHAT VOTES FILL HYPE<br>MORE VOTERS = FASTER</p><div class="boss-damage-numbers" data-id="boss-damage" aria-live="polite"></div><canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section data-id="forge" hidden></section><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
+  <p class="hype-vote-legend">EACH VOTE ADDS HYPE<br>MORE VOTERS, FASTER HYPE</p><div class="boss-damage-numbers" data-id="boss-damage" aria-live="polite"></div><canvas data-id="boss-sprite" class="boss-sprite" width="470" height="486" role="img" aria-label="Chat Golem boss"></canvas></aside><section data-id="forge" hidden></section><section class="endcard" data-id="endcard" hidden aria-label="Game results" aria-live="polite"></section></main>`;
   const el=<T extends HTMLElement=HTMLElement>(id:string)=>host.querySelector<T>(`[data-id="${id}"]`)!;
   const stage=host.querySelector<HTMLElement>('.rails-hud')!;
   const forgeView=createForgeView(el('forge'));let forge:ForgeSnapshot|null=null;let forgeVisible:boolean|undefined;
@@ -110,7 +110,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   const rows=commands.map(([move,command])=>{
     const row=document.createElement('div');row.className='vote-row';row.dataset.move=move;
     row.innerHTML=`<div class="vote-command"><span class="vote-name">${command}</span><small><span class="vote-count">0</span></small></div><div class="vote-track"><div class="vote-fill"></div></div><div class="vote-percent">0%</div>`;
-    if(move==='SUPER'){const lock=document.createElement('div');lock.className='super-lock';lock.innerHTML='<span>LOCKED</span><span data-super-hype></span>';row.append(lock);}
+    if(move==='SUPER'){const lock=document.createElement('div');lock.className='super-lock';lock.innerHTML='<span>SUPER UNLOCKS</span><span>AT 100% HYPE</span><span data-super-hype></span>';row.append(lock);}
     el('votes').append(row);
     return {move,row,count:row.querySelector<HTMLElement>('.vote-count')!,fill:row.querySelector<HTMLElement>('.vote-fill')!,percent:row.querySelector<HTMLElement>('.vote-percent')!};
   });
@@ -206,7 +206,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('voters').textContent=String(message.voters);el('simulated').hidden=!(message.simulated||memory?.simulated);el('simulated').textContent=memory?.simulated?'● SIMULATED':'● SIMULATED CHAT';
     for(const {move,row,count,fill,percent}of rows){const value=message.tally[move];const share=shares[move];const locked=move==='SUPER'&&!superReady;
       count.textContent=voteCountLabel(value);fill.style.width=`${share}%`;percent.textContent=locked?'LOCK':`${share}%`;
-      row.classList.toggle('locked',locked);row.classList.toggle('super-locked',locked);if(move==='SUPER')row.querySelector('[data-super-hype]')!.textContent=`· HYPE ${Math.round(current?.hype??0)}%`;row.classList.toggle('leader',highest>0&&weights[move]===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
+      row.classList.toggle('locked',locked);row.classList.toggle('super-locked',locked);if(move==='SUPER')row.querySelector('[data-super-hype]')!.textContent=`· NOW ${Math.round(current?.hype??0)}%`;row.classList.toggle('leader',highest>0&&weights[move]===highest&&!locked);row.classList.toggle('exploit-vote',move===exploit);
       row.setAttribute('aria-label',`${current?bossMove(current,move).label:names[move]} ${value} voters${locked?', locked':`, ${share} percent influence`}`);
       row.title=`${value} viewer vote${value===1?'':'s'} · ${share}% of attack draw influence`;
     }
@@ -225,7 +225,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     hp('streamer',state.streamer.hp,state.streamer.max_hp);hp('boss',state.boss.hp,state.boss.max_hp);
     el('clock').textContent=String(Math.max(0,Math.ceil(state.round.remaining_ms/1000)));el('round').textContent=`${state.round.number} / 3`;
     el('streamer-wins').textContent=String(state.match.round_wins.streamer);el('boss-wins').textContent=String(state.match.round_wins.boss);
-    renderFocus(el('focus-meter'),el('focus-value'),el('focus-fill'),state);if(options.offlineDemo&&state.focus>0&&!host.querySelector('.focus-guide')){const guide=document.createElement('small');guide.className='focus-guide';guide.textContent='FOCUS → FINISHER';host.querySelector('.status-card')!.append(guide);}
+    renderFocus(el('focus-meter'),el('focus-value'),el('focus-fill'),state);if(options.offlineDemo&&state.focus>0&&!host.querySelector('.focus-guide')){const guide=document.createElement('small');guide.className='focus-guide';guide.innerHTML='FILL YOUR FOCUS BAR<br>TO UNLOCK A FINISHER';host.querySelector('.status-card')!.append(guide);}
     const finisherView=finisherPresentation(state);el('finisher-ready').hidden=!finisherView.visible;el('finisher-ready').classList.toggle('window-active',finisherView.active);setText('finisher-ready',finisherView.text);
     el('hype').textContent=`${Math.round(state.hype)}%`;el('hype-fill').style.width=`${state.hype}%`;
     const superReady=!!state.bossDef||state.hype>=100&&state.supers_used<3;setText('super-command',`→ ${chatCommand('SUPER',state.bossDef,true)}`);el('super-command').hidden=!availableMoves(state).includes('SUPER');
@@ -275,7 +275,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('exploit-note').textContent=telegraph?exploitHabitNote(state):'';
     el('left-arrow').hidden=!((telegraph||sequence.visible)&&['lean_left','lean_any'].includes(activeDefence));
     el('right-arrow').hidden=!((telegraph||sequence.visible)&&['lean_right','lean_any'].includes(activeDefence));
-    el('phase').textContent=state.paused?'PAUSED':state.round.over?'ROUND OVER':superReady?'SUPER READY':'DEFENCE FIRST';
+    el('phase').textContent=state.paused?'PAUSED':state.round.over?'ROUND OVER':superReady?'SUPER READY':'DEFEND EVERY ATTACK';
     el('status').textContent=state.round.over?`${state.round.winner==='streamer'?'STREAMER':'CHAT'} WINS`:state.paused?'RESUME WHEN READY.':`GUARD STRAIGHTS.\n${modes.seated?'TILT':'LEAN'} FROM SWINGS.`;
     el('result').textContent=state.round.over?(state.match.winner?'MATCH COMPLETE':'NEXT ROUND WHEN READY'):'';
     if(!previous){
