@@ -489,4 +489,4 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .hosted-flow .stream-bar .stream-end{display:none}
 /* PLAIN moved to More options as Steady bars (hosted-flow.ts); the HUD footer keeps only SOUND. */
 .play-plain-moved #game-hud .hud-options label:has(input[data-id=plain]){display:none}
-@media(max-width:760px){.hosted-flow #fight-setup .extras-grid{grid-template-columns:1fr 1fr}.hosted-flow .trainer-mode-choice [data-trainer-mode]{height:160px;font-size:22px}.hosted-flow .trainer-mode-choice [data-trainer-mode]::before{height:80px}}
+@media(max-width:760px){.hosted-flow #fight-setup .extras-grid{grid-template-columns:1fr 1fr}.hosted-flow .trainer-mode-choice [data-trainer-mode]{height:176px;--plate-h:98px;font-size:22px}.hosted-flow .trainer-mode-choice [data-trainer-mode]::before{bottom:102px;height:66px}}
