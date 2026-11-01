@@ -21,18 +21,19 @@ function isTextEntry(target:EventTarget|null){const element=target as {tagName?:
 export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElement;difficulty:()=>Difficulty;keyboard:()=>boolean;viewers:()=>number;liveTokenLoaded:()=>boolean;onCue?:(cue:TrainerCue)=>void;onAgain:()=>void;onExit:()=>void;onModeChange?:(mode:GameMode)=>void;onDone?:(state:TrainerState)=>void;now?:()=>number;search?:string}){
  const win=doc.defaultView!,now=options.now??(()=>win.performance.now());
  let mode=initialMode(options.search??win.location.search),state:TrainerState|null=null,crowd:ReturnType<typeof createTrainerCrowd>|null=null,lastTick=0,seed=20261101,southpaw=false,anyHand=false,renderKey='';
- // Mode choice: the offline landing shows it above PLAY NOW; /play shows it at the top of step 3.
+ // Mode choice: the offline landing shows it as the CHOOSE YOUR FIGHT cards; /play shows it at the top of step 3.
  const choice=doc.createElement('div');choice.className='setup-section trainer-mode-choice';
  choice.innerHTML='<h3>GAME MODE</h3><div class="option-group" role="group" aria-label="Game mode"><button type="button" data-trainer-mode="boss">Boss Fight<br><small>Chat votes attacks · you defend</small></button><button type="button" data-trainer-mode="trainer">Crowd Trainer<br><small>Chat calls combos · you throw them</small></button></div><div class="trainer-options" hidden><label><input type="checkbox" id="trainer-southpaw" data-trainer-option="southpaw" role="switch"><span><strong>Southpaw</strong><br>Right hand leads, so 1 is your right.</span></label><label><input type="checkbox" id="trainer-any-hand" data-trainer-option="any-hand" role="switch"><span><strong>Any hand counts</strong><br>Easier: the camera ignores which hand.</span></label></div>';
- const intro=doc.getElementById('demo-intro'),playNow=doc.getElementById('play-now');
- if(!options.live&&intro&&playNow)playNow.before(choice);else{const setup=doc.getElementById('fight-setup');setup?.querySelector('h2')?.after(choice);}
- const copy=intro?{h1:intro.querySelector('h1')?.textContent??'',p:intro.querySelector('h1+p')?.textContent??'',play:playNow?.textContent??''}:null;
+ const intro=doc.getElementById('demo-intro'),playNow=doc.getElementById('play-now'),slot=options.live?null:doc.getElementById('landing-modes');
+ if(slot){choice.querySelector('h3')!.textContent='CHOOSE YOUR FIGHT';slot.append(choice);}else if(!options.live&&intro&&playNow)playNow.before(choice);else{const setup=doc.getElementById('fight-setup');setup?.querySelector('h2')?.after(choice);}
+ // The landing keeps its wordmark; its one plain line and the PLAY NOW word follow the mode (keyboard/webcam stays beside it).
+ const line=intro?.querySelector('.landing-lede'),word=playNow?.querySelector('.play-main'),copy={line:line?.textContent??'',word:word?.textContent??''};
  const southpawBox=choice.querySelector<HTMLInputElement>('[data-trainer-option=southpaw]')!,anyHandBox=choice.querySelector<HTMLInputElement>('[data-trainer-option=any-hand]')!;
  southpawBox.addEventListener('change',()=>{southpaw=southpawBox.checked;southpawBox.blur();});anyHandBox.addEventListener('change',()=>{anyHand=anyHandBox.checked;anyHandBox.blur();});
  function syncMode(){
   for(const button of choice.querySelectorAll<HTMLButtonElement>('[data-trainer-mode]')){const on=button.dataset.trainerMode===mode;button.classList.toggle('selected',on);button.setAttribute('aria-pressed',String(on));}
   choice.querySelector<HTMLElement>('.trainer-options')!.hidden=mode!=='trainer';doc.body.classList.toggle('trainer-mode',mode==='trainer');
-  if(copy&&intro){const trainer=mode==='trainer',h1=intro.querySelector('h1'),p=intro.querySelector('h1+p');if(h1)h1.textContent=trainer?'Chat calls the combo. You throw it.':copy.h1;if(p)p.textContent=trainer?'Crowd Trainer: a boxing class run by chat. This demo fakes the chat. No login.':copy.p;if(playNow)playNow.textContent=trainer?'START WORKOUT · KEYBOARD':copy.play;}
+  const trainer=mode==='trainer';if(line)line.textContent=trainer?'Chat calls the combo. You throw it with your real body. Try it in 10 seconds, no login.':copy.line;if(word)word.textContent=trainer?'START WORKOUT':copy.word;
  }
  for(const button of choice.querySelectorAll<HTMLButtonElement>('[data-trainer-mode]'))button.addEventListener('click',()=>{const next=button.dataset.trainerMode as GameMode;if(next===mode||state&&state.phase!=='done')return;mode=next;syncMode();options.onModeChange?.(mode);});
  syncMode();
