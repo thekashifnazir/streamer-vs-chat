@@ -1,5 +1,6 @@
 import type {GameState} from '../../shared/src/engine';
 import {COACH_BASE_PROMPT,COACH_FIRST_MESSAGE,COACH_MAX_SECONDS} from './coach-prompt';
+import {GAME_UPDATED_COACH,isStaleChunkError} from './stale-chunk';
 /** Numbers and fixed labels only. Nothing typed by viewers (votes, names, Forge boss text) can reach this shape. */
 export type CoachFacts={round:number;phase:'between-rounds'|'paused'|'match-over';roundWinner:'you'|'chat'|null;matchWinner:'you'|'chat'|null;wins:{you:number;chat:number};hp:{you:number;youMax:number;boss:number;bossMax:number};defence:{attacks:number;hits:number;chips:number;blocks:number;perfects:number;dodges:number};favourite:{move:string;defence:string|null;share:number}|null;dodgeHabit:{side:'left'|'right';share:number;n:number}|null;difficulty:string|null;customBoss:boolean};
 const MOVE_ORDER=['JAB','HOOK_L','HOOK_R','COMBO','SUPER'] as const;
@@ -66,7 +67,7 @@ export function createCornerCoach(options:{requestToken:()=>Promise<string>;/** 
    if(status==='connecting'){status='live';emit('Your corner is listening.');}
   }catch(error){
    if(turn!==epoch)return;const name=error instanceof Error?error.name:'';
-   end(name==='NotAllowedError'||name==='PermissionDeniedError'||name==='SecurityError'?'Microphone blocked. Allow the mic for this site in your browser, then try again.':name==='NotFoundError'?'No microphone found. Plug one in, then try again.':error instanceof CoachTokenError&&options.tokenMessage?options.tokenMessage(error.reason):error instanceof CoachTokenError&&error.reason==='daily-cap'?'Your corner is resting: today\'s coach limit is used up.':'Your corner is unavailable right now. The fight is not affected.');
+   end(name==='NotAllowedError'||name==='PermissionDeniedError'||name==='SecurityError'?'Microphone blocked. Allow the mic for this site in your browser, then try again.':name==='NotFoundError'?'No microphone found. Plug one in, then try again.':error instanceof CoachTokenError&&options.tokenMessage?options.tokenMessage(error.reason):error instanceof CoachTokenError&&error.reason==='daily-cap'?'Your corner is resting: today\'s coach limit is used up.':isStaleChunkError(error)?GAME_UPDATED_COACH:'Your corner is unavailable right now. The fight is not affected.');
   }
  }
  return {get active(){return status!=='idle';},get status(){return status;},start,end,check};

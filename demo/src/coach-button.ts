@@ -2,6 +2,7 @@ import type {HealthReader} from './hosted-health';
 import type {BrowserAuth} from './twitch/auth';
 import type {GameState} from '../../shared/src/engine';
 import type {CoachView} from './corner-coach';
+import {GAME_UPDATED_COACH,isStaleChunkError} from './stale-chunk';
 type Auth=Pick<BrowserAuth,'authenticated'|'backendRequest'>;
 /** Allowed only while no attack can be coming: the round is over or the fight is paused. */
 export const coachAllowed=(state:GameState|null)=>!!state&&(state.round.over||state.paused);
@@ -22,7 +23,7 @@ function createCoachButtons(doc:Document,options:{note:string;allowed:()=>boolea
    if(!controller){const coach=await (options.load??(()=>import('./corner-coach')))();if(disposed)return;
     controller=coach.createCornerCoach({allowed:()=>!disposed&&options.allowed()&&coachAllowed(options.getState()),facts:()=>{const state=options.getState();return state?coach.coachFacts(state):null;},onChange:render,tokenMessage:options.tokenMessage,requestToken:()=>options.requestToken(coach)});}
    void controller.start();
-  }catch{render({status:'idle',message:options.failMessage??'Your corner is unavailable right now. The fight is not affected.',remainingS:0});}
+  }catch(error){render({status:'idle',message:isStaleChunkError(error)?GAME_UPDATED_COACH:options.failMessage??'Your corner is unavailable right now. The fight is not affected.',remainingS:0});}
   finally{loading=false;}
  }
  function remove(){controller?.end();for(const host of hosts())host.remove();}
@@ -53,10 +54,12 @@ export function mountCornerCoach(doc:Document,options:{auth:Auth;getHealth:Healt
  };
 }
 export const DEMO_COACH_RESTING='The corner coach is resting. Try it on /play or later.';
+/** 429 daily-cap: the demo allows 3 corner talks a day per person. */
+export const DEMO_COACH_DAILY_CAP='You\'ve used today\'s free corner talks. Streamers get more on /play.';
 /** Offline demo (/). Shown at once, with no request at page load: the first click asks for the mic, then
- * POSTs /api/coach/demo-token (no login; per-IP and global caps). Any refusal shows a resting line. */
+ * POSTs /api/coach/demo-token (no login; per-IP and global caps). A 429 says today's free talks are used; any other refusal shows a resting line. */
 export function mountDemoCornerCoach(doc:Document,options:{getState:()=>GameState|null;onActive?:(active:boolean)=>void;fetch?:typeof fetch;load?:()=>Promise<typeof import('./corner-coach')>}){
- const buttons=createCoachButtons(doc,{note:'Real voice AI coach · 60 s · limited per day',allowed:()=>true,getState:options.getState,onActive:options.onActive,load:options.load,tokenMessage:()=>DEMO_COACH_RESTING,failMessage:DEMO_COACH_RESTING,
+ const buttons=createCoachButtons(doc,{note:'Real voice AI coach · talk for up to 60 s',allowed:()=>true,getState:options.getState,onActive:options.onActive,load:options.load,tokenMessage:reason=>reason==='daily-cap'?DEMO_COACH_DAILY_CAP:DEMO_COACH_RESTING,failMessage:DEMO_COACH_RESTING,
   requestToken:async coach=>{let response:Response;try{response=await (options.fetch??globalThis.fetch.bind(globalThis))('/api/coach/demo-token',{method:'POST'});}catch{throw new coach.CoachTokenError('unavailable');}
    if(response.status===429)throw new coach.CoachTokenError('daily-cap');const data=response.ok?await response.json().catch(()=>null):null;if(typeof data?.token!=='string')throw new coach.CoachTokenError('unavailable');return data.token;}});
  buttons.mount();
