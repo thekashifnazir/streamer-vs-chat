@@ -55,6 +55,20 @@ The entry was built on ChatGPT Plus, so the build ran into Codex usage limits of
 | Sat 31 Oct, 13:55 | 13w, the last Codex turn; weekly limit about 94% used. Claude Code takes over code fixes to meet the deadline | `3677761` |
 | Sun 1 Nov, 10:39 | Usage panel: 4% left, weekly, resets 5 Nov at 23:47 ([screenshot](img/codex-limit-1nov.png)) | none |
 
+### Plan usage page (Kash's screenshots, 1 Nov)
+
+Read from screenshots of Kash's ChatGPT plan usage page, taken on 1 November (**MEASURED**, account-wide: the page covers all of Kash's Codex and agent work on the account, not only this entry).
+
+| What the page shows | Value |
+|---|---|
+| Usage limit resets used (past 30 days) | 25 Oct 22:34 and 29 Oct 23:47 (UK), during the build; 1 reset left. Two earlier resets (30 Sep, 5 Oct) were before the Submission Period |
+| Credit usage rows, 26–28 Oct | 26 Oct: 112 + 266 · 27 Oct: 48 + 234 + 295 + 1 · 28 Oct: 703. That is 1,659 credits in the rows shown |
+| Messages, 7 days to 31 Oct | 209, on gpt-6.1-sol, gpt-5.6-luna and gpt-6-luna |
+| Share of plan usage, 26 Oct – 1 Nov | Chats 52.6%, subagents 47.4% |
+| Tool activity, 24–30 Oct | 74 plugin calls (Computer Use, Unified Computer Use, Codex App Tools); 2 skills (Cloudflare One, OpenAI Platform API key) |
+
+So on top of the weekly limit, the build spent both limit resets that fell inside the Submission Period, plus bought credits, before Claude Code took over on 31 October.
+
 ## Codex vs Claude Code split
 
 **MEASURED** at `3dfc4df` (1 November 2026). Regenerated at submit, because Claude Code commits (Crowd Trainer, voice lines) land on 1 November; the README table is the one place these numbers are shown.
