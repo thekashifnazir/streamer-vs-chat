@@ -5,7 +5,7 @@ export function playStep(state:PlayFlow):PlayStep{return !state.connected?'twitc
 export function mountHostedFlow(doc:Document){
  const get=(id:string)=>doc.getElementById(id)!;
  doc.body.classList.add('hosted-flow');
- const setup=get('fight-setup'),choices=doc.createElement('section');choices.id='defend-choice';choices.innerHTML='<h1>HOW WILL YOU DEFEND?</h1><div class="defend-cards"><button type="button" data-defend="pose"><small>BEST ON STREAM</small><strong>WEBCAM</strong><span>Your real guard and lean. 30 s setup.</span></button><button type="button" data-defend="keyboard"><small>FASTEST</small><strong>KEYBOARD</strong><span>K guard · A/D lean · J punch. Starts now.</span></button></div>';
+ const setup=get('fight-setup'),choices=doc.createElement('section');choices.id='defend-choice';choices.innerHTML='<h1>HOW WILL YOU DEFEND?</h1><div class="defend-cards"><button type="button" data-defend="pose"><small>BEST ON STREAM</small><strong>WEBCAM</strong><span>Your real guard and lean. 30 s setup.</span></button><button type="button" data-defend="keyboard"><small>FASTEST</small><strong>KEYBOARD</strong><span>K guard · A/D lean · J punch. Quick practice, then fight.</span></button></div>';
  setup.prepend(choices);
  const more=doc.createElement('details');more.id='play-more-options';more.innerHTML='<summary>More options ▸</summary>';setup.append(more);
  for(const id of ['start-difficulty','no-punch','stream-sound']){const input=get(id);more.append(input.closest('.setup-section,.defence-only')!);}

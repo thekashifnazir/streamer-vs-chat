@@ -200,7 +200,7 @@ function drawCrowd(at:number) {
 }
 function startFight() {
   if(hosted?.forgeBusy){el('tutorial-status').textContent='Boss Forge is generating between rounds. Wait or type !veto.';return;}
-  if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Connect Twitch and wait for LIVE before starting.';return;}
+  if(liveMode&&!hosted?.ready){el('tutorial-status').textContent='Waiting for your Twitch chat to connect…';return;}
   if(!safetyCleared()){el('tutorial-status').textContent='Tick “my space is clear” above before starting.';return;}
   if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before starting.';setup.open();return;}
   if(trainer.selected){startTrainer();return;}

@@ -16,6 +16,8 @@ export function createHostedMemory(options:{auth:Pick<BrowserAuth,'authenticated
  let queue:MemoryEvent[]=[],accountId:string|null=null;
  const accepted=new Map<string,Set<string>>();
  const controllers=new Set<AbortController>(),optOut=new Set<string>(),names=new Map<string,string>(),credit=new Map<string,number>();
+ // Display names seen in chat this page session, so Chat MVP shows a name even with memory off. Never stored or sent.
+ const seenNames=new Map<string,string>();
  const active=()=>enabled&&!disposed&&options.auth.authenticated&&accountId!==null&&options.auth.account?.id===accountId;
  const report=(message:string)=>options.onStatus?.(message);
  function baseline(state:GameState|null){observed=state;seed=state?.match.seed;roundCursor=state?.log.rounds.length??0;damageCursor=state?.log.damage.length??0;}
@@ -54,10 +56,16 @@ export function createHostedMemory(options:{auth:Pick<BrowserAuth,'authenticated
   get available(){return available;},get capable(){return available&&options.auth.authenticated&&!!options.auth.account?.id;},get enabled(){return active();},
   async initialize(){try{available=(await (options.getHealth??createHostedHealth(request).get)()).memory;}catch{available=false;}if(disposed)return;if(!available)report('Viewer memory is disabled on this host.');},
   setEnabled,observeGame,snapshot,flush,finalize,
-  onChat(message:HostedChatMessage){if(!active())return;const userId=message.userId;if(message.text.trim().split(/\s+/,1)[0]?.toLowerCase()==='!forgetme'){optOut.add(userId);names.delete(userId);credit.delete(userId);view=null;enqueue({kind:'forget',sessionId,userId});options.onChange?.();return;}if(optOut.has(userId))return;const event:MemoryEvent={kind:'chat-seen',sessionId,userId,displayName:message.displayName};if(!validateMemoryEvent(event))return;names.set(userId,message.displayName);while(names.size>5000)names.delete(names.keys().next().value!);enqueue(event);},
+  onChat(message:HostedChatMessage){if(message.text.trim().split(/\s+/,1)[0]?.toLowerCase()==='!forgetme')seenNames.delete(message.userId);else{seenNames.delete(message.userId);seenNames.set(message.userId,message.displayName);if(seenNames.size>5000)seenNames.delete(seenNames.keys().next().value!);}
+   if(!active())return;const userId=message.userId;if(message.text.trim().split(/\s+/,1)[0]?.toLowerCase()==='!forgetme'){optOut.add(userId);names.delete(userId);credit.delete(userId);view=null;enqueue({kind:'forget',sessionId,userId});options.onChange?.();return;}if(optOut.has(userId))return;const event:MemoryEvent={kind:'chat-seen',sessionId,userId,displayName:message.displayName};if(!validateMemoryEvent(event))return;names.set(userId,message.displayName);while(names.size>5000)names.delete(names.keys().next().value!);enqueue(event);},
   acceptedVote(vote:ChatVote,displayName:string){if(!active()||vote.simulated||optOut.has(vote.user))return;const state=options.getState();if(!state||state.paused||state.round.over||state.votes[vote.user]!==vote.move)return;const beatId=`${epoch}:${state.round.number}:${state.clock.beat}`;const event:MemoryEvent={kind:'vote',sessionId,beatId,userId:vote.user,displayName,move:vote.move};if(!validateMemoryEvent(event))return;let voters=accepted.get(beatId);if(!voters){voters=new Set();accepted.set(beatId,voters);}voters.add(vote.user);while(accepted.size>32)accepted.delete(accepted.keys().next().value!);enqueue(event);},
   view:()=>active()?view:null,
-  publicSummary(summary:GameSummary):GameSummary {return enabled?{...summary,chatMvp:active()?mvp():null}:summary.chatMvp&&optOut.has(summary.chatMvp.user)?{...summary,chatMvp:null}:summary;},
-  async dispose(){if(disposed)return;await finalize();disposed=true;enabled=false;clear();},
+  publicSummary(summary:GameSummary):GameSummary {
+   if(enabled)return {...summary,chatMvp:active()?mvp():null};
+   const top=summary.chatMvp;if(!top||optOut.has(top.user))return {...summary,chatMvp:null};
+   // Votes are keyed by Twitch user ID: show the chat name, or no MVP at all rather than a raw ID.
+   const displayName=top.displayName??seenNames.get(top.user);return {...summary,chatMvp:displayName?{...top,displayName}:null};
+  },
+  async dispose(){if(disposed)return;await finalize();disposed=true;enabled=false;clear();seenNames.clear();},
  };
 }

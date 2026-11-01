@@ -335,3 +335,5 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 
 /* Corner coach is Boss Fight only: never shown in Crowd Trainer (mode picked or workout on stage). */
 .trainer-mode .corner-coach,.trainer-running .corner-coach{display:none}
+
+.landing-real-note{max-width:34rem;margin:.5rem auto 0;font-size:.9rem;opacity:.8;text-align:center}

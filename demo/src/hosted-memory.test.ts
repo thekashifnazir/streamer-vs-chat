@@ -71,3 +71,13 @@ it('admits a privacy deletion ahead of replaceable telemetry when the bounded qu
 it('does not reinstall a pre-deletion snapshot while forget delivery is failed or awaiting retry',async()=>{
  vi.useFakeTimers();const s=setup();await s.client.initialize();s.client.setEnabled(true);await tick();expect(s.client.view()).not.toBeNull();const gets=()=>s.backendRequest.mock.calls.filter(([path])=>path.startsWith('/api/memory/snapshot')).length;const initialGets=gets();s.backendRequest.mockRejectedValue(new Error('offline'));s.client.onChat(chat('11','!forgetme'));await s.client.flush();expect(s.client.view()).toBeNull();await s.client.snapshot();expect(gets()).toBe(initialGets);await vi.advanceTimersByTimeAsync(15000);expect(gets()).toBe(initialGets);expect(s.client.view()).toBeNull();s.backendRequest.mockResolvedValue(Response.json({...response(),optOut:['11'],forgotten:['11']}));await vi.advanceTimersByTimeAsync(15000);expect(gets()).toBe(initialGets+1);expect(s.client.view()).not.toBeNull();expect(s.onStatus).toHaveBeenCalledWith('Your viewer memory has been forgotten.');await s.client.dispose();
 });
+
+it('memory off: Chat MVP shows the chat name, never a raw Twitch user ID',async()=>{
+ const s=setup();await s.client.initialize();
+ expect(s.client.publicSummary({chatMvp:{user:'11',damage:20}} as any).chatMvp).toBeNull();
+ s.client.onChat(chat('11'));
+ expect(s.client.publicSummary({chatMvp:{user:'11',damage:20}} as any).chatMvp).toEqual({user:'11',damage:20,displayName:'Viewer 11'});
+ s.client.onChat(chat('11','!forgetme'));
+ expect(s.client.publicSummary({chatMvp:{user:'11',damage:20}} as any).chatMvp).toBeNull();
+ expect(s.bodies()).toEqual([]);await s.client.dispose();
+});
