@@ -5,6 +5,9 @@ export type CoachLimits={channel:number;ip:number;global:number};
 const limit=(value:string|undefined,fallback:number)=>{const parsed=Number(value);return value!==undefined&&value.trim()!==''&&Number.isInteger(parsed)&&parsed>=0&&parsed<=100000?parsed:fallback;};
 /** Worker vars override the defaults; a missing or malformed var keeps the default. */
 export function coachLimits(env:{COACH_DAILY_CHANNEL?:string;COACH_DAILY_IP?:string;COACH_DAILY_GLOBAL?:string}):CoachLimits{return {channel:limit(env.COACH_DAILY_CHANNEL,20),ip:limit(env.COACH_DAILY_IP,10),global:limit(env.COACH_DAILY_GLOBAL,200)};}
+export type CoachDemoLimits={ip:number;global:number};
+/** No-login homepage demo: its own (lower) per-IP and global caps, counted in a separate global object. */
+export function coachDemoLimits(env:{COACH_DEMO_DAILY_IP?:string;COACH_DEMO_DAILY_GLOBAL?:string}):CoachDemoLimits{return {ip:limit(env.COACH_DEMO_DAILY_IP,3),global:limit(env.COACH_DEMO_DAILY_GLOBAL,150)};}
 /** Daily-rotating salted hash; the raw address is never stored. The secret key is the salt. */
 export async function coachIpHash(ip:string|null,salt:string,day:string):Promise<string>{const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`coach:${day}:${ip?.split(',')[0]?.trim()||'unknown'}:${salt}`));return [...new Uint8Array(bytes)].map(byte=>byte.toString(16).padStart(2,'0')).join('');}
 interface ChannelCount {day:string;count:number}

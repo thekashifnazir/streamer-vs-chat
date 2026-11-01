@@ -45,7 +45,7 @@ export class CoachTokenError extends Error{constructor(readonly reason:'daily-ca
 const startElevenLabs:StartCoachSession=async options=>{const {Conversation}=await import('@elevenlabs/client');return Conversation.startSession(options);};
 const openMic=async()=>{const stream=await navigator.mediaDevices.getUserMedia({audio:true});for(const track of stream.getTracks())track.stop();};
 /** One voice session at a time; it ends the moment play may resume, at the hard maximum, or on any error. */
-export function createCornerCoach(options:{requestToken:()=>Promise<string>;allowed:()=>boolean;facts:()=>CoachFacts|null;onChange:(view:CoachView)=>void;startSession?:StartCoachSession;requestMic?:()=>Promise<void>;maxMs?:number;connectMs?:number;now?:()=>number}){
+export function createCornerCoach(options:{requestToken:()=>Promise<string>;/** Replaces the token-refusal wording (the demo points to /play). */tokenMessage?:(reason:'daily-cap'|'unavailable')=>string;allowed:()=>boolean;facts:()=>CoachFacts|null;onChange:(view:CoachView)=>void;startSession?:StartCoachSession;requestMic?:()=>Promise<void>;maxMs?:number;connectMs?:number;now?:()=>number}){
  const now=options.now??(()=>Date.now()),maxMs=Math.min(options.maxMs??COACH_MAX_SECONDS*1000,COACH_MAX_SECONDS*1000),connectMs=options.connectMs??15000;
  let epoch=0,status:CoachView['status']='idle',startedAt=0,connectFrom=0,session:CoachSession|null=null,timer:ReturnType<typeof setInterval>|null=null;
  const emit=(message='')=>options.onChange({status,message,remainingS:status==='idle'?0:Math.max(0,Math.ceil((startedAt+maxMs-now())/1000))});
@@ -66,7 +66,7 @@ export function createCornerCoach(options:{requestToken:()=>Promise<string>;allo
    if(status==='connecting'){status='live';emit('Your corner is listening.');}
   }catch(error){
    if(turn!==epoch)return;const name=error instanceof Error?error.name:'';
-   end(name==='NotAllowedError'||name==='PermissionDeniedError'||name==='SecurityError'?'Microphone blocked. Allow the mic for this site in your browser, then try again.':name==='NotFoundError'?'No microphone found. Plug one in, then try again.':error instanceof CoachTokenError&&error.reason==='daily-cap'?'Your corner is resting: today\'s coach limit is used up.':'Your corner is unavailable right now. The fight is not affected.');
+   end(name==='NotAllowedError'||name==='PermissionDeniedError'||name==='SecurityError'?'Microphone blocked. Allow the mic for this site in your browser, then try again.':name==='NotFoundError'?'No microphone found. Plug one in, then try again.':error instanceof CoachTokenError&&options.tokenMessage?options.tokenMessage(error.reason):error instanceof CoachTokenError&&error.reason==='daily-cap'?'Your corner is resting: today\'s coach limit is used up.':'Your corner is unavailable right now. The fight is not affected.');
   }
  }
  return {get active(){return status!=='idle';},get status(){return status;},start,end,check};

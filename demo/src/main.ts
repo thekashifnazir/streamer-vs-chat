@@ -37,11 +37,15 @@ import {mountStreamLayout} from './stream-layout';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
+import {createSimChatFeed,mountSimChat,simHandle,simVoteText,type SimChatMode} from './sim-chat';
+import {mountDemoCornerCoach} from './coach-button';
+import {formatHypeFull,formatRoundResult,roundResultBody} from '../../shared/src/result-text';
+import {formatWorkoutSummary,trainerSummary} from '../../shared/src/trainer';
 import {COACH_CUES,createBossTaunts,createVoiceBank,mountVoicePicker,playCoach,PREVIEW_CUE,setActiveVoiceBank,type CoachCue} from './voice-bank';
 
 const impactLedger=createBossImpactLedger('browser');
 const superNotices=createSuperNotices();
-const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);const hypeFull=superNotices.observe(before,after,Date.now(),event.kind==='restart');hosted?.observeGame(after,hypeFull,event.kind==='restart');if(event.kind==='vote')superNotices.denied(after,event.move,Date.now());return after;};
+const step:typeof engineStep=(before,event,now)=>{const after=engineStep(before,event,now);impactLedger.observe(before,after);const hypeFull=superNotices.observe(before,after,Date.now(),event.kind==='restart');hosted?.observeGame(after,hypeFull,event.kind==='restart');simObserve(before,after,hypeFull);demoCoach?.observe();if(event.kind==='vote')superNotices.denied(after,event.move,Date.now());return after;};
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const stage=el('stage');
 const host=el('game-hud');
@@ -55,6 +59,15 @@ const noPunch=el<HTMLInputElement>('no-punch');
 const avatar=el('keyboard-avatar');
 const liveMode=location.pathname==='/play'||location.pathname.startsWith('/play/');
 const safetyCleared=()=>source.value==='keyboard'||clearSpace.checked;
+// Offline demo only: a SIMULATED chat panel showing a sample of what the simulated crowd "types", plus the lines the bot would post on /play.
+const simChat=liveMode?null:createSimChatFeed(),simChatView=liveMode?null:mountSimChat(document,stage);
+function simObserve(before:GameState,after:GameState,hypeFull:boolean){
+ if(!simChat||coldOpenAt!==null||before.match.seed!==after.match.seed)return;
+ for(const round of after.log.rounds)if(!before.log.rounds.some(prior=>prior.number===round.number)){simChat.drop();simChat.bot(formatRoundResult(roundResultBody(after,round)));}
+ if(hypeFull)simChat.bot(formatHypeFull());
+}
+function simChatMode():SimChatMode|null{if(!simChat)return null;if(trainer.active)return trainer.state?.phase==='done'?'trainer-done':'trainer';return game&&coldOpenAt===null?'boss':null;}
+function syncSimChat(){if(!simChat||!simChatView)return;simChat.tick(performance.now());simChatView.render(simChat,simChatMode());}
 if(!liveMode)mountDemoLanding(document);
 const previewConfig=scoutPreviewConfig(location,{liveMode,liveTokenLoaded:false});
 if(previewConfig)document.querySelector('.demo-tag')!.textContent=SCOUT_PREVIEW_BADGE;
@@ -173,7 +186,8 @@ function paint() {
   if(!liveMode)updateLandingLabel();
   const summary=game&&(game.round.over||showSessionSummary)?summarizeGame(game,game.match.winner||showSessionSummary?undefined:game.round.number):null;
   const publicSummary=summary&&hosted?hosted.publicSummary(summary):summary;
-  fightUi?.render(game,showSessionSummary,liveMode?{mvp:publicSummary?.chatMvp?.displayName??publicSummary?.chatMvp?.user,clips:hosted?.clipsSnapshot()}:{});
+  fightUi?.render(game,showSessionSummary,liveMode?{mvp:publicSummary?.chatMvp?.displayName??publicSummary?.chatMvp?.user,clips:hosted?.clipsSnapshot()}:{sim:{mvp:summary?.chatMvp&&coldOpenAt===null?simHandle(summary.chatMvp.user):undefined}});
+  syncSimChat();
   hud.setEndcard(null);
   if(game) {
     el('next-round').hidden=!game.round.over||Boolean(game.match.winner)||showSessionSummary;
@@ -197,6 +211,7 @@ function drawCrowd(at:number) {
   const votes=crowd.votes(game,at);
   game=step(game,{kind:'vote-batch',votes},at);
   for(const vote of votes)playtest.vote(vote.user,game.votes[vote.user]===vote.move);
+  const boss=game.bossDef;simChat?.offer(votes.map(vote=>({user:vote.user,text:simVoteText(vote.move,boss,simChat.random())})));
 }
 function startFight() {
   if(hosted?.forgeBusy){el('tutorial-status').textContent='Boss Forge is generating between rounds. Wait or type !veto.';return;}
@@ -205,7 +220,7 @@ function startFight() {
   if(source.value==='pose'&&(!cameraRunning||!calibration.snapshot.ready||performance.now()-lastFrameAt>=500||!poseFramed)){el('camera-status').textContent='Keep your calibrated head, shoulders and wrists in frame before starting.';setup.open();return;}
   if(trainer.selected){startTrainer();return;}
   fightUi?.setPaused(false);tutorialStarted=false;hud.setPractice(false);fightUi?.showStage();
-  hosted?.endFight();showSessionSummary=false;clearColdOpen();
+  hosted?.endFight();showSessionSummary=false;clearColdOpen();simChat?.clear();
   const at=performance.now();
   game=createSelectedGame(difficulty,{seed:seed++,viewers:liveMode?liveViewers:Number(crowdSize.value),now:at,...(previewConfig?{scoutingConfig:previewConfig}:{}),...(pendingBoss?{bossDef:pendingBoss}:{})});
   hosted?.observePhase(true);
@@ -226,7 +241,7 @@ function startTrainer() {
   fightUi?.setPaused(false);tutorialStarted=false;hud.setPractice(false);fightUi?.showStage();clearColdOpen();game=null;crowd=null;showSessionSummary=false;
   el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();stage.scrollIntoView?.({block:'start',behavior:'smooth'});
   keyboard.setEnabled(source.value==='keyboard');classifier.setPunchesEnabled(true);
-  hosted?.observeCoach();trainerMoves.reset();const at=performance.now();trainer.start(at);trainer.input(source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);paint();
+  hosted?.observeCoach();demoCoach?.observe();simChat?.clear();trainerMoves.reset();const at=performance.now();trainer.start(at);trainer.input(source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:lastPose,at);paint();
 }
 let pauseReason='Esc';
 const guardResume=createGuardResume(()=>input({kind:'control',action:'resume',by:'capture'}));
@@ -264,13 +279,15 @@ function input(event:StreamerInput) {
   if(event.kind==='control'&&event.action==='resume'&&!game.paused){fightUi?.setPaused(false);if(coldOpenAt!==null&&coldOpenPausedAt!==null){coldOpenAt+=at-coldOpenPausedAt;coldOpenPausedAt=null;}}
   drawCrowd(at);paint();
 }
-const trainer=mountTrainer(document,{live:liveMode,stage,difficulty:()=>difficulty.value as Difficulty,keyboard:()=>source.value==='keyboard',viewers:()=>Number(crowdSize.value),liveTokenLoaded:()=>hosted?.hasToken??false,onCue:cue=>{const bell=cue==='round-start'||cue==='rest'||cue==='time'||cue==='workout-done';if(bell)hud.playSound(defaultCueSound(cue));void ((COACH_CUES as readonly string[]).includes(cue)?playCoach(cue as CoachCue):Promise.resolve(false)).then(spoke=>{if(!spoke&&!bell)hud.playSound(defaultCueSound(cue));});},onAgain:()=>{trainer.exit();el('start-fight').click();},onExit:()=>document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click(),onDone:()=>{fightUi?.setPaused(false);updateModes();},onModeChange:()=>updateModes()});
+const trainer=mountTrainer(document,{live:liveMode,stage,difficulty:()=>difficulty.value as Difficulty,keyboard:()=>source.value==='keyboard',viewers:()=>Number(crowdSize.value),liveTokenLoaded:()=>hosted?.hasToken??false,onCue:cue=>{const bell=cue==='round-start'||cue==='rest'||cue==='time'||cue==='workout-done';if(bell)hud.playSound(defaultCueSound(cue));void ((COACH_CUES as readonly string[]).includes(cue)?playCoach(cue as CoachCue):Promise.resolve(false)).then(spoke=>{if(!spoke&&!bell)hud.playSound(defaultCueSound(cue));});},onAgain:()=>{trainer.exit();el('start-fight').click();},onExit:()=>document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click(),onDone:state=>{fightUi?.setPaused(false);updateModes();simChat?.drop();simChat?.you(formatWorkoutSummary(trainerSummary(state)),'YOUR LINE · paste it with Copy chat line');syncSimChat();},onSimChat:messages=>simChat?.offer(messages),onModeChange:()=>updateModes()});
 const avatarPose=createKeyboardAvatar(avatar,{punchEnabled:()=>!noPunch.checked});
 const keyboard=createKeyboard({emit:input,label:avatarPose.label});
 keyboard.setEnabled(true);
 const profiles=createCalibrationProfiles(()=>window.localStorage);
 const setup=mountFightSetup(document,{keyboardRequiresClearSpace:false,simplifiedCalibration:liveMode,workout:()=>trainer.selected,onStart:()=>{void hud.activateSound();if(game||trainer.selected){startFight();return;}tutorialStarted=true;fightUi?.reset();fightUi?.showStage();el('tutorial').hidden=false;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();paint();updateTutorial();stage.scrollIntoView?.({block:'start',behavior:'smooth'});},onWebcamCountdown:()=>{fightUi?.showStage();void hud.activateSound();keyboard.setEnabled(false);if(game)input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);el('tutorial').hidden=true;document.querySelector<HTMLElement>('.demo-controls')!.hidden=false;streamLayout.collapse();},webcamFramed:()=>cameraRunning&&performance.now()-lastFrameAt<500&&poseFramed,onWebcamStart:()=>{source.value='pose';keyboard.setEnabled(false);startFight();}});
 fightUi=mountFightUi(document,{offline:!liveMode,resume:()=>{keyboard.release();input({kind:'control',action:'resume',by:'capture'});},restart:()=>{clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();el('start-fight').click();},quit:()=>{trainer.exit();updateModes();if(game)game=step(game,{kind:'control',action:'stop',by:'capture'},performance.now());clearColdOpen();game=null;crowd=null;tutorial.reset();tutorialStarted=false;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('onboarding-row').scrollIntoView?.({block:'start'});},end:()=>{setup.cancel();if(trainer.active){trainer.exit();updateModes();}if(!game){fightUi?.reset();fightUi?.hideStage();tutorialStarted=false;streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;return;}input({kind:'control',action:'stop',by:'capture'});fightUi?.setPaused(false);showSessionSummary=true;paint();},next:()=>el('next-round').click()});
+// Offline demo: the real voice coach (Boss Fight only), no request until the click; see coach-button.ts.
+const demoCoach=liveMode?null:mountDemoCornerCoach(document,{getState:()=>trainer.selected||trainer.active||coldOpenAt!==null?null:game,onActive:active=>fightUi?.hold(active)});
 /** Leave a rehearsal take for the landing page, keeping its result line on screen. */
 function leaveColdOpen(){clearColdOpen();game=null;crowd=null;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('cold-open-status').scrollIntoView?.({block:'center'});}
 const calibration=createCalibration({onChange(snapshot){
@@ -369,6 +386,7 @@ const timer=window.setInterval(()=>{
   if(cameraRunning&&tickAt-lastFrameAt>=500){poseFramed=false;guardResume.reset();setup.frame([],false);}
   setup.tick(tickAt);fightUi?.tick();
   if(trainer.running)trainer.tick(performance.now());
+  if(!game)syncSimChat();
   // A workout can finish or end between paints; the guard follows it within a tick.
   leaveGuard.sync();
   if(!game)return;
@@ -389,7 +407,7 @@ const timer=window.setInterval(()=>{
   drawCrowd(at);paint();
 },100);
 // pagehide, not beforeunload: a cancelled leave warning must not tear down the live stream or fight.
-window.addEventListener('pagehide',()=>{leaveGuard.dispose();window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();playtest.dispose();});
+window.addEventListener('pagehide',()=>{leaveGuard.dispose();window.clearInterval(timer);camera.stop();keyboard.dispose();hud.dispose();forgePanel?.dispose();hosted?.dispose();demoCoach?.dispose();playtest.dispose();});
 el('playtest-opt-in').addEventListener('change',()=>{playtest.setEnabled(el<HTMLInputElement>('playtest-opt-in').checked);el<HTMLButtonElement>('export-playtest').disabled=!el<HTMLInputElement>('playtest-opt-in').checked;if(!el<HTMLInputElement>('playtest-opt-in').checked){el('playtest-output').textContent='';el('playtest-output').hidden=true;}playtestRound=null;trackLocalRound();});
 el('export-playtest').addEventListener('click',async()=>{const snapshot=await playtest.exportSnapshot();if(!snapshot)return;const json=JSON.stringify(snapshot,null,2);el('playtest-output').textContent=json;el('playtest-output').hidden=false;try{await navigator.clipboard.writeText(json);}catch{/* Selectable JSON remains available. */}});
 el('back-to-setup').addEventListener('click',()=>fightUi?.end());

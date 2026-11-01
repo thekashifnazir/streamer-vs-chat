@@ -19,16 +19,22 @@ export function mountFightUi(doc:Document,options:{offline:boolean;resume:()=>vo
  const results=doc.createElement('section');results.id='round-results';results.className='fight-dialog round-results';results.hidden=true;results.innerHTML='<h2 data-result-title></h2><div class="plain-stats"></div><button data-result-next class="primary">NEXT ROUND</button><p data-result-countdown></p><button data-result-quit>End fight</button><div data-result-extras></div>';stage.append(results);
  // Match end only: a compact Workout row under the plain stats.
  const workout=doc.createElement('p');workout.className='workout-row';workout.hidden=true;results.querySelector('.plain-stats')!.after(workout);
+ // Offline demo only: the simulated Chat MVP, under the stats so it shows without scrolling.
+ const simBox=doc.createElement('div');simBox.dataset.resultSim='';simBox.hidden=true;workout.after(simBox);
  results.querySelector('[data-result-next]')!.addEventListener('click',()=>{if(matchDone)options.restart();else options.next();});results.querySelector('[data-result-quit]')!.addEventListener('click',options.quit);
  if(options.offline){for(const element of doc.querySelectorAll('#friend-tools .share-stats-row,#playtest-output')){results.querySelector('[data-result-extras]')!.append(element);if(element.classList.contains('share-stats-row'))(element as HTMLElement).hidden=false;}}
  let pausedAt:number|null=null;
- let extraKey='',paused=false,key='',due:number|null=null,matchDone=false,heldAt:number|null=null;
+ let extraKey='',simKey='',paused=false,key='',due:number|null=null,matchDone=false,heldAt:number|null=null;
  function setPaused(value:boolean,reason?:string,handsFree=false){const why=pause.querySelector<HTMLElement>('[data-pause-reason]')!;why.hidden=!reason;why.textContent=reason?`Paused: ${reason}`:'';pause.querySelector<HTMLElement>('[data-guard-resume]')!.hidden=!handsFree;if(value&&!paused)pausedAt=now();if(!value&&paused&&due!==null&&pausedAt!==null)due+=now()-pausedAt;if(!value)pausedAt=null;paused=value;pause.hidden=!value;stage.classList.toggle('fight-paused',value);if(value)pause.querySelector<HTMLButtonElement>('button')!.focus();}
- function reset(){key='';extraKey='';due=null;heldAt=null;results.hidden=true;setPaused(false);}
+ function reset(){key='';extraKey='';simKey='';due=null;heldAt=null;results.hidden=true;setPaused(false);}
  // Corner coach (/play): the countdown hook stays, but rounds no longer auto-advance (NEXT ROUND only).
  function hold(value:boolean){if(value&&heldAt===null){heldAt=now();if(due!==null)results.querySelector('[data-result-countdown]')!.textContent='Next round when your corner talk ends';}else if(!value&&heldAt!==null){if(due!==null)due+=now()-heldAt;heldAt=null;tick();}}
- function render(state:GameState|null,ended=false,extras:{mvp?:string;clips?:{label:string;url:string}[]}={}){
+ function render(state:GameState|null,ended=false,extras:{mvp?:string;clips?:{label:string;url:string}[];sim?:{mvp?:string}}={}){
   if(!state||!state.round.over&&!ended){results.hidden=true;key='';due=null;return;}
+  // Offline demo: the simulated Chat MVP, labelled SIMULATED (the bot's line is in the SIMULATED CHAT panel beside it).
+  if(options.offline&&simKey!==JSON.stringify(extras.sim??null)){simKey=JSON.stringify(extras.sim??null);const sim=simBox;sim.replaceChildren();
+   if(extras.sim?.mvp){const mvp=doc.createElement('p');mvp.className='sim-mvp';mvp.textContent=`Chat MVP: ${extras.sim.mvp} · SIMULATED`;sim.append(mvp);}
+   sim.hidden=!sim.childElementCount;}
   if(!options.offline&&extraKey!==JSON.stringify(extras)){extraKey=JSON.stringify(extras);const extra=results.querySelector('[data-result-extras]')!;extra.replaceChildren();if(extras.mvp){const mvp=doc.createElement('p');mvp.textContent=`Chat MVP: ${extras.mvp}`;extra.append(mvp);}for(const clip of extras.clips??[]){const href=safeClipHref(clip.url);if(href){const link=doc.createElement('a');link.href=href;link.textContent=clip.label;link.target='_blank';link.rel='noopener noreferrer';extra.append(link);}}}
   results.hidden=false;const id=`${state.match.seed}:${state.round.number}:${ended}`;if(key===id)return;key=id;
   const summary=summarizeGame(state,state.round.number);matchDone=!!state.match.winner||ended;
