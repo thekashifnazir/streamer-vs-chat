@@ -49,3 +49,17 @@ it('uses readable system body type, dark selected copy and one viewport-derived 
   expect(css).toContain('width:var(--content-width)');expect(css).toContain('calc((100dvh - 108px)*16/9)');
  }finally{dom.window.close();}
 });
+it('shows the Crowd selector in the offline demo fight bar unless hidden, and never on /play',()=>{
+ for(const [file,demo] of [['../index.html',true],['../play/index.html',false]] as const){
+  const dom=new JSDOM(readFileSync(new URL(file,import.meta.url),'utf8'));
+  try{
+   const {document,getComputedStyle}=dom.window;
+   const style=document.createElement('style');style.textContent=css;document.head.append(style);
+   document.body.classList.add('stream-compact');if(demo)document.body.classList.add('offline-demo-page');
+   const label=document.getElementById('crowd-size')!.closest('label')!;
+   (document.querySelector('.demo-controls') as HTMLElement).hidden=false;
+   label.hidden=false;expect(getComputedStyle(label).display,file).toBe(demo?'flex':'none');
+   label.hidden=true;expect(getComputedStyle(label).display,file).toBe('none');
+  }finally{dom.window.close();}
+ }
+});

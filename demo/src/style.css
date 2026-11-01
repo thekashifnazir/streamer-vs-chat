@@ -246,3 +246,5 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 /* Desktop: the round/match results sit in the centre stage column (the HUD rails are 470/1920 =
    24.5% wide each side), so the streamer and boss panels stay readable behind it. */
 @media(min-width:1000px){.round-results{inset:12% 25.5% 6%;padding:20px 24px}.round-results h2{font-size:clamp(28px,3vw,52px)}.round-results .plain-stats{gap:4px 20px}}
+/* Offline demo: the compact fight bar keeps the Crowd selector (shown between rounds only; main.ts toggles [hidden]). */
+.offline-demo-page.stream-compact .demo-controls>label:not([hidden]){display:flex}

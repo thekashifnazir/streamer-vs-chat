@@ -41,7 +41,17 @@ it.each(['','?scout=fast'])('mounted no-login demo %s plays a real reducer round
   expect(dom.window.document.getElementById('pause-screen')!.hidden).toBe(false);expect(dom.window.document.getElementById('tutorial-status')!.textContent).toContain('(1 of 3)');
   dom.window.document.querySelector<HTMLButtonElement>('[data-pause=resume]')!.click();
   for(const code of ['KeyK','KeyA','KeyJ'])dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{code}));
-  await vi.advanceTimersByTimeAsync(80000);
+  const doc2=dom.window.document,crowdSelect=doc2.getElementById('crowd-size') as HTMLSelectElement,crowdLabel=crowdSelect.closest('label')!;
+  const last=()=>observed.renders.at(-1) as {round:{over:boolean;number:number};viewers:number};
+  await vi.advanceTimersByTimeAsync(1000);
+  // Mid-fight the crowd selector is out of the way; between rounds the demo offers it again.
+  expect(crowdLabel.hidden).toBe(true);
+  for(let waited=0;waited<90000&&!last().round.over;waited+=250)await vi.advanceTimersByTimeAsync(250);
+  expect(last().round.over).toBe(true);expect(crowdLabel.hidden).toBe(false);expect(crowdSelect.disabled).toBe(false);
+  crowdSelect.value='500';crowdSelect.dispatchEvent(new dom.window.Event('change'));
+  doc2.getElementById('next-round')!.click();
+  expect(last().round.number).toBe(2);expect(last().viewers).toBe(500);expect(crowdLabel.hidden).toBe(true);
+  await vi.advanceTimersByTimeAsync(5000);
   const states=observed.renders as {difficulty:string;log:{rounds:unknown[]};clock:{beat:number}}[];expect(states.at(-1)!.difficulty).toBe('hard');
   expect(states.some(state=>state.clock.beat>0)).toBe(true);
   expect(states.some(state=>state.log.rounds.length>0)).toBe(true);
