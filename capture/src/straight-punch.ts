@@ -7,6 +7,9 @@ import type {Landmark} from './classifier';
  * live shoulders). Swept on Kash's recorded landmarks (test/pose/straight-punch.test.ts): 36 of 44 punches across
  * the 1 Nov drill clip and the 27 Oct straight jabs, against 13 for the old gate, and 3 false punches over all the
  * recorded guard, lean and slip footage, against 30. Raw, unmirrored MediaPipe indices: L is the player's own left.
+ * A fist driven straight at the camera also foreshortens the forearm (elbow to wrist shrinks in 2D), so that shrink
+ * counts towards the excursion (forearm weight 1): 42 of 44 against 36, false punches 4 against 3; one-twos 9/10
+ * against 5/10. Wrist z from the lite model was too noisy to help (no extra catch before false punches rose to 12).
  */
 export const STRAIGHT_PUNCH={
  baselineMs:2000,widthMs:3000,widthPercentile:.8,maxGapMs:500,
@@ -15,8 +18,12 @@ export const STRAIGHT_PUNCH={
  // Not a punch: a hand dropping (guard falling), a hand resting at the bottom edge of the frame (tracking flips
  // there), or a torso that is tilting (a lean or slip carries the hands with it).
  down:.3,edgeY:.85,tiltGate:.5,
- // Punch setup step: threshold = fraction of the player's own measured punch, clamped; a smaller punch keeps the default.
- calibration:{probe:.45,fraction:.5,min:.5,max:.9,minReach:1},
+ // Forearm foreshortening (elbow-wrist shrink, shoulder lengths) added to the excursion; 0.9-1.2 all catch 40-42 of 44.
+ forearm:1,
+ // Punch setup step: threshold = fraction of the player's own measured punch, clamped. A setup punch is a big deliberate
+ // one (Kash's first punches reach 1.8-2.6), so the old 0.9 cap tuned fight punches out (26 of 44 at 0.9, one-twos 1/10):
+ // the step may lower the threshold for a short punch, never raise it above the default.
+ calibration:{probe:.45,fraction:.5,min:.6,max:.7,minReach:1},
 } as const;
 export type PunchThresholds={L:number;R:number};
 /** Per-side threshold from the player's measured punch reach; a side whose punch was too small keeps the default. */
@@ -24,7 +31,7 @@ export function punchThresholdsFromReach(reach:PunchThresholds):PunchThresholds{
  const {fraction,min,max,minReach}=STRAIGHT_PUNCH.calibration,side=(value:number)=>value<minReach?STRAIGHT_PUNCH.on:Math.min(max,Math.max(min,fraction*value));
  return {L:side(reach.L),R:side(reach.R)};
 }
-type Sample={at:number;l:[number,number];r:[number,number];ly:number;ry:number;tilt:number};
+type Sample={at:number;l:[number,number];r:[number,number];lf:number;rf:number;ly:number;ry:number;tilt:number};
 type Tracker={armed:boolean;peak:number;peakAt:number;dominant:boolean;last:number};
 const fresh=():Tracker=>({armed:true,peak:0,peakAt:0,dominant:false,last:-Infinity});
 const median=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return sorted[sorted.length>>1]!;};
@@ -51,12 +58,16 @@ export class StraightPunchDetector {
   // Torso frame: u along the shoulders, v down the body's own normal, both in recent shoulder lengths.
   const ux=Math.sign(dx)*dx/length,uy=Math.sign(dx)*dy/length,mx=(ls!.x+rs!.x)/2,my=(ls!.y+rs!.y)/2;
   const frame=(w:Landmark):[number,number]=>{const ax=w.x-mx,ay=w.y-my;return [(ax*ux+ay*uy)/width,(ay*ux-ax*uy)/width];};
-  const sample:Sample={at,l:frame(lw!),r:frame(rw!),ly:lw!.y,ry:rw!.y,tilt:dy/width};
+  // Forearm length in the same units; NaN when an elbow is not tracked (then it adds nothing).
+  const forearm=(elbow:Landmark|undefined,wrist:Landmark)=>usable(elbow)?Math.hypot(wrist.x-elbow!.x,wrist.y-elbow!.y)/width:NaN;
+  const sample:Sample={at,l:frame(lw!),r:frame(rw!),lf:forearm(landmarks[13],lw!),rf:forearm(landmarks[14],rw!),ly:lw!.y,ry:rw!.y,tilt:dy/width};
   const past=this.history.filter(item=>item.at>=at-STRAIGHT_PUNCH.baselineMs);
   this.history=[...past,sample];
   if(past.length<5)return out;
   const base={l:[median(past.map(p=>p.l[0])),median(past.map(p=>p.l[1]))],r:[median(past.map(p=>p.r[0])),median(past.map(p=>p.r[1]))]};
-  const excursion={L:Math.hypot(sample.l[0]-base.l[0]!,sample.l[1]-base.l[1]!),R:Math.hypot(sample.r[0]-base.r[0]!,sample.r[1]-base.r[1]!)};
+  const shrink=(now:number,rest:number)=>STRAIGHT_PUNCH.forearm*(Math.max(0,rest-now)||0);
+  const fore={L:shrink(sample.lf,median(past.map(p=>p.lf))),R:shrink(sample.rf,median(past.map(p=>p.rf)))};
+  const excursion={L:Math.hypot(sample.l[0]-base.l[0]!,sample.l[1]-base.l[1]!,fore.L),R:Math.hypot(sample.r[0]-base.r[0]!,sample.r[1]-base.r[1]!,fore.R)};
   const drop={L:sample.l[1]-base.l[1]!,R:sample.r[1]-base.r[1]!},restY={L:median(past.map(p=>p.ly)),R:median(past.map(p=>p.ry))};
   const tilting=Math.abs(sample.tilt-median(past.map(p=>p.tilt)))>STRAIGHT_PUNCH.tiltGate;
   for(const side of ['L','R'] as const){

@@ -38,6 +38,7 @@ import {mountStreamLayout} from './stream-layout';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
+import {mountPosePreview} from './pose-preview';
 import {createSimChatFeed,mountSimChat,simHandle,simVoteText,type SimChatMode} from './sim-chat';
 import {demoCoachEnabled,mountDemoCornerCoach} from './coach-button';
 import {formatHypeFull,formatRoundResult,roundResultBody} from '../../shared/src/result-text';
@@ -299,8 +300,8 @@ const demoCoach=liveMode||!demoCoachEnabled(document)?null:mountDemoCornerCoach(
 if(!liveMode)mountLandingHistory(window,{away:()=>document.body.classList.contains('fight-started')||document.body.classList.contains('webcam-open'),midFight:()=>!showSessionSummary&&(trainer.running||(tutorialStarted&&!game)||(!!game&&!game.round.over&&!game.match.winner)),paused:()=>!!fightUi?.paused,pause:()=>{setup.cancel();keyboard.release();pauseWith('you pressed Back · Back again goes to the homepage');},home:()=>{setup.cancel();if(document.body.classList.contains('webcam-open'))setup.close(false);if(document.body.classList.contains('fight-started'))document.querySelector<HTMLButtonElement>('#pause-screen [data-pause=quit]')?.click();el('onboarding-row').scrollIntoView?.({block:'start'});}});
 /** Leave a rehearsal take for the landing page, keeping its result line on screen. */
 function leaveColdOpen(){clearColdOpen();game=null;crowd=null;showSessionSummary=false;fightUi?.reset();fightUi?.hideStage();streamLayout.expand();document.querySelector<HTMLElement>('.demo-controls')!.hidden=true;paint();el('cold-open-status').scrollIntoView?.({block:'center'});}
-// Setup ends with the optional punch step; its throws wait for the clear-space tick.
-const calibration=createCalibration({punches:true,punchesAllowed:safetyCleared,onChange(snapshot){
+// Setup ends with the optional punch step. Like the rest of setup it needs no tick; only START waits for it (Kash, 1 Nov: on /play the step sat waiting).
+const calibration=createCalibration({punches:true,onChange(snapshot){
   el('calibration-status').textContent=snapshot.message;
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
   setup.calibration(snapshot);
@@ -310,6 +311,9 @@ function restoreCalibration(){const mode=posture.value==='seated'?'seated':'stan
 function applyCalibration(calibrated:ReturnType<typeof calibration.update>){if(!calibrated.ready||calibrated.guardThreshold===null)return;classifier.setCalibration({guardThreshold:calibrated.guardThreshold,leanThresholds:calibrated.leanThresholds??undefined,guardReleaseBand:calibrated.guardReleaseBand??undefined,guardMedians:calibrated.guardMedians??undefined,neutralSwayP95:calibrated.neutralSwayP95??undefined,punchThresholds:calibrated.punchThresholds});trainerMoves.setPunchThresholds(calibrated.punchThresholds);}
 setup.calibration(calibration.snapshot);
 restoreCalibration();
+// Offline demo: a small camera circle with the skeleton during webcam fights and workouts (pose-preview.ts); /play has its stream bubble.
+const posePreview=liveMode?null:mountPosePreview(stage,video);
+const previewShown=()=>source.value==='pose'&&cameraRunning&&!fightUi?.paused&&!showSessionSummary&&coldOpenAt===null&&(trainer.running||(!!game&&!game.round.over&&!game.paused));
 const camera=new PoseCamera(video,sample=>{
   lastFrameAt=performance.now();
   const before=calibration.snapshot;
@@ -318,7 +322,7 @@ const camera=new PoseCamera(video,sample=>{
   const result=classifier.update(sample.landmarks,sample.at);
   const framed=[0,11,12,15,16].every(index=>{const p=sample.landmarks[index];return p&&p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1&&(p.visibility??1)>=.5;});
   const seatedTooClose=posture.value==='seated'&&result.metrics&&result.metrics.shoulderWidth>.20;
-  poseFramed=framed&&!seatedTooClose;setup.frame(sample.landmarks,poseFramed);
+  poseFramed=framed&&!seatedTooClose;setup.frame(sample.landmarks,poseFramed);posePreview?.draw(sample.landmarks,previewShown());
   const ready=calibrated.ready&&poseFramed&&safetyCleared();
   lastPose=ready?result.state:{kind:'pose',guard:false,lean:null,source:'pose',at:sample.at};
   el('camera-status').textContent=!framed?'Keep head, shoulders and both wrists in frame.':seatedTooClose?'Move further back; seated shoulders must span ≤20% of the frame.':`Camera local · ${sample.fps.toFixed(0)} FPS · ${sample.inferenceMs.toFixed(0)} ms inference`;
@@ -337,7 +341,7 @@ const camera=new PoseCamera(video,sample=>{
 },{wasmLoaderPath:'/assets/pose/vision_wasm_internal.js',wasmBinaryPath:'/assets/pose/vision_wasm_internal.wasm',modelAssetPath:'/assets/pose/pose_landmarker_lite.task'});
 
 el('start-camera').addEventListener('click',async()=>{
-  // The camera and calibration need no tick; the fight start and the punch step do (setup-ui, calibration punchesAllowed).
+  // The camera and the whole setup, punch step included, need no tick; only the fight start does (setup-ui).
   el('camera-feedback').hidden=true;
   el<HTMLButtonElement>('start-camera').disabled=true;
   el('camera-status').textContent='Opening camera and loading the local lite model…';
@@ -397,6 +401,7 @@ noPunch.addEventListener('change',()=>{updateModes();noPunch.blur();});
 const timer=window.setInterval(()=>{
   const tickAt=performance.now();
   if(cameraRunning&&tickAt-lastFrameAt>=500){poseFramed=false;guardResume.reset();setup.frame([],false);}
+  if(posePreview&&(!previewShown()||tickAt-lastFrameAt>=500))posePreview.hide();
   setup.tick(tickAt);fightUi?.tick();
   if(trainer.running)trainer.tick(performance.now());
   if(!game)syncSimChat();

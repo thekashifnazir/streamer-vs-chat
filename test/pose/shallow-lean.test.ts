@@ -34,6 +34,11 @@ function scoreShallow(leanThresholds:LeanThresholds) {
 describe('recorded shallow leans (owner calibration clip, 31 Oct)',()=>{
   const thresholds=leanThresholdsFromPeaks(leanPeaks,leanFloor);
 
+  it('a deeper held lean in setup no longer tunes shallow fight leans out (LEAN_THRESHOLD_CAP)',()=>{
+    // Setup peaks 1.5x the recorded ones: before the cap 1 of 6 shallow leans registered; capped, 5 of 6.
+    const deeper=leanThresholdsFromPeaks({L:leanPeaks.L*1.5,R:leanPeaks.R*1.5},leanFloor);
+    expect(scoreShallow(deeper).filter(r=>r.hit).length).toBeGreaterThanOrEqual(5);
+  });
   it('registers all six shallow leans on the correct side at the calibrated fraction',()=>{
     expect(LEAN_THRESHOLD_FRACTION).toBe(.48);
     const results=scoreShallow(thresholds);

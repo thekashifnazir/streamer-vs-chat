@@ -1,4 +1,5 @@
 import type {Landmark} from './classifier';
+import {STRAIGHT_PUNCH} from './straight-punch';
 /**
  * Crowd Trainer only: punch side and slip from a front webcam. Boss Fight keeps PoseClassifier unchanged.
  * Straight punches at the camera barely lengthen the arm in 2D and the shoulders narrow as the body
@@ -26,7 +27,9 @@ export class TrainerMoveDetector {
  private punch:{L:Peak;R:Peak}={L:fresh(),R:fresh()};
  private slip={armed:true,last:-Infinity};
  private thresholds:{L:number;R:number}|null=null;
- /** Per-player thresholds from the punch setup step; null keeps the tuned default. */
+ /** Per-player thresholds from the punch setup step (Boss Fight units); null keeps the tuned default. This detector measures
+  * in shoulder widths with its own default, so it takes the same ratio to its default, not the raw value (a raw 0.7-0.9 cut
+  * Kash's recorded catches from 40 to 34 of 44). */
  setPunchThresholds(value:{L:number;R:number}|null){this.thresholds=value?{L:value.L,R:value.R}:null;}
  reset(){this.history=[];this.widths=[];this.punch={L:fresh(),R:fresh()};this.slip={armed:true,last:-Infinity};}
  update(landmarks:Landmark[],at:number):{punches:{side:'L'|'R';at:number}[];slips:{side:'L'|'R';at:number}[]}{
@@ -51,7 +54,7 @@ export class TrainerMoveDetector {
   for(const side of ['L','R'] as const){
    const tracker=this.punch[side],other=e[side==='L'?'R':'L'],value=e[side];
    const blocked=tilting||(side==='L'?sample.ly-base('ly'):sample.ry-base('ry'))>punch.down||base(side==='L'?'rawL':'rawR')>punch.edgeY;
-   if(tracker.armed&&!blocked&&value>=(this.thresholds?.[side]??punch.on)&&value>tracker.peak){tracker.peak=value;tracker.peakAt=at;tracker.dominant=value-other>=punch.dominance;}
+   if(tracker.armed&&!blocked&&value>=(this.thresholds?punch.on*this.thresholds[side]/STRAIGHT_PUNCH.on:punch.on)&&value>tracker.peak){tracker.peak=value;tracker.peakAt=at;tracker.dominant=value-other>=punch.dominance;}
    if(tracker.armed&&tracker.peak>0&&value<tracker.peak-punch.fall){
     if(tracker.dominant&&tracker.peakAt-tracker.last>=punch.minGapMs){out.punches.push({side,at:tracker.peakAt});tracker.last=tracker.peakAt;}
     tracker.armed=false;tracker.peak=0;
