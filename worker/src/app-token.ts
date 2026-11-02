@@ -9,7 +9,9 @@ export function safeDropReason(value:unknown):string|null {
 export class TwitchBotSender {
   private cached:{token:string; refreshAt:number}|null=null;
   private loading:Promise<string>|null=null;
-  constructor(private credentials:AppCredentials,private fetcher:Fetcher,private now:()=>number) {}
+  private readonly fetcher:Fetcher;
+  // Workers throws "Illegal invocation" when the global fetch is called as this.fetcher(...), so every call goes through a plain wrapper (2 Nov: this broke every bot post and clip link).
+  constructor(private credentials:AppCredentials,fetcher:Fetcher,private now:()=>number) {this.fetcher=(input,init)=>fetcher(input,init);}
   private async token():Promise<string> {
     if(this.cached && this.now()<this.cached.refreshAt)return this.cached.token;
     if(this.loading)return this.loading;

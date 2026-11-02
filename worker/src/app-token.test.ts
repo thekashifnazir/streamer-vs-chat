@@ -9,6 +9,11 @@ describe('Worker app access token and bot sender',()=>{
     for(const missing of [{...credentials,clientId:''},{...credentials,clientSecret:' '},{...credentials,botUserId:''},{...credentials,botUserId:'not-a-user-id'}])await expect(new TwitchBotSender(missing,fetcher,()=>0).send('123','result')).rejects.toThrow('bot-not-configured');
     expect(fetcher).not.toHaveBeenCalled();
   });
+  it('calls the fetcher unbound, as the Workers global fetch requires',async()=>{
+    // workerd rejects fetch called with any other `this` (Illegal invocation); this fake does the same.
+    const fetcher=vi.fn(async function(this:unknown,input:string|URL|Request){if(this!==undefined)throw new TypeError('Illegal invocation');return String(input).includes('/oauth2/token')?token():sent();});
+    await expect(new TwitchBotSender(credentials,fetcher,()=>0).send('123','result')).resolves.toEqual({dropReason:null});
+  });
   it('disallows redirects on credential-bearing requests',async()=>{
     const fetcher=vi.fn(async(input:string|URL|Request,init?:RequestInit)=>{expect(init?.redirect).toBe('manual');return String(input).includes('/oauth2/token')?token():sent();});
     await new TwitchBotSender(credentials,fetcher,()=>0).send('123','result');expect(fetcher).toHaveBeenCalledTimes(2);
