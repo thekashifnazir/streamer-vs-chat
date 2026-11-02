@@ -1,6 +1,6 @@
 # Codex build evidence
 
-Snapshot measured on Kash's Mac on **1 November 2026**, with entry `main` at `ee1a6e2`, the live build (before the docs commits that record it). The Codex thread counts are unchanged since 31 October, because there were no Codex turns after 13w. The earlier snapshots (29 October: 52/51 turns, 38 commits, 642 tests at `0be805d`; 31 October morning: 76/76 turns, 56 commits, 991 tests at `69eca5d`; 31 October evening: 74 commits, 1,029 tests at `74cc38d`) stay in git history.
+Snapshot measured on Kash's Mac on **2 November 2026**, with entry `main` at `8c99b7e`, the live build (before the docs commits that record it). The Codex thread counts are unchanged since 31 October, because there were no Codex turns after 13w. The earlier snapshots (29 October: 52/51 turns, 38 commits, 642 tests at `0be805d`; 31 October morning: 76/76 turns, 56 commits, 991 tests at `69eca5d`; 31 October evening: 74 commits, 1,029 tests at `74cc38d`; 1 November: 171 commits, 1,226 tests, 79.7% / 20.3% split at `ee1a6e2`) stay in git history.
 
 | Evidence | Count / identity |
 |---|---|
@@ -8,9 +8,9 @@ Snapshot measured on Kash's Mac on **1 November 2026**, with entry `main` at `ee
 | Root task-start / task-complete events | 77 / 77 (re-counted 1 November; the last task started 31 October, 13:43 UK) |
 | Completed root turns with tools / without tools | 54 / 23 (without tools includes usage-limit retries) |
 | Codex plan | ChatGPT Plus. Weekly limit about 94% used by the last Codex turn (13w, `3677761`, 31 October); **96% used, 4% left** on 1 November at 10:39 UK, resetting 5 November at 23:47, after the deadline ([screenshot](img/codex-limit-1nov.png)). No Codex turns after 13w |
-| Entry git commits through `ee1a6e2` | 171 = 57 code commits made in the Codex thread + 57 "fix (Claude Code)" + 25 "feat (Claude Code)" + 16 "docs (Claude Code)" + 16 merges of Claude Code branches. Lines: [Codex vs Claude Code split](#codex-vs-claude-code-split) |
-| Docs-only commits by Claude Code | 16 through `ee1a6e2`, plus the commits that record this snapshot (messages start "docs (Claude Code)") |
-| Passing offline tests at `ee1a6e2` | 1,226 in 159 files (`npx vitest run`, Claude's clone); sim output identical to `0be805d`, no golden vector changes |
+| Entry git commits through `8c99b7e` | 201 = 57 code commits made in the Codex thread + 69 "fix (Claude Code)" + 35 "feat (Claude Code)" + 21 "docs (Claude Code)" + 19 merges of Claude Code branches. Lines: [Codex vs Claude Code split](#codex-vs-claude-code-split) |
+| Docs-only commits by Claude Code | 21 through `8c99b7e`, plus the commits that record this snapshot (messages start "docs (Claude Code)") |
+| Passing offline tests at `8c99b7e` | 1,281 in 169 files (`npx vitest run`, Claude's clone); sim output identical to `0be805d`, no golden vector changes |
 | Automated end-to-end checks, 1 November | local Playwright runs on the live build: 9 offline demo flows, 41 Crowd Trainer checks, all 9 steps of the mocked `/play` journey. Earlier, at `74cc38d`: responsive/a11y at 6 widths in Chromium and WebKit (Lighthouse accessibility 100 on `/` and `/play`); 10 bugs found and fixed |
 | Scratch resume probe | `01a17fb6-76f6-78f2-9c20-e7926e5aba23`, working directory `/private/tmp/cx-resume-test` |
 | Scratch resume probe | `01a17fb7-0a50-70b1-af8e-edcee261d14d`, working directory `/Users/kash/cx-resume-test` |
@@ -28,12 +28,12 @@ The root rollout is the matching `rollout-*-01a17e04-f4f0-7d12-ac96-ff47bf3cc88f
 For commits, run:
 
 ```sh
-git rev-list --count ee1a6e2                                          # 171
-git rev-list --count --merges ee1a6e2                                 # 16
-git log --oneline ee1a6e2 | grep -c 'fix (Claude Code)'               # 57
-git log --oneline ee1a6e2 | grep -c 'feat (Claude Code)'              # 25
-git log --oneline ee1a6e2 | grep -c 'docs (Claude Code)'              # 16
-git log --oneline --no-merges ee1a6e2 | grep -vc '(Claude Code)'      # 57, the Codex thread's commits
+git rev-list --count 8c99b7e                                          # 201
+git rev-list --count --merges 8c99b7e                                 # 19
+git log --oneline 8c99b7e | grep -c 'fix (Claude Code)'               # 69
+git log --oneline 8c99b7e | grep -c 'feat (Claude Code)'              # 35
+git log --oneline 8c99b7e | grep -c 'docs (Claude Code)'              # 21
+git log --oneline --no-merges 8c99b7e | grep -vc '(Claude Code)'      # 57, the Codex thread's commits
 ```
 
 Scratch identities and working directories were read from their rollout metadata. Only counts and identities are published here; transcript contents, credentials and private prompts are not copied into this repository. Later `npm test` results belong to the current queue's review document, while the test count above stays tied to its source commit.
@@ -57,6 +57,7 @@ The entry was built on ChatGPT Plus, so the build ran into Codex usage limits of
 | Sat 31 Oct, 13:55 | 13w, the last Codex turn; weekly limit about 94% used. Claude Code takes over code fixes to meet the deadline | `3677761` |
 | Sun 1 Nov, 10:39 | Usage panel: 4% left, weekly, resets 5 Nov at 23:47 ([screenshot](img/codex-limit-1nov.png)) | none |
 | Sun 1 Nov, all day | No Codex turns. Claude Code lands 52 code commits: Crowd Trainer, recorded voice lines, homepage redesign, webcam setup and punch detection, `/play` and results polish | up to `ee1a6e2` (19:48) |
+| Sun 1 Nov night to Mon 2 Nov | No Codex turns. Claude Code lands 22 code commits from Kash's live tests: fight-screen lanes and hit feedback, the punch lab and punch fixes, `/play` setup, the chat bot fix and Boss Forge announcements | up to `8c99b7e` (2 Nov, 14:25) |
 
 ### Plan usage page (Kash's screenshots, 1 Nov)
 
@@ -74,7 +75,7 @@ So on top of the weekly limit, the build spent both limit resets that fell insid
 
 ## Codex vs Claude Code split
 
-**MEASURED** at `ee1a6e2` (1 November 2026, 19:48 UK), the build live on the night of 1 November. The README table shows the same numbers. To regenerate later, replace `ee1a6e2` with `HEAD`.
+**MEASURED** at `8c99b7e` (2 November 2026, 14:25 UK), the live build. The README table shows the same numbers. To regenerate later, replace `8c99b7e` with `HEAD`.
 
 "Codex" = every commit up to and including `3677761` whose message does not contain "(Claude Code)". "Claude Code" = commits after `3677761` whose message contains "(Claude Code)": "fix" and "feat" commits change code; "docs" commits change only Markdown and images, so they add no source lines. Merge commits add no lines of their own. Source = the folders `capture demo overlay scripts server shared test worker`; Markdown docs, images and assets outside those folders (including the recorded voice bank's audio and its manifests) are not counted. Tests are files under `test/` or named `*.test.ts`. Binary files (one pose model) are skipped. Run in bash (zsh does not split the folder list the same way).
 
@@ -82,23 +83,24 @@ So on top of the weekly limit, the build spent both limit resets that fell insid
 SPLIT='$1!="-" && NF==3 {t=($3~/^test\//||$3~/\.test\.ts$/)?"tests":"app"; a[t]+=$1; d[t]+=$2} END {for (t in a) print t, "+" a[t], "-" d[t]}'
 SRC="capture demo overlay scripts server shared test worker"
 git log --oneline 3677761 | grep -vc '(Claude Code)'                                  # Codex code commits: 57
-git log --oneline 3677761..ee1a6e2 | grep -c 'fix (Claude Code)'                       # 57
-git log --oneline 3677761..ee1a6e2 | grep -c 'feat (Claude Code)'                      # 25
-git log --oneline 3677761..ee1a6e2 | grep -c 'docs (Claude Code)'                      # 15 (16 in all, one before 13w)
+git log --oneline 3677761..8c99b7e | grep -c 'fix (Claude Code)'                       # 69
+git log --oneline 3677761..8c99b7e | grep -c 'feat (Claude Code)'                      # 35
+git log --oneline 3677761..8c99b7e | grep -c 'docs (Claude Code)'                      # 20 (21 in all, one before 13w)
 git log --numstat --format= --invert-grep --grep='(Claude Code)' 3677761 -- $SRC | awk -F'\t' "$SPLIT"
-git log --numstat --format= --grep='(Claude Code)' 3677761..ee1a6e2 -- $SRC | awk -F'\t' "$SPLIT"
-git log --numstat --format= --grep='(Claude Code)' 3dfc4df..ee1a6e2 -- $SRC | awk -F'\t' "$SPLIT"   # 1 November only
+git log --numstat --format= --grep='(Claude Code)' 3677761..8c99b7e -- $SRC | awk -F'\t' "$SPLIT"
+git log --numstat --format= --grep='(Claude Code)' 3dfc4df..ee1a6e2 -- $SRC | awk -F'\t' "$SPLIT"   # 1 November up to ee1a6e2
+git log --numstat --format= --grep='(Claude Code)' ee1a6e2..8c99b7e -- $SRC | awk -F'\t' "$SPLIT"   # 1 November night to 2 November
 ```
 
 | | Codex | Claude Code |
 |---|---|---|
-| Code commits | 57 | 82 (57 "fix", 25 "feat") |
-| App lines added / removed | 10,187 / 2,021 | 3,039 / 497 |
-| Test and fixture lines added / removed | 11,211 / 360 | 2,421 / 206 |
-| All source lines added / removed | 21,398 / 2,381 | 5,460 / 703 |
-| Share of source lines added | 79.7% | 20.3% |
+| Code commits | 57 | 104 (69 "fix", 35 "feat") |
+| App lines added / removed | 10,187 / 2,021 | 4,093 / 647 |
+| Test and fixture lines added / removed | 11,211 / 360 | 3,052 / 256 |
+| All source lines added / removed | 21,398 / 2,381 | 7,145 / 903 |
+| Share of source lines added | 75.0% | 25.0% |
 
-How the Claude Code share grew. At `3dfc4df` (early 1 November) it was 30 fixes and 1,194 source lines added (5.3%). The 52 code commits after `3dfc4df`, all on 1 November, added 4,266 lines and removed 532: app 2,645 / 397, tests 1,621 / 135. By group (source lines added): Crowd Trainer 8 commits, 1,045 · recorded voice lines 3, 804 · homepage redesign and demo extras 7, 664 · voice corner coach (switched off) 10, 567 · webcam setup and punch detection 5, 450 · saved preferences 4, 274 · fight and results polish 8, 266 · `/play` journey and clips 7, 196. The README lists each commit.
+How the Claude Code share grew. At `3dfc4df` (early 1 November) it was 30 fixes and 1,194 source lines added (5.3%). The 52 code commits after `3dfc4df`, all on 1 November, added 4,266 lines and removed 532: app 2,645 / 397, tests 1,621 / 135. By group (source lines added): Crowd Trainer 8 commits, 1,045 · recorded voice lines 3, 804 · homepage redesign and demo extras 7, 664 · voice corner coach (switched off) 10, 567 · webcam setup and punch detection 5, 450 · saved preferences 4, 274 · fight and results polish 8, 266 · `/play` journey and clips 7, 196. The README lists each commit. The 22 code commits after `ee1a6e2` (1 November night to 2 November) added 1,685 lines and removed 200: app 1,054 / 150, tests 631 / 50.
 
 Lines added count edits as well as new code, so this is a size measure, not a value judgement.
 

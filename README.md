@@ -21,7 +21,7 @@ Chat runs the boss and the streamer has to physically survive it: viewers vote e
 
 | Headline result | |
 |---|---|
-| Offline tests (unit, golden vectors, pose clips, transports) · **MEASURED**, `npm test` | **1,226** in 159 files, no Twitch or external network (1 November 2026, at `ee1a6e2`) |
+| Offline tests (unit, golden vectors, pose clips, transports) · **MEASURED**, `npm test` | **1,281** in 169 files, no Twitch or external network (2 November 2026, at `8c99b7e`) |
 | Simulated 1,000-chatter load, ingest to HUD · **MEASURED** 28 October, `npm run load` | **p95 104 ms**, 12 ms worst beat drift, 0 dropped votes ([LOAD.md](docs/LOAD.md)) |
 | Golden vectors through the shared reducer, in `npm test` | **59** ([golden vectors](test/engine/golden.test.ts)) |
 | 30-minute soak, server heap growth after warm-up · **MEASURED** 28 October, `npm run soak -- --minutes 30` | **+6.3182%** (gate under 20%) |
@@ -37,7 +37,7 @@ Chat runs the boss and the streamer has to physically survive it: viewers vote e
 |---|---|---|
 | **Innovation** | Chat and streamer scout each other: chat sees the streamer's dodge habit, the streamer sees chat's favourite move. Our framing of prior art: Twitch Plays-style games let chat control the game and Crowd Control lets chat trigger effects in someone else's game; here chat is the opponent's brain and the streamer's body the controller. | [scouting tests](test/engine/scouting.test.ts), [two-way tests](test/engine/two-way.test.ts), [SPEC](SPEC.md), [two-way review](docs/queue11a-review.md) |
 | **Potential impact** | Works with one viewer; balance gated from 0 to 500 simulated viewers. OBS, or an experimental go-live-from-the-page shortcut. Every real Twitch session changed the game. | [Real playtests](#real-playtests), [crowd tests](test/engine/crowd.test.ts), [LOAD.md](docs/LOAD.md), [Go live code](demo/src/go-live.ts) |
-| **Technical implementation + Codex** | One pure reducer shared by server, sim, demo and `/play`; MediaPipe pose with per-user calibration, lean thresholds tuned on Kash's recorded clip; EventSub; experimental WHIP go-live; 1,226 offline tests; 57 code commits in one Codex thread, then labelled Claude Code commits ([measured split](#how-codex-built-this)) | [engine](shared/src/engine.ts), [golden vectors](test/engine/golden.test.ts), [webcam evidence](docs/WEBCAM.md), [Codex evidence](docs/codex-evidence.md), [AGENTS.md](AGENTS.md) |
+| **Technical implementation + Codex** | One pure reducer shared by server, sim, demo and `/play`; MediaPipe pose with per-user calibration, lean thresholds tuned on Kash's recorded clip; EventSub; experimental WHIP go-live; 1,281 offline tests; 57 code commits in one Codex thread, then labelled Claude Code commits ([measured split](#how-codex-built-this)) | [engine](shared/src/engine.ts), [golden vectors](test/engine/golden.test.ts), [webcam evidence](docs/WEBCAM.md), [Codex evidence](docs/codex-evidence.md), [AGENTS.md](AGENTS.md) |
 | **Design** | Each warning names the defence (GUARD! / LEAN LEFT! / LEAN RIGHT!) → a real block in 1.0 s on Medium; four difficulty levels, webcam starting on Easy (1.2 s); one main button per setup step; keyboard, seated and no-punch modes; no-login demo | [no-login demo](https://streamervschat.kashifnazir.com), [callout tests](overlay/src/hud-callout.test.ts), [webcam difficulty tests](demo/src/webcam-difficulty.test.ts), [HUD.md](docs/HUD.md), [day 6 review](docs/day6-review.md) |
 
 ## How to play
@@ -78,7 +78,7 @@ Anyone should be able to play with what they already have: one ordinary webcam i
 |---|---|
 | **Guard**, with hysteresis so it holds through leans: 100% of held frames on Kash's webcam (**MEASURED**, prep spike) | **Punch type** (jab, hook, uppercut): a front camera can't see depth |
 | **Lean**: 48% of your calibrated peak, held 170 ms. Shallow leans 3/6 → **6/6**, fight-speed **16/16**, **0** false leans relaxed or guarding (**MEASURED**, Kash's recorded clip, [test](test/pose/shallow-lean.test.ts)) | **Punch force and speed**; **footwork, kicks**, legs out of frame; **low light**; people outside the frame |
-| **Straight punches, which hand**: **42 of 44** of Kash's recorded punches caught, 4 false punches over guard, lean and slip footage; the old rule caught 13 with 30 false (**MEASURED**, [test](test/pose/straight-punch.test.ts)) | **Punches on unseen people**: recall 0.33–0.55 in the prep spikes; in-repo Pexels clips 17/21 punches toward the camera but 2/11 side-on hooks (**MEASURED**) |
+| **Straight punches, which hand**: **42 of 44** of Kash's recorded punches caught, 7 false punches over guard, lean and slip footage, and 51 of 59 in their 2 November fast one-two drills; the old rule caught 13 with 30 false (**MEASURED**, [test](test/pose/straight-punch.test.ts)) | **Punches on unseen people**: recall 0.33–0.55 in the prep spikes; in-repo Pexels clips 17/21 punches toward the camera but 2/11 side-on hooks (**MEASURED**) |
 
 So defence decides the fight, punches are bonus, and Crowd Trainer scores leniently on hand, slip and guard only. Evidence, the code privacy check and what better hardware could add: [docs/WEBCAM.md](docs/WEBCAM.md).
 
@@ -145,20 +145,20 @@ Boss Forge runs on `/play`: chat sends `!forge <idea>` (`!forge +1` to endorse) 
 
 **Built mostly with Codex, in one thread, on a Plus plan.** Kash directed and did all the camera, Twitch and physical testing, and approved every brief (drafted with Claude Code). Codex planned each task, split it into subagent lanes where useful, made the design calls inside the brief and wrote the code, in one main thread: 77 turns and 57 code commits, 27 to 31 October, up to its last turn, 13w (`3677761`).
 
-**Staying in Codex.** Early turns used credits left from a previous OpenAI hackathon. After that, at each usage limit Kash waited for the reset and sent a short continue into the same thread, some scheduled ([dated timeline](docs/codex-evidence.md#usage-limits-and-continues)). By 31 October the build had used up the Plus weekly limit (about 94% by 13w), both limit resets that fell in the Submission Period (25 and 29 October) and bought credits ([plan usage](docs/codex-evidence.md#plan-usage-page-kashs-screenshots-1-nov)). On 1 November the panel showed 4% left, resetting 5 November, after the deadline ([screenshot](docs/img/codex-limit-1nov.png)). There were no Codex turns after 13w.
+**Staying in Codex.** Early turns used credits left from a previous OpenAI hackathon. After that, at each usage limit Kash waited for the reset and sent a short continue into the same thread, some scheduled ([dated timeline](docs/codex-evidence.md#usage-limits-and-continues)). By 31 October the build had used up the Plus weekly limit (about 94% by 13w), both limit resets that fell in the Submission Period (25 and 29 October) and the extra credits left from a previous OpenAI hackathon ([plan usage](docs/codex-evidence.md#plan-usage-page-kashs-screenshots-1-nov)). On 1 November the panel showed 4% left, resetting 5 November, after the deadline ([screenshot](docs/img/codex-limit-1nov.png)). There were no Codex turns after 13w.
 
-**Finished with Claude Code.** To meet the deadline, Claude Code finished the entry from 31 October. On 31 October and overnight that was polish and bug fixes from live tests. On 1 November it was bigger: the Crowd Trainer mode, the recorded voice lines, a homepage redesign, the 5-step webcam setup and a new straight-punch detector. Every commit is labelled "(Claude Code)".
+**Finished with Claude Code.** To meet the deadline, Claude Code finished the entry from 31 October. On 31 October and overnight that was polish and bug fixes from live tests. On 1 November it was bigger: the Crowd Trainer mode, the recorded voice lines, a homepage redesign, the 5-step webcam setup and a new straight-punch detector. On 1 November night and 2 November it was fixes from Kash's live tests: the chat bot posts, Boss Forge announcements, the `/play` setup and on-stream cards, hit feedback and punch detection. Every commit is labelled "(Claude Code)".
 
-**Who wrote the code** (**MEASURED**, git at `ee1a6e2`, the live build, 1 November; source only, no docs or audio; [commands](docs/codex-evidence.md#codex-vs-claude-code-split)):
+**Who wrote the code** (**MEASURED**, git at `8c99b7e`, the live build, 2 November; source only, no docs or audio; [commands](docs/codex-evidence.md#codex-vs-claude-code-split)):
 
 | | Codex, up to `3677761` | Claude Code, after it |
 |---|---|---|
-| Code commits | **57** | **82** (57 "fix", 25 "feat") |
-| App lines added / removed | **10,187** / 2,021 | **3,039** / 497 |
-| Test and fixture lines added / removed | **11,211** / 360 | **2,421** / 206 |
-| Share of source lines added | **79.7%** | **20.3%** |
+| Code commits | **57** | **104** (69 "fix", 35 "feat") |
+| App lines added / removed | **10,187** / 2,021 | **4,093** / 647 |
+| Test and fixture lines added / removed | **11,211** / 360 | **3,052** / 256 |
+| Share of source lines added | **75.0%** | **25.0%** |
 
-Most of the Claude Code share is 1 November: 52 of its 82 code commits and 4,266 of its 5,460 added lines. Plus 15 docs-only Claude Code commits after 13w. Lines added count edits as well as new code, so this is a size measure, not a value judgement.
+Most of the Claude Code share is 1 November and after: 52 of its 104 code commits and 4,266 of its 7,145 added lines on 1 November up to `ee1a6e2`, then 22 commits and 1,685 lines from 1 November night to 2 November. Plus 21 docs-only Claude Code commits after 13w. Lines added count edits as well as new code, so this is a size measure, not a value judgement.
 
 **Decisions Codex made inside the briefs** (prompt → commit → test):
 1. **FINISHER retuned, gate untouched.** The balance gate rejected the briefed 8-damage FINISHER (coordinated R2 casual 72.6% > 70%), so Codex cut it step by step to 4 and FOCUS gains from +15/+30 to +12/+24 until the cell passed at 69.98%, gate unchanged ([balance review](docs/queue13g-review.md) → `0be805d` → [focus-finisher tests](test/engine/focus-finisher.test.ts)).
@@ -170,7 +170,7 @@ Most of the Claude Code share is 1 November: 52 of its 82 code commits and 4,266
 
 ### Finished with Claude Code
 
-82 labelled code commits after the last Codex turn (`git log --oneline 3677761..ee1a6e2 | grep -cE '(fix|feat) \(Claude Code\)'`). Sim output is identical and no golden vector changed, so no Boss Fight rules changed.
+104 labelled code commits after the last Codex turn (`git log --oneline 3677761..8c99b7e | grep -cE '(fix|feat) \(Claude Code\)'`). Sim output is identical and no golden vector changed, so no Boss Fight rules changed.
 
 **31 October to early 1 November: 30 fixes** from live tests, the end-to-end suites and an overnight audit (1,194 source lines added).
 
@@ -189,6 +189,13 @@ Most of the Claude Code share is 1 November: 52 of its 82 code commits and 4,266
 - **`/play` journey and clips, 7 (+196):** `d3898aa` loading screen · `4f0b383` permissions before Connect · `1a84210` mode first, What your stream gets · `075ab6d` mode cards on phones · `861a946` Chat MVP name, clearer labels · `51b153d` fight-only view, plainer bot error · `15b1ca3` clips 6 s after a KO, titled
 - **Fight and results polish from live tests, 8 (+266):** `9c8b84b` NEXT ROUND, no timer; practice teaches both leans · `e7f33bd` K.O. stamp · `f81938e` SUPER and FINISHER wording · `b1efa7f` stats from page load · `1faf00d` scoreboard results card · `ea8cd8e` End fight on cards, clip tiles · `d2cede9` camera bubble placement · `d083735` results card after 1.5 s
 - **Voice corner coach, now switched off, 10 (+567):** `25cb3ad` · `7068f56` · `08f6a9d` · `acb01b7` · `dcd6040` · `4831c77` · `5cfd2d2` · `482763c` · `85f33a8` · `6ad6ba0` (off for the submission; code kept, [docs/COACH.md](docs/COACH.md))
+
+**1 November night to 2 November: 22 commits** (12 fix, 10 feat; 1,685 source lines added, 200 removed) from Kash's live tests and punch-lab recordings.
+
+- **Fight screen:** `bc75b97` fixed fight-stage lanes · `e3a9c15` one camera circle, opt-in skeleton · `085a546` PUNCH! pop over the boss · `769cd55` compact join panel · `ab6e85b` workout summary fits · `e11235a` BLOCK HIT / DODGE HIT, STEP BACK hint · `cfc70fb` boss hits visible at stream size · `891061f` camera circle hit feedback
+- **Punch detection:** `0f9b2b9` Trainer counts straight jabs · `767e841` `?debug=pose` readout · `73f5cc0` hidden punch lab · `0929787` lab recording as a fixture · `5d9fe7c` Boss punch threshold 0.6 · `2274e59` the Trainer 2 is a cross · `8c99b7e` fast one-twos (Kash's drills 46 → 51 of 59)
+- **`/play` and webcam setup:** `0b4e907` no ElevenLabs hosts in the page policy · `9aa9f69` setup per Kash's mock, ON STREAM NOW preview · `4fc503a` holding cards on stream · `4dca3f7` camera tip and punch lab link · `8cf73b7` clickable lab link, shorter text
+- **Chat bot and Boss Forge:** `ca592e9` bot posts and clip links work in the Worker (every post had failed) · `ff882e8` Boss Forge announced in chat, on the results card and with a NEW BOSS banner
 
 ## Known limits
 

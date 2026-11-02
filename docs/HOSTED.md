@@ -6,9 +6,9 @@
 
 | Hosted stage | Status (31 October 2026) |
 |---|---|
-| Bot round results and HYPE notices | Deployed on streamervschat.kashifnazir.com with the flag on · live check: on 1 November the result line failed to post on Kash's channel (`send_failed`, a request failure on our side, not a permission error; still open). It posted every round on 29 October |
+| Bot round results and HYPE notices | Deployed on streamervschat.kashifnazir.com with the flag on · live check: on 1 November the result line failed to post on Kash's channel (`send_failed`). Cause found on 2 November: the Worker called `fetch` unbound, so every post failed; fixed in `ca592e9` and deployed, live recheck pending. It posted every round on 29 October |
 | Clips | Deployed with the flag on · live check: KO and PERFECT clips were made on Kash's channel on 1 November, before the 6 s wait below; the wait itself is not yet checked live |
-| Boss Forge | Deployed with the flag on · live check: not yet checked live in this build |
+| Boss Forge | Deployed with the flag on · live check: worked on Kash's channel on 1 November (chat built The Boiling Behemoth and The Noodle Knight). Since 2 November (`ff882e8`) the bot announces the new boss in chat, the results card shows it and a NEW BOSS banner plays; not yet checked live |
 | Viewer memory | Deployed with the flag on, opt-in each session |
 | Reload keeps the session | Works: on 31 October a manual reload kept Kash connected to Twitch |
 | Sound on stream (OBS audio) | not yet confirmed live |
