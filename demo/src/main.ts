@@ -42,6 +42,7 @@ import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
 import {mountPosePreview} from './pose-preview';
+import {mountCameraHit} from '../../overlay/src/camera-hit';
 import {createHandsWatch} from './hands-warning';
 import {HANDS_PROMPT} from '../../overlay/src/stage-lanes';
 import {createSimChatFeed,mountSimChat,simHandle,simVoteText,type SimChatMode} from './sim-chat';
@@ -79,6 +80,8 @@ if(!liveMode)mountDemoLanding(document);
 const previewConfig=scoutPreviewConfig(location,{liveMode,liveTokenLoaded:false});
 if(previewConfig)document.querySelector('.demo-tag')!.textContent=SCOUT_PREVIEW_BADGE;
 const hud=createRailsHud(host,{simulated:!liveMode,soundDefault:true,deferSoundUntilStart:true,offlineDemo:!liveMode});
+// Hit feedback on the camera circle (overlay/src/camera-hit.ts): punches yellow with the hand, clean defences cyan, hits taken red.
+const cameraHit=mountCameraHit(stage,{calm:()=>hud.calm()});
 const streamSound=(document.getElementById('stream-sound')??document.getElementById('demo-sound')) as HTMLInputElement|null;
 // Recorded boss taunts (and the Crowd Trainer's coach) share the HUD's sound, mute and announcer priority.
 const voiceBank=createVoiceBank(hud.voiceHost),bossTaunts=createBossTaunts(voiceBank,hud.voiceHost);setActiveVoiceBank(voiceBank);
@@ -195,6 +198,7 @@ function paint() {
   updateControlGuide();
   hud.setBossReceipts(impactLedger.snapshot());hud.setSuperNotices(superNotices.snapshot());
   bossTaunts.observe(game);
+  cameraHit.observe(game);
   hud.render(game??createSelectedGame(difficulty,{seed,viewers:liveMode?0:Number(crowdSize.value),now:0,...(previewConfig?{scoutingConfig:previewConfig}:{})}),!liveMode);
   hud.setConnection(previewConfig?SCOUT_PREVIEW_BADGE:liveMode?(hosted?.ready?'LIVE · YOUR TWITCH CHAT':'LIVE MODE · CONNECT TWITCH'):'OFFLINE DEMO · SIMULATED CHAT');
   // /play is any streamer's broadcast: name the connected Twitch login, never the default HUD name.
@@ -293,6 +297,7 @@ function input(event:StreamerInput) {
     return;
   }
   if(event.kind==='punch'&&noPunch.checked)return;
+  if(event.kind==='punch')cameraHit.notePunch(event.side);
   game=step(game,event,at);
   if(event.kind==='control'&&event.action==='resume'&&!game.paused) {
     const pose:PoseState=source.value==='keyboard'?{kind:'pose',...keyboard.physical,source:'keyboard',at}:
@@ -350,7 +355,7 @@ const camera=new PoseCamera(video,sample=>{
     input(lastPose);
     if(ready)for(const punch of result.punches)input(punch);
     // Crowd Trainer reads punch side and slips with its own detector; Boss Fight thresholds stay as they are.
-    if(trainer.running){const moves=trainerMoves.update(sample.landmarks,sample.at);if(ready){for(const punch of moves.punches)trainer.move({kind:'punch',side:punch.side});for(const slip of moves.slips)trainer.move({kind:'slip',side:slip.side});}
+    if(trainer.running){const moves=trainerMoves.update(sample.landmarks,sample.at);if(ready){for(const punch of moves.punches){trainer.move({kind:'punch',side:punch.side});cameraHit.trainerPunch(punch.side);}for(const slip of moves.slips)trainer.move({kind:'slip',side:slip.side});}
      if(poseDebug&&ready){for(const punch of moves.punches)poseDebug.move({kind:'PUNCH',side:punch.side});for(const slip of moves.slips)poseDebug.move({kind:'SLIP',side:slip.side});}}
     else if(poseDebug&&ready)for(const punch of result.punches)poseDebug.move({kind:'PUNCH',side:punch.side});
   }

@@ -748,3 +748,15 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .hosted-flow #fight-setup>#how-to-play{width:auto;max-width:none}
 @media(max-width:760px){.hosted-flow .play-moves{grid-template-columns:repeat(2,minmax(0,1fr))}.hosted-flow .play-next{font-size:24px}}
 /* ── end playsetup ── */
+/* Camera circle hit feedback (overlay/src/camera-hit.ts, Kash 2 Nov): over the pose preview or /play stream bubble, above both. Punch:
+   yellow ring and an L/R fist badge with the damage; clean defence: cyan ring with DODGED/BLOCKED/PERFECT; hit taken: a short red ring.
+   Sizes are in circle units (cqh) so the badges scale with the stage; side badges sit beside the circle, the top one on its top edge. */
+.camera-hit{position:absolute;z-index:8;pointer-events:none;container-type:size}
+.camera-hit[hidden]{display:none}
+.camera-hit-ring{position:absolute;inset:-3px;border-radius:50%;border:6px solid var(--hit-color,#ffdc43);opacity:0;box-sizing:border-box}
+.camera-hit-badge{position:absolute;top:50%;translate:0 -50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font:400 14cqh/.95 Anton,Impact,sans-serif;color:#08050c;background:var(--hit-color,#ffdc43);border:.8cqh solid #08050c;border-radius:12cqh;padding:2.5cqh 4cqh;box-shadow:0 0 6cqh var(--hit-color,#ffdc43);opacity:0;white-space:pre;letter-spacing:.5px}
+.camera-hit-badge[data-kind=punch]{min-width:22cqh;border-radius:45% 45% 32% 32%}
+.camera-hit-badge[data-kind=punch]>span{font-size:22cqh}.camera-hit-badge>small{font-size:12cqh}
+.camera-hit-badge[data-spot=left]{right:calc(100% + 2cqh)}
+.camera-hit-badge[data-spot=right]{left:calc(100% + 2cqh)}
+.camera-hit-badge[data-spot=top]{top:0;left:50%;translate:-50% -55%;font-size:11cqh;padding:1.5cqh 4cqh}
