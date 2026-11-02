@@ -22,7 +22,7 @@ export function trainerKeySide(code:string,southpaw:boolean):'L'|'R'|null{const 
 /** What to press (keyboard) or do (webcam) for each token: the keys card, the chips and the key strip share it. */
 export function tokenHint(token:Token,keyboard:boolean,southpaw:boolean):string{
  const lead=southpaw?'J':'F',rear=southpaw?'F':'J';
- return keyboard?{'1':`1 / ${lead}`,'2':`2 / ${rear}`,S:'S / A·D',G:'G / K'}[token]:{'1':'jab','2':'punch',S:'lean',G:'fists up'}[token];
+ return keyboard?{'1':`1 / ${lead}`,'2':`2 / ${rear}`,S:'S / A·D',G:'G / K'}[token]:{'1':'jab','2':'cross',S:'lean',G:'fists up'}[token];
 }
 function isTextEntry(target:EventTarget|null){const element=target as {tagName?:string;type?:string;isContentEditable?:boolean}|null;if(element?.tagName==='INPUT'&&['checkbox','radio','button'].includes(element.type??''))return false;return !!element?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(element?.tagName??'');}
 /** Crowd Trainer view and controller. The pure reducer owns all rules; this file only feeds and paints it. */
@@ -69,8 +69,8 @@ export function mountTrainer(doc:Document,options:{live:boolean;stage:HTMLElemen
  }
  // Keys card: before round 1 the clock and chat wait. Keyboard players press each move once (or Skip); webcam players click I'm ready or hold their guard 1 s.
  const practiceRows=(keyboard:boolean,southpaw:boolean):[Token,string,string][]=>{const [lead,rear]=southpaw?['J','F']:['F','J'],[leadSide,rearSide]=southpaw?['right','left']:['left','right'];
-  return keyboard?[['1','lead punch',`press <kbd>1</kbd> or <kbd>${lead}</kbd>`],['2','rear punch',`press <kbd>2</kbd> or <kbd>${rear}</kbd>`],['S','slip','press <kbd>S</kbd>, <kbd>A</kbd> or <kbd>D</kbd>'],['G','guard','hold <kbd>G</kbd> or <kbd>K</kbd>']]
-   :[['1','jab',`with your lead hand (${leadSide})`],['2','punch',`with your rear hand (${rearSide})`],['S','slip','lean either way'],['G','guard','fists up to your face and hold']];};
+  return keyboard?[['1','lead punch',`press <kbd>1</kbd> or <kbd>${lead}</kbd>`],['2','cross (rear hand)',`press <kbd>2</kbd> or <kbd>${rear}</kbd>`],['S','slip','press <kbd>S</kbd>, <kbd>A</kbd> or <kbd>D</kbd>'],['G','guard','hold <kbd>G</kbd> or <kbd>K</kbd>']]
+   :[['1','jab',`with your lead hand (${leadSide})`],['2','cross',`with your rear hand (${rearSide})`],['S','slip','lean either way'],['G','guard','fists up to your face and hold']];};
  function renderPractice(){
   const card=part('practice');card.hidden=!practice;if(!practice||!state)return;
   const key=`${practice.keyboard}:${state.options.southpaw}:${[...practice.done].join('')}`;if(card.dataset.key===key)return;card.dataset.key=key;

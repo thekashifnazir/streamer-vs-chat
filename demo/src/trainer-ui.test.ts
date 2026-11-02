@@ -89,7 +89,7 @@ it('ignores the new keys in text inputs and outside a workout (Boss Fight keeps 
 it('holds the clock and chat behind the keys card until each move is pressed once',()=>{
  const m=mount('index.html','?mode=trainer');m.trainer.start(0);const card=m.doc.querySelector<HTMLElement>('.trainer-practice')!;
  expect(card.hidden).toBe(false);expect(m.trainer.practising).toBe(true);expect(m.doc.querySelector('.trainer-stage')!.getAttribute('data-phase')).toBe('practice');
- expect([...card.querySelectorAll('li')].map(li=>li.textContent)).toEqual(['1lead punchpress 1 or F','2rear punchpress 2 or J','Sslippress S, A or D','Gguardhold G or K']);
+ expect([...card.querySelectorAll('li')].map(li=>li.textContent)).toEqual(['1lead punchpress 1 or F','2cross (rear hand)press 2 or J','Sslippress S, A or D','Gguardhold G or K']);
  expect(card.textContent).toContain('Chat calls combos like 1-2-slip. Throw them in order.');expect(card.querySelector('button')!.textContent).toBe('Skip');
  m.trainer.chat({userId:'u',text:'!12'},50);m.at(10_000);m.trainer.tick(10_000);expect(m.cues).toEqual([]);expect(m.trainer.state!.combo).toBeNull();expect(m.trainer.state!.tally['12']).toBe(0);
  m.key('Digit1');m.key('KeyJ');m.trainer.input({kind:'pose',guard:false,lean:'R',source:'keyboard',at:0},10_000);
@@ -112,12 +112,12 @@ it('webcam shows the body moves and an I’m ready button, with Southpaw hand wo
  const m=mount('index.html','?mode=trainer',false,false);const box=m.doc.querySelector<HTMLInputElement>('[data-trainer-option=southpaw]')!;box.checked=true;box.dispatchEvent(new m.dom.window.Event('change'));
  m.trainer.start(0);const card=m.doc.querySelector<HTMLElement>('.trainer-practice')!;
  expect(card.querySelector('button')!.textContent).toBe('I’m ready');expect(card.textContent).toContain('YOUR MOVES');
- expect([...card.querySelectorAll('li')].map(li=>li.textContent)).toEqual(['1jabwith your lead hand (right)','2punchwith your rear hand (left)','Ssliplean either way','Gguardfists up to your face and hold']);
+ expect([...card.querySelectorAll('li')].map(li=>li.textContent)).toEqual(['1jabwith your lead hand (right)','2crosswith your rear hand (left)','Ssliplean either way','Gguardfists up to your face and hold']);
  // No forced practice: moves do not start it, and keyboard keys do nothing on webcam.
  m.trainer.move({kind:'punch',side:'R'},100);m.key('KeyF');expect(m.trainer.practising).toBe(true);expect(m.trainer.state!.stats.punchesR).toBe(0);
  m.at(500);card.querySelector('button')!.click();expect(m.trainer.practising).toBe(false);expect(m.cues).toEqual(['round-start']);
  m.at(TRAINER.firstCallMs+500);m.trainer.tick(TRAINER.firstCallMs+500);expect([...m.doc.querySelectorAll('.trainer-chip i')].map(i=>i.textContent).length).toBeGreaterThan(0);
- for(const hint of m.doc.querySelectorAll('.trainer-chip i'))expect(['jab','punch','lean','fists up']).toContain(hint.textContent);
+ for(const hint of m.doc.querySelectorAll('.trainer-chip i'))expect(['jab','cross','lean','fists up']).toContain(hint.textContent);
 });
 it('webcam: holding a guard for 1 s also counts as ready',()=>{
  const m=mount('index.html','?mode=trainer',false,false);m.trainer.start(0);

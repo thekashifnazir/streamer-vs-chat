@@ -47,7 +47,7 @@ it('step 3 puts extras chips, one next button and how to play (Boss Fight plus P
  expect(row.lastElementChild!.id).toBe('play-more-options');expect(get('play-more-options').querySelector('.extras-explained')!.textContent).toContain('As streamervschatbot.');
  expect(row.nextElementSibling!.id).toBe('play-next');expect(get('play-next').nextElementSibling!.id).toBe('how-to-play');
  expect(get('how-to-play').querySelector('.play-moves #attack-rows')).not.toBeNull();expect(get('how-to-play').querySelector('[data-defence=punch] h3')!.textContent).toBe('Punch');
- expect([...get('how-to-play').querySelectorAll('.play-trainer-moves h3')].map(h=>h.textContent)).toEqual(['Lead punch','Rear punch','Slip','Guard']);
+ expect([...get('how-to-play').querySelectorAll('.play-trainer-moves h3')].map(h=>h.textContent)).toEqual(['Lead punch','Cross','Slip','Guard']);
  const noPunch=get('no-punch') as HTMLInputElement;noPunch.checked=true;noPunch.dispatchEvent(new dom.window.Event('change'));expect(get('how-to-play').querySelector<HTMLElement>('[data-defence=punch]')!.hidden).toBe(true);
  dom.window.close();
 });

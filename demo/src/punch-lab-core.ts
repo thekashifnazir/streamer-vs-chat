@@ -11,7 +11,7 @@ export type LabEvent={at:number;detector:'boss'|'trainer'|'camera';kind:'punch'|
 export type DrillStep={id:string;prompt:string;seconds:number;expected:{L:number;R:number};dodges?:number};
 export const DRILL:readonly DrillStep[]=[
  {id:'jab-L',prompt:'Throw 10 LEFT jabs',seconds:25,expected:{L:10,R:0}},
- {id:'jab-R',prompt:'Throw 10 RIGHT jabs',seconds:25,expected:{L:0,R:10}},
+ {id:'jab-R',prompt:'Throw 10 RIGHT crosses (your 2)',seconds:25,expected:{L:0,R:10}},
  {id:'one-two',prompt:'Throw 5 one-twos · left, right',seconds:25,expected:{L:5,R:5}},
  {id:'dodge',prompt:'Dodge left and right 5 times each · don’t punch',seconds:30,expected:{L:0,R:0},dodges:10},
 ];
