@@ -36,7 +36,7 @@ import { InputTutorial } from './tutorial';
 import { fightHelp, finisherHelp, poseGuide } from './defence-copy';
 import {startColdOpen,coldOpenStage} from './cold-open';
 import {mountStreamLayout} from './stream-layout';
-import {mountStartingSoon,startingSoonCopy} from './starting-soon';
+import {mountStartingSoon,startingSoonCopy,type HoldingState} from './starting-soon';
 import {STAGE_PREVIEW} from './hosted-flow';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
@@ -180,7 +180,10 @@ function resize(){const scale=stage.clientWidth/1920;host.style.transform=`scale
 new ResizeObserver(resize).observe(stage);resize();
 // /play: viewers see a STARTING SOON card whenever nothing runs on the stage (CSS keys it to .fight-started).
 const startingSoon=liveMode?mountStartingSoon(stage):null;
-function paintStartingSoon(){startingSoon?.update(startingSoonCopy({login:hosted?.login,boss:(game?.bossDef??pendingBoss)?.name,trainer:trainer.selected}));}
+// Holding card state: whether a fight ran, the last finished match, and the last boss fought (so a forged boss is announced once).
+let fought=false,lastMatch:HoldingState['lastMatch']=null,lastFoughtBoss='';
+function paintStartingSoon(){if(!startingSoon)return;if(game){fought=true;lastFoughtBoss=game.bossDef?.name??'';if(game.match.winner)lastMatch={winner:game.match.winner,streamer:game.match.round_wins.streamer,boss:game.match.round_wins.boss};}
+ startingSoon.update(startingSoonCopy({login:hosted?.login,boss:(game?.bossDef??pendingBoss)?.name,trainer:trainer.selected,fought,lastMatch,forging:!!hosted?.forgeBusy,forged:!!pendingBoss&&pendingBoss.name!==lastFoughtBoss}));}
 function paint() {
   hosted?.observePhase();
   paintStartingSoon();
@@ -474,13 +477,14 @@ if(liveMode){
   el('friend-tools').hidden=true;
   const {mountHostedPlay}=await import('./play');
   const freeze=(reason='Twitch chat disconnected — reconnect, then resume')=>{if(game||trainer.running)pauseWith(reason);};
-  hosted=mountHostedPlay({getState:()=>game,coachOff:()=>trainer.selected||trainer.active,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>trainer.selected?null:parseChatVote(text,user,at,false,game?.bossDef),onChatMessage:message=>trainer.chat(message),onCoach:active=>fightUi?.hold(active),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:(message,detail)=>streamLayout.status(message,detail),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
+  hosted=mountHostedPlay({getState:()=>game,coachOff:()=>trainer.selected||trainer.active,onMemoryChange:()=>paint(),betweenRounds:()=>!game||game.round.over,onForgeAccepted:boss=>{pendingBoss=boss;paintStartingSoon();},onForgeSnapshot:view=>{forgeSnapshot=view;hud.setForge(view,!game||game.round.over);paintStartingSoon();},onBroadcast:()=>leaveGuard.sync(),parseVote:(text,user,at)=>trainer.selected?null:parseChatVote(text,user,at,false,game?.bossDef),onChatMessage:message=>trainer.chat(message),onCoach:active=>fightUi?.hold(active),onHighlightsChange:()=>paint(),onConnected:()=>paint(),onStatus:(message,detail)=>streamLayout.status(message,detail),onGreen:checked=>streamLayout.green(checked),onVote:vote=>{
     if(!game||game.round.over||game.paused)return false;
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
   },onRaid:event=>{if(game){game=step(game,event,performance.now());paint();}},onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!safetyCleared())return;if(event.kind==='control'&&['stop','pause','veto'].includes(event.action))pauseReason=event.by==='capture'?'stream ended':'chat requested a pause';input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{if(trainer.running){trainer.stop();return;}showSessionSummary=true;freeze();}});
-  // The small stage preview on steps 2-3: on step 3 a click opens the fight-only view (Show full page comes back).
-  const openPreview=()=>{if(document.body.matches(STAGE_PREVIEW)&&document.body.dataset.playStep==='fight'&&!document.body.classList.contains('webcam-open'))streamLayout.collapse();};
+  // The small stage preview on steps 2-3: on step 3 a click opens the fight-only view (Show full page comes back). In the preview
+  // nothing inside the stage takes the pointer, so only clicks on the stage itself count (a card button's click must not reopen it).
+  const openPreview=(event:Event)=>{if((event.currentTarget!==stage||event.target===stage)&&document.body.matches(STAGE_PREVIEW)&&document.body.dataset.playStep==='fight'&&!document.body.classList.contains('webcam-open'))streamLayout.collapse();};
   stage.addEventListener('click',openPreview);document.getElementById('stage-preview-open')?.addEventListener('click',openPreview);
   crowdSize.closest('label')!.hidden=true;
   document.title='Streamer vs Chat · Twitch play';
