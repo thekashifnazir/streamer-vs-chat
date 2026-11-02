@@ -90,7 +90,16 @@ Any ordinary webcam in Chrome is enough: no gloves, sensors or depth camera. Pos
 | **Lean** | shallow leans 6 of 6, fight-speed leans 16 of 16, 0 false leans ([test](test/pose/shallow-lean.test.ts)) |
 | **Straight punches** | 42 of 44 recorded punches, and 51 of 59 in fast one-two drills ([test](test/pose/straight-punch.test.ts)) |
 
-So guard and lean decide every hit, and punches add bonus damage. Punches read best slightly exaggerated, a little upward rather than straight at the lens. Evidence, and what better hardware could add: [WEBCAM.md](docs/WEBCAM.md).
+Guard and lean decide every hit, so a missed punch only costs bonus damage.
+
+**Punches are the hardest part for a webcam.** They count, but not every time: in the video they had to be thrown big. In Kash's words: "Punch detection seemed to work more when I punched upward, kind of, or off screen. Straight, like a normal jab or cross, was hard for the camera to pick up."
+
+**First time? Open the [punch lab](https://streamervschat.kashifnazir.com/?lab=punch)** to see which of your punches register before you fight. What helps:
+- Stand back so your head, shoulders and both wrists stay in frame.
+- Throw a little upward and a bit bigger than usual, then bring the hand back to guard.
+- Use **Skip punches** in setup, or no-punch mode, if they still don't register: the fight works without them.
+
+Evidence, and what better hardware could add: [WEBCAM.md](docs/WEBCAM.md).
 
 ## Live on Twitch
 
@@ -99,6 +108,8 @@ So guard and lean decide every hit, and punches add bonus damage. Punches read b
 - **Full run (2 November, kashruns).** Chat votes, bot results, clips, a forged boss and Crowd Trainer, all live: it's the footage in the [demo video](https://youtu.be/d1ZewiNJvbE).
 
 ## How Codex built this
+
+**Codex session ID:** `01a17e04-f4f0-7d12-ac96-ff47bf3cc88f`
 
 Built with OpenAI Codex, in one main thread: 77 turns and 57 code commits. Kash set the direction, approved every brief and did all the camera and Twitch testing. Codex planned each task, split the work across subagents running in parallel, tested it in browsers, reviewed each commit with an independent subagent and wrote the code ([AGENTS.md](AGENTS.md)).
 
@@ -114,6 +125,12 @@ In Kash's words:
 **Calls Codex made itself:** when the balance gate rejected the briefed 8-damage FINISHER (72.6% > 70%), it cut it to 4 instead of loosening the gate ([tests](test/engine/focus-finisher.test.ts)); it dropped CHAT SYNC after two tuning attempts failed the gate; and after live tests it made the guard hold through leans and stopped resting hands counting as a guard ([replay tests](test/pose/replay.test.ts)).
 
 **Finished with Claude Code.** After the last Codex turn, the final fixes from live tests and the Crowd Trainer mode were made with Claude Code. Every one of those commits is labelled "(Claude Code)": [full list and split](docs/codex-evidence.md#claude-code-commits).
+
+## Where it's going
+
+<p align="center"><img src="docs/img/roadmap.png" alt="Roadmap: now guard, lean and punch; then sharper calibration off video, more punches, kicks and Thai if there's space, more games on the same chat loop, and a Twitch Extension for voting by clicking" width="900"></p>
+
+In Kash's words: "If I had more time, I'd want to start looking into how to get the calibration working even better so that this could work purely off video." Then more types of punches, and kicks: "If there's more space, I like to do more Thai with kicks." Nak Muay already adds teep, elbows and clinch on the same guard and lean detection. Once chat-votes-your-body-answers is a loop, more games can plug into it, the way Crowd Trainer did, and a Twitch Extension would let viewers vote by clicking the video.
 
 ## Run it locally
 
@@ -149,7 +166,6 @@ GitHub Actions runs all four on every push. Balance numbers come from assumed pl
 
 - [SPEC.md](SPEC.md) (rules and numbers) · [JUDGES.md](JUDGES.md) · [WEBCAM.md](docs/WEBCAM.md) · [HOSTED.md](docs/HOSTED.md) · [DEVELOPMENT.md](docs/DEVELOPMENT.md) · [Codex evidence](docs/codex-evidence.md) · [CREDITS.md](CREDITS.md)
 - **Accessibility:** keyboard, seated and no-punch modes, large HUD text, a focus-trapped pause menu and calm effects (`?fx=calm` or reduced motion).
-- **What's next**, in Kash's words: better calibration "so that this could work purely off video", more types of punches, and kicks if there's space: "If there's more space, I like to do more Thai with kicks." Also more fighting styles on the same guard and lean detection (Nak Muay already adds teep, elbows and clinch) and a Twitch Extension so viewers can vote by clicking.
 
 ## Licence
 
