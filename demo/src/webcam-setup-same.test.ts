@@ -21,5 +21,5 @@ it('renders one step list, start wording, how-to-play strip and wrists line on /
  expect(home.handsRule).toContain('both wrists show ✓');expect(play.handsRule).toBe(home.handsRule);expect(home.handsRuleInSteps&&play.handsRuleInSteps).toBe(true);
  expect(play.header).toEqual(home.header);
  // Only the privacy/stream sentence after "About 30 seconds." differs.
- expect(home.intro).toBe('About 30 seconds. Your video never leaves this browser.');expect(play.intro).toMatch(/^About 30 seconds\. Calibration runs here; the camera appears on stream only when “Show my camera on stream” is on\.$/);
+ expect(home.intro).toBe('About 30 seconds. Your video never leaves this browser.');expect(play.intro).toBe('About 30 seconds. Your camera is only on stream if you turn it on.');
 });

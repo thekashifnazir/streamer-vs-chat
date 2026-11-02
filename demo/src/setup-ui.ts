@@ -41,7 +41,8 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  const checklist=webcam.querySelector('.webcam-checklist');if(checklist){checklist.className='webcam-checklist webcam-groups';checklist.innerHTML=webcamStepsMarkup();}
  const moves=root.createElement('section');moves.className='play-webcam-moves';moves.setAttribute('aria-label','While you fight');moves.innerHTML='<p class="play-how-title">WHILE YOU FIGHT</p><div class="play-moves">'+WEBCAM_MOVES.map(([name,line])=>`<article class="defence-card play-move-card"><h3>${name}</h3><p>${line}</p></article>`).join('')+'</div>';preview.after(moves);
  const handsRule=root.createElement('p');handsRule.id='hands-rule';handsRule.className='hands-rule';handsRule.textContent=HANDS_SETUP_RULE;get('webcam-instruction').after(handsRule);
- const tip=root.createElement('p');tip.id='camera-tip';tip.className='camera-tip';tip.append(CAMERA_TIP+' ');const lab=root.createElement('a');lab.href='/?lab=punch';lab.target='_blank';lab.rel='noopener';lab.textContent='Practise your punches with tracking →';tip.append(lab);handsRule.after(tip);
+ // The punch lab link sits with the actions (Kash, 2 Nov): inside .webcam-instructions it could not be clicked (pointer-events:none there).
+ const lab=root.createElement('a');lab.id='practise-link';lab.className='demo-link-button practise-link';lab.href='/?lab=punch';lab.target='_blank';lab.rel='noopener';lab.textContent='Practise your punches first ↗';get('use-keyboard').parentElement!.after(lab);
  let commandKey='',latestCalibration:CalibrationSnapshot|null=null;
  // Step 5 (punches) is a bonus: a Skip link sits under the progress bar on / and /play while that step is live.
  const skip=root.createElement('button');skip.type='button';skip.id='skip-punches';skip.className='text-button';skip.textContent='Skip punches';skip.hidden=true;
@@ -71,7 +72,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
   const webcamStart=get<HTMLButtonElement>('play-webcam');webcamStart.disabled=!(space.checked&&camera&&ready);webcamStart.textContent=!(camera&&ready)?WEBCAM_START_WAIT:!space.checked?'Tick “My space is clear” to start':`START WEBCAM ${noun()}`;
   // The camera and calibration work straight away; only the fight waits for the tick, so the card sits by START and lights up when it is the last thing missing.
   get('safety-card').classList.toggle('needs-tick',pose&&camera&&ready&&!space.checked);
-  get('webcam-distance-tip').textContent=select('posture').value==='seated'?'Seated: sit about 1 m further back than feels natural.':'Standing: give yourself room to raise your guard and lean to either side.';
+  get('webcam-distance-tip').textContent=(select('posture').value==='seated'?'Seated: sit about 1 m further back than feels natural. ':'Standing: leave room to lean either side. ')+CAMERA_TIP;
   get('calibration-saved').hidden=!restored;
   get<HTMLButtonElement>('start-camera').disabled=false;get('camera-start-reason').hidden=true;
  };

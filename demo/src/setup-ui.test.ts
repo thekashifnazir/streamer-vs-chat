@@ -92,7 +92,7 @@ it('the camera turns on without the clear-space tick; START waits for it, says s
 });
 it.each(['index.html','play/index.html'])('%s step 1 says plainly that both wrists must show ✓, and flags a missing hand',page=>{
  const {ui,byId}=mount(page),rule=byId('hands-rule');
- expect(rule.textContent).toBe('Stand back until both wrists show ✓ — leans and punches only work when your hands are in view.');expect(rule.previousElementSibling).toBe(byId('webcam-instruction'));
+ expect(rule.textContent).toBe('Stand back until both wrists show ✓. Leans and punches need your hands in view.');expect(rule.previousElementSibling).toBe(byId('webcam-instruction'));
  ui.camera(true);const body=Array.from({length:33},()=>({x:.5,y:.4,visibility:.9}));
  ui.frame(body.map((p,i)=>i===16?{...p,visibility:.1}:p),false);expect(rule.hidden).toBe(false);expect(rule.classList.contains('hands-missing')).toBe(true);
  ui.frame(body,true);expect(rule.classList.contains('hands-missing')).toBe(false);

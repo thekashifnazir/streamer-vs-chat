@@ -762,5 +762,5 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .camera-hit-badge[data-spot=top]{top:0;left:50%;translate:-50% -55%;font-size:11cqh;padding:1.5cqh 4cqh}
 
 /* camera tip under the webcam setup rule (2 Nov) */
-.camera-tip{margin:.35rem 0 0;font-size:.95rem;color:#c9bedb}.camera-tip a{color:#3fe0f0;margin-left:.2rem}
+#webcam-settings .practise-link{display:flex;justify-content:center;margin-top:12px;font-size:15px}
 /* end camera tip */
