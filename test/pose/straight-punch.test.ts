@@ -28,16 +28,16 @@ describe('straight punches on Kash’s recorded webcam footage (44 punches; guar
  it('Boss Fight catches most ordinary punches without turning guard or leans into punches',()=>{
   // Before (1.6-width extension gate): 13 of 44 caught, 30 false punches. 1 Nov wrist excursion alone: 36, 3.
   // With the forearm foreshortening cue: 42 caught (one-twos 9/10, from 5/10), 4 false punches. ON 0.6 (1 Nov punch lab,
-  // test/pose/punch-lab-replay.test.ts): 42 caught, 6 false punches.
+  // test/pose/punch-lab-replay.test.ts): 42 caught, 6 false punches. Other hand's drop weighed 0.3 (2 Nov fast one-twos): 42, 7.
   const result=score(frames=>boss(frames));
-  expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(6);
+  expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(7);
  });
  it('Crowd Trainer keeps its catches and drops most false punches',()=>{
   // Before (no drop, edge or tilt filters): 41 of 44 caught, 32 false punches. With them: 40, 9. Merged with the straight-punch
   // detector (1 Nov live playtest: jabs at the camera were missed, so combos lost their first token): 42, 11; frame-labelled
-  // drill one-twos: jabs 8 -> 11 of 12.
+  // drill one-twos: jabs 8 -> 11 of 12. Other hand's drop weighed 0.3 in the merged detector (2 Nov): 42, 12.
   const result=score(trainer);
-  expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(11);
+  expect(result.caught).toBeGreaterThanOrEqual(42);expect(result.falsePunches).toBeLessThanOrEqual(12);
  });
  it('Crowd Trainer reads setup thresholds as a ratio to the Boss Fight default, not in its own units',()=>{
   // Raw Boss Fight units (0.7-0.9) in the Trainer's shoulder-width units cut its catches from 40 to 34 of 44. The setup step now

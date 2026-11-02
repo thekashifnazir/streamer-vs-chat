@@ -20,6 +20,10 @@ export const STRAIGHT_PUNCH={
  baselineMs:2000,widthMs:3000,widthPercentile:.8,maxGapMs:500,
  // on: excursion in shoulder lengths; dominance: the other hand must move this much less (a guard raise moves both).
  on:.6,off:.3,fall:.12,dominance:.25,refractoryMs:200,minGapMs:250,
+ // In a fast one-two the other hand drops back to chamber while this one punches, which read as both hands moving (2 Nov punch
+ // lab bursts, test/pose/punch-burst-replay.test.ts). A guard raise moves both hands up, so the other hand's downward motion
+ // counts only this much towards dominance: 46 -> 51 of 59 burst punches, one more false punch over all the older footage (6 -> 7).
+ otherDown:.3,
  // Not a punch: a hand dropping (guard falling), a hand resting at the bottom edge of the frame (tracking flips
  // there), or a torso that is tilting (a lean or slip carries the hands with it).
  down:.3,edgeY:.85,tiltGate:.5,
@@ -78,14 +82,17 @@ export class StraightPunchDetector {
   const shrink=(now:number,rest:number)=>STRAIGHT_PUNCH.forearm*(Math.max(0,rest-now)||0);
   const fore={L:shrink(sample.lf,median(past.map(p=>p.lf))),R:shrink(sample.rf,median(past.map(p=>p.rf)))};
   const excursion={L:Math.hypot(sample.l[0]-base.l[0]!,sample.l[1]-base.l[1]!,fore.L),R:Math.hypot(sample.r[0]-base.r[0]!,sample.r[1]-base.r[1]!,fore.R)};
+  // The other hand as a rival for dominance: its downward motion weighs otherDown.
+  const rival=(now:[number,number],rest:number[],fore:number)=>{const down=now[1]-rest[1]!;return Math.hypot(now[0]-rest[0]!,down>0?down*STRAIGHT_PUNCH.otherDown:down,fore);};
+  const other={L:rival(sample.l,base.l,fore.L),R:rival(sample.r,base.r,fore.R)};
   const drop={L:sample.l[1]-base.l[1]!,R:sample.r[1]-base.r[1]!},restY={L:median(past.map(p=>p.ly)),R:median(past.map(p=>p.ry))};
   const tilting=Math.abs(sample.tilt-median(past.map(p=>p.tilt)))>STRAIGHT_PUNCH.tiltGate;
   const reason=(side:'L'|'R')=>tilting?'tilt' as const:drop[side]>STRAIGHT_PUNCH.down?'drop' as const:restY[side]>STRAIGHT_PUNCH.edgeY?'edge' as const:null;
   this.debug={excursion:{...excursion},threshold:{...thresholds},blocked:{L:reason('L'),R:reason('R')},armed:{L:this.trackers.L.armed,R:this.trackers.R.armed}};
   for(const side of ['L','R'] as const){
-   const tracker=this.trackers[side],value=excursion[side],other=excursion[side==='L'?'R':'L'];
+   const tracker=this.trackers[side],value=excursion[side],rest=other[side==='L'?'R':'L'];
    const blocked=tilting||drop[side]>STRAIGHT_PUNCH.down||restY[side]>STRAIGHT_PUNCH.edgeY;
-   if(tracker.armed&&!blocked&&value>=thresholds[side]&&value>tracker.peak){tracker.peak=value;tracker.peakAt=at;tracker.dominant=value-other>=STRAIGHT_PUNCH.dominance;}
+   if(tracker.armed&&!blocked&&value>=thresholds[side]&&value>tracker.peak){tracker.peak=value;tracker.peakAt=at;tracker.dominant=value-rest>=STRAIGHT_PUNCH.dominance;}
    if(tracker.armed&&tracker.peak>0&&value<tracker.peak-STRAIGHT_PUNCH.fall){
     if(tracker.dominant&&tracker.peakAt-tracker.last>=STRAIGHT_PUNCH.minGapMs&&tracker.peakAt-this.lastPunch>=STRAIGHT_PUNCH.refractoryMs){out.push({side,at:tracker.peakAt,peak:tracker.peak});tracker.last=tracker.peakAt;this.lastPunch=tracker.peakAt;}
     tracker.armed=false;tracker.peak=0;
