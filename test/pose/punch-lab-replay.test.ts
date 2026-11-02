@@ -27,9 +27,9 @@ function score(punches:Punch[]){
   return [s.name,{caught,extra:inside.length-used.size}];
  }));
 }
-describe('Kash’s guided punch-lab drill (1 Nov night, 10 left jabs, 10 right jabs, 5 one-twos, 10 dodges)',()=>{
+describe('Kash’s guided punch-lab drill (1 Nov night, 10 left jabs, 10 right crosses, 5 one-twos, 10 dodges)',()=>{
  const b=score(boss()),t=score(trainer());
- it('Boss Fight catches the right jabs and one-twos it used to miss, and nothing during the dodges',()=>{
+ it('Boss Fight catches the right crosses and one-twos it used to miss, and nothing during the dodges',()=>{
   // Before (ON 0.7): left 9/10, right 4/10, one-twos 6/10 (live in the lab: 9, 4, 5). The missed left is the first jab, thrown
   // out of a guard raise: both hands moved, so the peak did not count and the wrist stayed disarmed until it came home.
   expect(b['jab-L']).toEqual({caught:9,extra:0});expect(b['jab-R']!.caught).toBeGreaterThanOrEqual(7);
