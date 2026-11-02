@@ -62,7 +62,7 @@ git clone https://github.com/thekashifnazir/streamer-vs-chat && cd streamer-vs-c
 npm ci && npm test && npx tsc --noEmit && npm run sim && npm run build:demo
 ```
 
-Clone and `npm ci` need network access to download the repository and packages. After installation, tests, type-check, sim and build need no key or external network. **MEASURED 2 Nov** at `8c99b7e` (the live build): 1,281 offline tests in 169 files pass, and the sim output is identical to `0be805d`.
+Clone and `npm ci` need network access to download the repository and packages. After installation, tests, type-check, sim and build need no key or external network. **MEASURED 2 Nov** at `8c99b7e` (the build deployed on 2 November): 1,281 offline tests in 169 files pass, and the sim output is identical to `0be805d`.
 
 End-to-end browser checks are local Playwright runs outside this repo; not included. **MEASURED 1 Nov** on the live build: 9 offline demo flows (including a bot-played best-of-3 and the webcam path fed a recorded clip as a fake camera), 41 Crowd Trainer checks, and all 9 steps of a hosted `/play` journey with Twitch and the Worker mocked in the browser. An earlier run at `74cc38d` also did responsive/a11y checks at 6 widths in Chromium and WebKit, with Lighthouse accessibility 100 on `/` and `/play`.
 

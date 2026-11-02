@@ -149,7 +149,7 @@ Boss Forge runs on `/play`: chat sends `!forge <idea>` (`!forge +1` to endorse) 
 
 **Finished with Claude Code.** To meet the deadline, Claude Code finished the entry from 31 October. On 31 October and overnight that was polish and bug fixes from live tests. On 1 November it was bigger: the Crowd Trainer mode, the recorded voice lines, a homepage redesign, the 5-step webcam setup and a new straight-punch detector. On 1 November night and 2 November it was fixes from Kash's live tests: the chat bot posts, Boss Forge announcements, the `/play` setup and on-stream cards, hit feedback and punch detection. Every commit is labelled "(Claude Code)".
 
-**Who wrote the code** (**MEASURED**, git at `8c99b7e`, the live build, 2 November; source only, no docs or audio; [commands](docs/codex-evidence.md#codex-vs-claude-code-split)):
+**Who wrote the code** (**MEASURED**, git at `8c99b7e`, the build deployed on 2 November (later commits not counted); source only, no docs or audio; [commands](docs/codex-evidence.md#codex-vs-claude-code-split)):
 
 | | Codex, up to `3677761` | Claude Code, after it |
 |---|---|---|

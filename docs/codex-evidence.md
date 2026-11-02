@@ -1,6 +1,6 @@
 # Codex build evidence
 
-Snapshot measured on Kash's Mac on **2 November 2026**, with entry `main` at `8c99b7e`, the live build (before the docs commits that record it). The Codex thread counts are unchanged since 31 October, because there were no Codex turns after 13w. The earlier snapshots (29 October: 52/51 turns, 38 commits, 642 tests at `0be805d`; 31 October morning: 76/76 turns, 56 commits, 991 tests at `69eca5d`; 31 October evening: 74 commits, 1,029 tests at `74cc38d`; 1 November: 171 commits, 1,226 tests, 79.7% / 20.3% split at `ee1a6e2`) stay in git history.
+Snapshot measured on Kash's Mac on **2 November 2026**, with entry `main` at `8c99b7e`, the build deployed on 2 November (before the docs commits that record it). The Codex thread counts are unchanged since 31 October, because there were no Codex turns after 13w. The earlier snapshots (29 October: 52/51 turns, 38 commits, 642 tests at `0be805d`; 31 October morning: 76/76 turns, 56 commits, 991 tests at `69eca5d`; 31 October evening: 74 commits, 1,029 tests at `74cc38d`; 1 November: 171 commits, 1,226 tests, 79.7% / 20.3% split at `ee1a6e2`) stay in git history.
 
 | Evidence | Count / identity |
 |---|---|
@@ -75,7 +75,7 @@ So on top of the weekly limit, the build spent both limit resets that fell insid
 
 ## Codex vs Claude Code split
 
-**MEASURED** at `8c99b7e` (2 November 2026, 14:25 UK), the live build. The README table shows the same numbers. To regenerate later, replace `8c99b7e` with `HEAD`.
+**MEASURED** at `8c99b7e` (2 November 2026, 14:25 UK), the build deployed that afternoon; later commits are not counted. The README table shows the same numbers. To regenerate later, replace `8c99b7e` with `HEAD`.
 
 "Codex" = every commit up to and including `3677761` whose message does not contain "(Claude Code)". "Claude Code" = commits after `3677761` whose message contains "(Claude Code)": "fix" and "feat" commits change code; "docs" commits change only Markdown and images, so they add no source lines. Merge commits add no lines of their own. Source = the folders `capture demo overlay scripts server shared test worker`; Markdown docs, images and assets outside those folders (including the recorded voice bank's audio and its manifests) are not counted. Tests are files under `test/` or named `*.test.ts`. Binary files (one pose model) are skipped. Run in bash (zsh does not split the folder list the same way).
 
