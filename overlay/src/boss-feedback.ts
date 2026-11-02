@@ -46,3 +46,16 @@ export function renderBossDamageNumbers(container:HTMLElement,nodes:Map<string,H
   node.style.left=`clamp(calc(var(--damage-number-box) / 2), calc(50% + ${(item.lane-1)*FEEL.bossHit.numberLanePx}px), calc(100% - var(--damage-number-box) / 2))`;node.style.transform=`translateY(${item.y}px)`;node.style.opacity=String(item.opacity);
  }
 }
+
+/** How a landed hit looks on the boss (Kash, 2 Nov: "on the boss is it really visible?"). A punch: a white-yellow flash over the whole
+ * sprite, a 22 px shake for 200 ms, a bigger 700 ms PUNCH! pop and the lost HP chunk flashing white before it drains. A defence counter
+ * (BLOCK HIT, DODGE HIT) is cyan so it never reads as a punch; a finisher keeps its green. Calm FX: the same flashes and pop, as fades only. */
+export const BOSS_HIT_LOOK={punch:{tint:'#fff3b0',opacity:.9,tintMs:180},counter:{tint:'#2ef2ff',opacity:.6,tintMs:160},finisher:{tint:'#73f49b',opacity:.6,tintMs:180},popMs:700,shakePx:22,shakeMs:200,flinchMs:260,barFlashMs:320} as const;
+export function bossHitAnimations(kind:BossImpact['kind'],calm:boolean){
+ const turn='rotate(-6deg)',px=BOSS_HIT_LOOK.shakePx;
+ const pop:Keyframe[]=calm?[{opacity:0},{opacity:1,offset:.1},{opacity:1,offset:.75},{opacity:0}]:[{transform:`scale(.4) ${turn}`,opacity:0},{transform:`scale(1.3) ${turn}`,opacity:1,offset:.12},{transform:`scale(1) ${turn}`,opacity:1,offset:.24},{transform:`scale(1) ${turn}`,opacity:1,offset:.78},{transform:`translateY(-24px) ${turn}`,opacity:0}];
+ const shake:Keyframe[]|null=calm?null:kind==='punch'?[{translate:'0 0',rotate:'0deg'},{translate:`${px}px -4px`,rotate:'6deg',offset:.2},{translate:`-${Math.round(px/2)}px 2px`,rotate:'-3deg',offset:.45},{translate:`${Math.round(px/3)}px 0`,rotate:'2deg',offset:.7},{translate:'0 0',rotate:'0deg'}]
+  :[{translate:'0 0',rotate:'0deg'},{translate:'22px 0',rotate:'7deg',offset:.3},{translate:'0 0',rotate:'0deg'}];
+ const barFlash:Keyframe[]|null=kind==='punch'?[{filter:'brightness(0) invert(1)',boxShadow:'0 0 18px 4px #fff'},{filter:'brightness(0) invert(1)',boxShadow:'0 0 18px 4px #fff',offset:.6},{filter:'none',boxShadow:'none'}]:null;
+ return {pop,popMs:BOSS_HIT_LOOK.popMs,shake,shakeMs:kind==='punch'?BOSS_HIT_LOOK.shakeMs:BOSS_HIT_LOOK.flinchMs,barFlash,tint:BOSS_HIT_LOOK[kind]};
+}

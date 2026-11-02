@@ -102,6 +102,13 @@ describe('HUD wiring',()=>{
   const {hud,q}=mount(),before=counterState();before.log.resolved=[];before.counter={open:false,closes_at:0};hud.render(before);
   const after=counterState();after.boss.hp=before.boss.hp-2;hud.render(after);expect(q('punch-pop').textContent).toBe('BLOCK HIT\n−2');expect(q('punch-pop').dataset.kind).toBe('counter');
  });
+ it('gives a landed punch the big look: a PUNCH! pop, the lost HP chunk flashing and the boss shaking',()=>{
+  const {hud,q}=mount(),animated:Element[]=[];Object.defineProperty(dom.window.Element.prototype,'animate',{configurable:true,value(this:Element){animated.push(this);return {};}});
+  const before=counterState();before.counter={open:false,closes_at:0};hud.render(before);
+  const after=structuredClone(before);after.now+=100;after.round.elapsed_ms+=100;after.boss.hp-=1;hud.render(after);
+  expect(q('punch-pop').textContent).toBe('PUNCH!\n−1');expect(q('punch-pop').dataset.kind).toBe('punch');
+  expect(animated.includes(q('boss-bar').querySelector('i')!),'the lost HP chunk flashes').toBe(true);expect(animated.includes(q('boss-sprite')),'the boss shakes').toBe(true);
+ });
  it('says BLOCKED! in the call lane and COUNTER · PUNCH NOW in the prompt lane, with the body move for webcam',()=>{
   const {hud,q}=mount();hud.setModes({keyboard:false});hud.render(counterState());
   expect(q('banner').textContent).toBe('BLOCKED!');expect(q('move').textContent).toBe('JAB');expect(q('cue').textContent).toBe('GUARD ✓');

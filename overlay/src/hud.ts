@@ -4,7 +4,7 @@ import {bossDamageLayout} from './damage-layout';
 import {finisherPresentation,renderFocus} from './focus-ui';
 import {FEEL} from '../../shared/src/feel';
 import {DEFAULT_SCOUTING_CONFIG} from '../../shared/src/scouting-config';
-import {createBossFeedback,playBossImpactSounds,renderBossDamageNumbers,type BossImpact} from './boss-feedback';
+import {BOSS_HIT_LOOK,bossHitAnimations,createBossFeedback,playBossImpactSounds,renderBossDamageNumbers,type BossImpact} from './boss-feedback';
 import {chatCommand,chatCommandLegend,voteCountLabel} from '../../shared/src/chat-commands';
 import {difficultyName,tempoFor} from '../../shared/src/tempo';
 import type {ForgeSnapshot} from '../../shared/src/forge-view';
@@ -145,7 +145,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   let lastStampUntil=0,lastTelegraph='',readItUntil=0,snapshotRealAt=performance.now();
   let spriteAnchorKey='',spriteAnchor=0;
   // Fixed lanes: one prompt line (newest wins), a punch pop by the boss, and the join panel while this round has no chat votes.
-  const promptLane=createPromptLane();let lastPopAt=-Infinity,popAnimation:Animation|undefined,flinchAnimation:Animation|undefined,voteRound='',roundVoted=false,handsOut=false;
+  const promptLane=createPromptLane();let lastPopAt=-Infinity,popAnimation:Animation|undefined,flinchAnimation:Animation|undefined,barFlashAnimation:Animation|undefined,hitTint:{at:number;tint:string;opacity:number;tintMs:number}|undefined,lastCalm=false,voteRound='',roundVoted=false,handsOut=false;
   function renderPromptLane(state:GameState,notices:{ready:boolean;denied:boolean},now:number){
     const counterView=counterPrompt(state,modes),finisherView=finisherPresentation(state,modes),candidates:PromptCandidate[]=[];
     if(counterView.visible)candidates.push({kind:'counter',key:counterView.key});
@@ -231,14 +231,17 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     const bossImpacts=bossFeedback.observe(state,snapshotRealAt);
     playBossImpactSounds(bossImpacts,()=>sound.play('bonus'));
     const cues=fx.observe(state,snapshotRealAt);
-    const visual=fx.update(snapshotRealAt);
-    // Every punch is obvious: one big pop and a short boss flinch per 450 ms (the engine's punch throttle); a later hit inside it updates the number.
+    const visual=fx.update(snapshotRealAt);lastCalm=visual.calm;
+    // Every punch is obvious: one big pop, a whole-sprite flash, a shake and the lost HP chunk flashing, at most once per 450 ms (the
+    // engine's punch throttle); a later hit inside it updates the number. Defence counters are cyan (bossHitAnimations).
     const popImpact=bossImpacts.at(-1);
     if(popImpact){const pop=el('punch-pop');setText('punch-pop',punchPopText(popImpact));pop.dataset.kind=popImpact.kind;
-      if(snapshotRealAt-lastPopAt>=RULES.punchThrottle){lastPopAt=snapshotRealAt;pop.hidden=false;popAnimation?.cancel?.();
-        popAnimation=pop.animate(visual.calm?[{opacity:1},{opacity:1,offset:.75},{opacity:0}]:[{transform:'scale(1.6) rotate(-6deg)',opacity:1},{transform:'scale(1) rotate(-6deg)',opacity:1,offset:.18},{transform:'scale(1) rotate(-6deg)',opacity:1,offset:.75},{transform:'translateY(-24px) rotate(-6deg)',opacity:0}],{duration:950,easing:'ease-out',fill:'forwards'});
+      if(snapshotRealAt-lastPopAt>=RULES.punchThrottle){lastPopAt=snapshotRealAt;pop.hidden=false;popAnimation?.cancel?.();const look=bossHitAnimations(popImpact.kind,visual.calm);
+        popAnimation=pop.animate(look.pop,{duration:look.popMs,easing:'ease-out',fill:'forwards'});
         if(popAnimation)popAnimation.onfinish=()=>{pop.hidden=true;};
-        if(!visual.calm){flinchAnimation?.cancel?.();flinchAnimation=el('boss-sprite').animate([{translate:'0 0',rotate:'0deg'},{translate:'22px 0',rotate:'7deg',offset:.3},{translate:'0 0',rotate:'0deg'}],{duration:260,easing:'ease-out'});}}}
+        hitTint={at:snapshotRealAt,...look.tint};
+        if(look.barFlash){barFlashAnimation?.cancel?.();barFlashAnimation=el('boss-bar').querySelector<HTMLElement>('i')!.animate(look.barFlash,{duration:BOSS_HIT_LOOK.barFlashMs,easing:'ease-out'});}
+        if(look.shake){flinchAnimation?.cancel?.();flinchAnimation=el('boss-sprite').animate(look.shake,{duration:look.shakeMs,easing:'ease-out'});}}}
     el('calm').hidden=!visual.calm;stage.classList.toggle('calm',visual.calm);
     for(const cue of cues)if(cue.kind==='hit'&&cue.move==='COMBO'||(cue.kind==='hit'||cue.kind==='chip')&&cue.move==='SUPER')once(`impact-sfx:${state.match.seed}:${cue.id}`,()=>sound.play('hit'));
     if(cues.some(cue=>cue.kind==='block'||cue.kind==='perfect')){lastStampUntil=visual.streamer.animationTime+500;el('blocked').hidden=false;el('blocked').animate(visual.calm?[{opacity:0},{opacity:1}]:[{transform:'scale(1.25)',opacity:1},{transform:'scale(1)',opacity:1}],{duration:visual.slam.durationMs,easing:'ease-out'});}
@@ -340,7 +343,7 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
   }
   renderTally({kind:'tally',tally:{JAB:0,HOOK_L:0,HOOK_R:0,COMBO:0,SUPER:0},voters:0,simulated:!!options.simulated});
   let frameId:number;
-  const animate=()=>{if(disposed)return;const now=performance.now(),frame=fx.update(now),bossHit=bossFeedback.frame(now,frame.calm);
+  const animate=()=>{if(disposed)return;const now=performance.now(),frame=fx.update(now),bossHit=bossFeedback.frame(now,frame.calm);lastCalm=frame.calm;
     const damageZone=el('boss-damage'),bossRail=host.querySelector<HTMLElement>('.rail.boss')!,railRect=bossRail.getBoundingClientRect(),legend=host.querySelector<HTMLElement>('.hype-vote-legend')!,votesRect=legend.getBoundingClientRect(),scale=railRect.width/(modes.seated?300:470);
     if(scale>0){damageZone.style.top=`${bossDamageLayout(modes.seated?300:470,1080,(votesRect.bottom-railRect.top)/scale,modes.seated).top}px`;}
     renderBossDamageNumbers(damageZone,floatingNodes,bossHit.numbers);
@@ -351,11 +354,13 @@ export function createRailsHud(host:HTMLElement,options:{simulated?:boolean;plai
     el('read-it').hidden=frame.boss.animationTime>=readItUntil;el('read-it').style.opacity=String(Math.max(0,Math.min(1,(readItUntil-frame.boss.animationTime)/150)));
     el('blocked').hidden=frame.streamer.animationTime>=lastStampUntil;el('blocked').style.opacity=String(Math.max(0,Math.min(1,(lastStampUntil-frame.streamer.animationTime)/150)));
     if(current){renderPromptLane(current,superNoticePresentation(current,superNotices,Date.now()),now);const key=`${clip}:${clipAt}`;if(key!==spriteAnchorKey){spriteAnchorKey=key;spriteAnchor=frame.boss.animationTime-Math.max(0,(current.clock.paused_at??current.now)-clipAt);}
-      const age=Math.max(0,frame.boss.animationTime-spriteAnchor),transient=!['idle','victory','ko'].includes(clip)&&!clip.endsWith('_windup');sprite.draw(transient&&age>520?'idle':clip,transient&&age>520?current.round.elapsed_ms:age,bossHit.flash?.opacity??0);
+      const age=Math.max(0,frame.boss.animationTime-spriteAnchor),transient=!['idle','victory','ko'].includes(clip)&&!clip.endsWith('_windup');const tintAge=hitTint?now-hitTint.at:Infinity,tint=hitTint&&tintAge<hitTint.tintMs?{opacity:hitTint.opacity*(1-Math.max(0,tintAge)/hitTint.tintMs),color:hitTint.tint}:undefined;
+      sprite.draw(transient&&age>520?'idle':clip,transient&&age>520?current.round.elapsed_ms:age,bossHit.flash?.opacity??0,tint);
       const attack=current.activeAttack;const viewNow=(current.clock.paused_at??current.now)+(current.paused?0:now-snapshotRealAt);tryTelegraphSound(current,viewNow);el('banner').style.opacity=attack&&!attack.vetoed&&lastTelegraph?String(Math.min(1,Math.max(0,(attack.lands_at-viewNow)/120))):'1';
     }else sprite.draw('idle',now);frameId=requestAnimationFrame(animate);};
   frameId=requestAnimationFrame(animate);
-return {voiceHost:sound,/** One-shot effect for other modes (Crowd Trainer cues); respects the sound switch. */
+return {voiceHost:sound,/** Calm FX (reduced motion or ?fx=calm): the demo's camera-circle feedback fades instead of popping. */
+    calm:()=>lastCalm,/** One-shot effect for other modes (Crowd Trainer cues); respects the sound switch. */
     playSound(name:Sound){sound.play(name);},  /** Webcam fight: a wrist has been out of view for over 0.5 s (demo/src/hands-warning.ts). */
     setHandsOut(value:boolean){handsOut=value;},setPractice(value:boolean){if(practice===value)return;practice=value;if(current)render(current,currentSimulated);},soundRequested:()=>sound.requested,setSoundRequested,activateSound,render,renderTally,setSuperNotices(value:SuperNoticesView){superNotices=value;},presentBossImpact(impact:BossImpact){bossFeedback.present(impact,performance.now());},setBossReceipts(batch:BossImpactBatch,prime=false){bossFeedback.setReceipts(batch,prime);},setModes,setMemory,setForge,setInputLocked(locked:boolean){el('input-lock').textContent=locked?'INPUTS LOCKED':'STREAMER';el('input-lock').classList.toggle('input-lock-active',locked);},setEndcard(summary:GameSummary|null,clips:EndcardClip[]=[]){endSummary=summary;endClips=clips;summaryView.render(summary,clips,memory);},setConnection(text:string){el('connection').textContent=text;el('connection').title=text;},setPlayerName(name:string){const value=name.trim()||'YOU',heading=el('player-name');if(heading.textContent!==value)heading.textContent=value;heading.title=value;},dispose(){disposed=true;cancelIdleSound();cancelAnimationFrame(frameId);observer.disconnect();sprite.dispose();sound.dispose();motion.removeEventListener('change',motionChange);window.removeEventListener('keydown',muteKey);window.removeEventListener('pointerdown',unlockOnGesture);window.removeEventListener('keydown',unlockOnGesture);host.innerHTML='';}};
 }

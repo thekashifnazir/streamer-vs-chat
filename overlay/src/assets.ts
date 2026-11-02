@@ -30,7 +30,8 @@ export class BossSprite {
     this.sheet.src=bossSheetUrl;
     void fetch(bossAtlasUrl).then(response=>{if(!response.ok)throw new Error('Boss atlas unavailable');return response.json();}).then(atlas=>{if(!this.dead)this.atlas=atlas;}).catch(()=>{canvas.setAttribute('aria-label','Chat Golem boss');});
   }
-  draw(clip:string,elapsed:number,flashOpacity=0):void {
+  /** tint: a whole-sprite flash (a landed punch: white-yellow; a defence counter: cyan), drawn over the boss's own pixels only. */
+  draw(clip:string,elapsed:number,flashOpacity=0,tint?:{opacity:number;color:string}):void {
     const ctx=this.canvas.getContext('2d');
     if(!ctx)return;
     ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
@@ -47,6 +48,7 @@ export class BossSprite {
     if(ko){ctx.filter='none';this.drawKoStamp(ctx,Math.min(1,elapsed/250));}
     if(flashOpacity>0){ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=flashOpacity;ctx.fillStyle=FEEL.bossHit.flashColor;
       ctx.fillRect((this.canvas.width-FEEL.bossHit.flashWidth)/2,this.canvas.height-FEEL.bossHit.flashHeight-FEEL.bossHit.flashBottomPx,FEEL.bossHit.flashWidth,FEEL.bossHit.flashHeight);ctx.restore();}
+    if(tint&&tint.opacity>0){ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=Math.min(1,tint.opacity);ctx.fillStyle=tint.color;ctx.fillRect(0,0,this.canvas.width,this.canvas.height);ctx.restore();}
   }
   private drawKoStamp(ctx:CanvasRenderingContext2D,progress:number):void {
     const w=this.canvas.width,h=this.canvas.height,size=Math.round(w*0.36);
