@@ -3,7 +3,7 @@ import type {CalibrationSnapshot} from '../../capture/src/calibration';
 import type {Landmark} from '../../capture/src/classifier';
 import {superHelp} from './defence-copy';
 import {difficultyLabel,KEYBOARD_DIFFICULTY,WEBCAM_DIFFICULTY} from './difficulty-choice';
-import {HANDS_SETUP_RULE} from './hands-warning';
+import {CAMERA_TIP,HANDS_SETUP_RULE} from './hands-warning';
 /** One webcam step list for / and /play (Kash, 2 Nov): 5 steps over the 7 calibration stages, each with its stick figure; the sub-steps tick off as each stage passes. */
 export const WEBCAM_STEPS:readonly {title:string;figure:string;subs:readonly (readonly [number,string])[]}[]=[
  {title:'1. Get in frame',figure:'<circle cx="24" cy="8" r="5"/><path d="M24 14v17m-15-9 15-5 15 5M24 31l-9 12m9-12 9 12"/>',subs:[[0,'Head, shoulders and both wrists in view'],[1,'arms relaxed, hold still 3 s'],[2,'hands at your waist, hold still 3 s']]},
@@ -41,6 +41,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  const checklist=webcam.querySelector('.webcam-checklist');if(checklist){checklist.className='webcam-checklist webcam-groups';checklist.innerHTML=webcamStepsMarkup();}
  const moves=root.createElement('section');moves.className='play-webcam-moves';moves.setAttribute('aria-label','While you fight');moves.innerHTML='<p class="play-how-title">WHILE YOU FIGHT</p><div class="play-moves">'+WEBCAM_MOVES.map(([name,line])=>`<article class="defence-card play-move-card"><h3>${name}</h3><p>${line}</p></article>`).join('')+'</div>';preview.after(moves);
  const handsRule=root.createElement('p');handsRule.id='hands-rule';handsRule.className='hands-rule';handsRule.textContent=HANDS_SETUP_RULE;get('webcam-instruction').after(handsRule);
+ const tip=root.createElement('p');tip.id='camera-tip';tip.className='camera-tip';tip.append(CAMERA_TIP+' ');const lab=root.createElement('a');lab.href='/?lab=punch';lab.target='_blank';lab.rel='noopener';lab.textContent='Practise your punches with tracking →';tip.append(lab);handsRule.after(tip);
  let commandKey='',latestCalibration:CalibrationSnapshot|null=null;
  // Step 5 (punches) is a bonus: a Skip link sits under the progress bar on / and /play while that step is live.
  const skip=root.createElement('button');skip.type='button';skip.id='skip-punches';skip.className='text-button';skip.textContent='Skip punches';skip.hidden=true;
