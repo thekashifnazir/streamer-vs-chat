@@ -30,6 +30,7 @@ import { PoseCamera } from '../../capture/src/camera';
 import { PoseClassifier } from '../../capture/src/classifier';
 import {TrainerMoveDetector} from '../../capture/src/trainer-moves';
 import {mountPoseDebug} from './pose-debug';
+import {mountFightRecorder,type FightPhase} from './fight-recorder';
 import { createCalibration } from '../../capture/src/calibration';
 import { createSimulationSource } from './source';
 import { InputTutorial } from './tutorial';
@@ -98,7 +99,10 @@ const tutorial=new InputTutorial();
 const classifier=new PoseClassifier({guardThreshold:0});
 const trainerMoves=new TrainerMoveDetector();
 // ?debug=pose: a tiny corner readout of pose fps and detected moves for live tuning (off by default, outside the stage).
-const poseDebug=mountPoseDebug(document,location.search);let debugPose={guard:false,lean:null as 'L'|'R'|null};
+const poseDebug=mountPoseDebug(document,location.search);
+// ?rec=1: read-only fight recording for punch debugging (fight-recorder.ts). Null, and never called, without the flag.
+const fightRec=mountFightRecorder(document,location.search,()=>({page:location.pathname,mode:trainer.running?'Crowd Trainer':'Boss Fight',difficulty:difficulty.value,posture:posture.value,noPunch:noPunch.checked,...(video.videoWidth?{camera:{width:video.videoWidth,height:video.videoHeight}}:{})}));
+const fightPhase=():FightPhase=>trainer.running?'trainer':!game?'setup':game.paused||fightUi?.paused?'paused':game.round.over?'round-over':'fight';let debugPose={guard:false,lean:null as 'L'|'R'|null};
 let pendingBoss:BossDef|null=null;
 let forgeSnapshot:ForgeSnapshot|null=null;
 let forgePanel:ReturnType<typeof import('./forge').mountDemoForge>|null=null;
@@ -331,9 +335,9 @@ const calibration=createCalibration({punches:true,onChange(snapshot){
   el<HTMLProgressElement>('calibration-progress').value=snapshot.progress;
   setup.calibration(snapshot);
 }});
-function restoreCalibration(){const mode=posture.value==='seated'?'seated':'standing',saved=profiles.load(mode);if(saved&&calibration.restore(saved,mode)){classifier.setCalibration(saved);trainerMoves.setPunchThresholds(saved.punchThresholds);setup.restored(true);}}
+function restoreCalibration(){const mode=posture.value==='seated'?'seated':'standing',saved=profiles.load(mode);if(saved&&calibration.restore(saved,mode)){classifier.setCalibration(saved);fightRec?.calibration(saved,'saved',performance.now());trainerMoves.setPunchThresholds(saved.punchThresholds);setup.restored(true);}}
 /** A finished calibration (all steps, or punches skipped) drives both detectors; punch thresholds are per player when measured. */
-function applyCalibration(calibrated:ReturnType<typeof calibration.update>){if(!calibrated.ready||calibrated.guardThreshold===null)return;classifier.setCalibration({guardThreshold:calibrated.guardThreshold,leanThresholds:calibrated.leanThresholds??undefined,guardReleaseBand:calibrated.guardReleaseBand??undefined,guardMedians:calibrated.guardMedians??undefined,neutralSwayP95:calibrated.neutralSwayP95??undefined,punchThresholds:calibrated.punchThresholds});trainerMoves.setPunchThresholds(calibrated.punchThresholds);}
+function applyCalibration(calibrated:ReturnType<typeof calibration.update>){if(!calibrated.ready||calibrated.guardThreshold===null)return;const settings={guardThreshold:calibrated.guardThreshold,leanThresholds:calibrated.leanThresholds??undefined,guardReleaseBand:calibrated.guardReleaseBand??undefined,guardMedians:calibrated.guardMedians??undefined,neutralSwayP95:calibrated.neutralSwayP95??undefined,punchThresholds:calibrated.punchThresholds};classifier.setCalibration(settings);fightRec?.calibration(settings,'setup',performance.now());trainerMoves.setPunchThresholds(calibrated.punchThresholds);}
 setup.calibration(calibration.snapshot);
 restoreCalibration();
 // One camera presentation (Kash, 1 Nov): the camera circle in the stage's camera lane during webcam practice, fights and workouts, never the
@@ -353,12 +357,14 @@ const camera=new PoseCamera(video,sample=>{
   poseFramed=framed&&!seatedTooClose;setup.frame(sample.landmarks,poseFramed);posePreview?.draw(sample.landmarks,previewShown());
   const ready=calibrated.ready&&poseFramed&&safetyCleared();
   lastPose=ready?result.state:{kind:'pose',guard:false,lean:null,source:'pose',at:sample.at};
+  fightRec?.frame(sample.landmarks,sample.at,{ready,framed:poseFramed,calibrated:calibrated.ready,fps:sample.fps,inferenceMs:sample.inferenceMs,score:classifier.punchDebug?.excursion??null,guard:result.state.guard,lean:result.state.lean});
   el('camera-status').textContent=!framed?'Keep head, shoulders and both wrists in frame.':seatedTooClose?'Move further back; seated shoulders must span ≤20% of the frame.':`Camera local · ${sample.fps.toFixed(0)} FPS · ${sample.inferenceMs.toFixed(0)} ms inference`;
   // Hands-free resume: a 1 s guard hold, only while calibrated, framed, fresh and clear-space confirmed.
   if(source.value==='pose')guardResume.sample(!!fightUi?.paused&&ready&&cameraRunning&&!showSessionSummary&&(!liveMode||!!hosted?.ready),lastPose.guard,performance.now());
   if(source.value==='pose') {
     input(lastPose);
-    if(ready)for(const punch of result.punches)input(punch);
+    if(ready)for(const punch of result.punches){const phase=fightRec&&fightPhase(),before=game?.input.last_punch_at;input(punch);if(fightRec)fightRec.punch(punch.side,sample.at,punch.at,true,!!game&&game.input.last_punch_at!==before,phase!);}
+    else if(fightRec)for(const punch of result.punches)fightRec.punch(punch.side,sample.at,punch.at,false,false,fightPhase());
     // Crowd Trainer reads punch side and slips with its own detector; Boss Fight thresholds stay as they are.
     if(trainer.running){const moves=trainerMoves.update(sample.landmarks,sample.at);if(ready){for(const punch of moves.punches){trainer.move({kind:'punch',side:punch.side});cameraHit.trainerPunch(punch.side);}for(const slip of moves.slips)trainer.move({kind:'slip',side:slip.side});}
      if(poseDebug&&ready){for(const punch of moves.punches)poseDebug.move({kind:'PUNCH',side:punch.side});for(const slip of moves.slips)poseDebug.move({kind:'SLIP',side:slip.side});}}
