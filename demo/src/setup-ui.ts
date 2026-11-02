@@ -4,6 +4,17 @@ import type {Landmark} from '../../capture/src/classifier';
 import {superHelp} from './defence-copy';
 import {difficultyLabel,KEYBOARD_DIFFICULTY,WEBCAM_DIFFICULTY} from './difficulty-choice';
 import {HANDS_SETUP_RULE} from './hands-warning';
+/** One webcam step list for / and /play (Kash, 2 Nov): 5 steps over the 7 calibration stages, each with its stick figure; the sub-steps tick off as each stage passes. */
+export const WEBCAM_STEPS:readonly {title:string;figure:string;subs:readonly (readonly [number,string])[]}[]=[
+ {title:'1. Get in frame',figure:'<circle cx="24" cy="8" r="5"/><path d="M24 14v17m-15-9 15-5 15 5M24 31l-9 12m9-12 9 12"/>',subs:[[0,'Head, shoulders and both wrists in view'],[1,'arms relaxed, hold still 3 s'],[2,'hands at your waist, hold still 3 s']]},
+ {title:'2. Guard up',figure:'<circle cx="24" cy="8" r="5"/><path d="M24 14v17M24 17 13 23l3-13m8 7 11 6-3-13M24 31l-9 12m9-12 9 12"/>',subs:[[3,'Fists at face height · hold still 3 s']]},
+ {title:'3. Lean left',figure:'<circle cx="18" cy="8" r="5"/><path d="M18 14l7 17M19 17 10 25m9-8 13 4M25 31l-10 12m10-12 8 12"/>',subs:[[4,'hold 1.5 s']]},
+ {title:'4. Lean right',figure:'<circle cx="30" cy="8" r="5"/><path d="M30 14l-7 17M29 17l9 8m-9-8-13 4M23 31l10 12m-10-12-8 12"/>',subs:[[5,'hold 1.5 s']]},
+ {title:'5. Throw a punch with each hand',figure:'<circle cx="20" cy="8" r="5"/><path d="M20 14v17m0-14 22 1m-22-1-9 9 6 4M20 31l-9 12m9-12 9 12"/><circle cx="43" cy="18" r="3" fill="currentColor"/>',subs:[[6,'one straight punch each side · you can skip']]}];
+export function webcamStepsMarkup(){return WEBCAM_STEPS.map((step,index)=>`<li class="webcam-step" data-calibration-group="${index}"><svg viewBox="0 0 48 48" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3">${step.figure}</g></svg><span><strong>${step.title}</strong><small>${step.subs.map(([stage,text])=>`<span data-calibration-step="${stage}">${text}</span>`).join(' · ')}</small></span></li>`).join('');}
+/** The how-to-play strip under the camera on both pages: what to do once the fight starts. */
+export const WEBCAM_MOVES=[['Guard','Fists at face height.'],['Lean','Away from the hook.'],['Punch','Straight at the camera.'],['Hands in view','Step back if a ✓ goes red.']] as const;
+export const WEBCAM_START_WAIT='Finish the 5 steps to start';
 /** Presentation adapter: the original form controls remain the only settings state. */
 export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcamStart:()=>void;onWebcamCountdown?:()=>void;webcamFramed?:()=>boolean;now?:()=>number;keyboardRequiresClearSpace?:boolean;simplifiedCalibration?:boolean;workout?:()=>boolean;onSkipPunches?:()=>void}){
  const get=<T extends HTMLElement>(id:string)=>root.getElementById(id) as T;
@@ -27,6 +38,8 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
  function begin(){if(!space.checked||!camera||!ready)return;close(false);due=now()+5000;countdown.hidden=false;options.onWebcamCountdown?.();tick(now());stage.scrollIntoView?.({block:'start',behavior:'smooth'});}
  root.addEventListener('keydown',event=>{if(event.code==='Escape')cancel();});
  // Step 1 (both pages): leans and punches need both wrists, so say so plainly under the step title (Kash, 1 Nov).
+ const checklist=webcam.querySelector('.webcam-checklist');if(checklist){checklist.className='webcam-checklist webcam-groups';checklist.innerHTML=webcamStepsMarkup();}
+ const moves=root.createElement('section');moves.className='play-webcam-moves';moves.setAttribute('aria-label','While you fight');moves.innerHTML='<p class="play-how-title">WHILE YOU FIGHT</p><div class="play-moves">'+WEBCAM_MOVES.map(([name,line])=>`<article class="defence-card play-move-card"><h3>${name}</h3><p>${line}</p></article>`).join('')+'</div>';preview.after(moves);
  const handsRule=root.createElement('p');handsRule.id='hands-rule';handsRule.className='hands-rule';handsRule.textContent=HANDS_SETUP_RULE;get('webcam-instruction').after(handsRule);
  let commandKey='',latestCalibration:CalibrationSnapshot|null=null;
  // Step 5 (punches) is a bonus: a Skip link sits under the progress bar on / and /play while that step is live.
@@ -54,7 +67,7 @@ export function mountFightSetup(root:Document,options:{onStart:()=>void;onWebcam
   for(const hint of recommended)hint.hidden=!pose;difficultyNote.textContent=`Difficulty: ${difficultyLabel(select('start-difficulty').value,true)} (change in Options)`;get('open-webcam').hidden=!pose;get('open-webcam').textContent=camera&&ready?space.checked?`START WEBCAM ${noun()}`:'Tick “My space is clear” to start →':'Set up your webcam · about 30 s →';get('start-fight').hidden=pose;get('punch-chance').hidden=noPunch.checked;
   get('safety-card').classList.toggle('confirmed',space.checked);get('clear-space-label').textContent=space.checked?'✓ My space is clear':'Tap to confirm my space is clear';
   const start=get<HTMLButtonElement>('start-fight');start.disabled=!(space.checked||!pose&&options.keyboardRequiresClearSpace===false);start.textContent=!start.disabled?`START ${noun()}`:'Tick “my space is clear” to start';
-  const webcamStart=get<HTMLButtonElement>('play-webcam');webcamStart.disabled=!(space.checked&&camera&&ready);webcamStart.textContent=!(camera&&ready)?(options.simplifiedCalibration?'Finish setup to start':'Finish the 5 steps to start'):!space.checked?'Tick “My space is clear” to start':`START WEBCAM ${noun()}`;
+  const webcamStart=get<HTMLButtonElement>('play-webcam');webcamStart.disabled=!(space.checked&&camera&&ready);webcamStart.textContent=!(camera&&ready)?WEBCAM_START_WAIT:!space.checked?'Tick “My space is clear” to start':`START WEBCAM ${noun()}`;
   // The camera and calibration work straight away; only the fight waits for the tick, so the card sits by START and lights up when it is the last thing missing.
   get('safety-card').classList.toggle('needs-tick',pose&&camera&&ready&&!space.checked);
   get('webcam-distance-tip').textContent=select('posture').value==='seated'?'Seated: sit about 1 m further back than feels natural.':'Standing: give yourself room to raise your guard and lean to either side.';

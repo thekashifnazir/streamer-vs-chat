@@ -7,7 +7,10 @@ it.each([390,1440,1920])('overrides the legacy two-column grid at %i px for ever
  const dom=new JSDOM(readFileSync(new URL('../play/index.html',import.meta.url),'utf8'));try{
  const doc=dom.window.document;Object.defineProperty(dom.window,'innerWidth',{value:viewport});const style=doc.createElement('style');style.textContent=css;doc.head.append(style);const flow=mountHostedFlow(doc),computed=dom.window.getComputedStyle;
  for(const state of [{connected:false,live:false,obs:false,skipped:false},{connected:true,live:false,obs:false,skipped:false},{connected:true,live:false,obs:false,skipped:true}]){
-  flow.update(state);const column=computed(doc.getElementById('onboarding-row')!);expect(column.display).toBe('block');expect(column.gridTemplateColumns).toBe('minmax(0,1fr)');expect(column.width).toBe('calc(100% - 32px)');expect(column.maxWidth).toBe('960px');expect(column.marginLeft).toBe('auto');expect(column.marginRight).toBe('auto');
+  flow.update(state);const column=computed(doc.getElementById('onboarding-row')!);expect(column.display).toBe('block');expect(column.gridTemplateColumns).toBe('minmax(0,1fr)');
+  // Steps 2-3 (playsetup, 2 Nov): the column leaves room on the right for the small fixed stage preview.
+  if(state.connected){expect(column.width).toBe('var(--pv-column)');expect(column.maxWidth).toBe('none');expect(css).toContain('width:var(--pv-column);max-width:none;margin-left:var(--pv-right);margin-right:0}');}
+  else{expect(column.width).toBe('calc(100% - 32px)');expect(column.maxWidth).toBe('960px');expect(column.marginLeft).toBe('auto');expect(column.marginRight).toBe('auto');}
   for(const id of ['hosted-onboarding-slot','fight-setup']){const child=computed(doc.getElementById(id)!);expect(child.width).toBe('100%');expect(child.maxWidth).toBe('100%');expect(child.minWidth).toBe('0');}
  }
  // jsdom verifies the cascade, not pixel geometry. This is the CSS constraint's

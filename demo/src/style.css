@@ -158,10 +158,10 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 .hosted-flow .page-top-row{display:block}.hosted-flow .hosted-panel,.hosted-flow .fight-setup{width:100%;max-width:none;margin:0}
 .hosted-flow .play-step-bar{display:flex;gap:20px;padding:16px 0;margin-bottom:24px;font-size:18px;font-weight:700}.play-step-bar [data-state=done]{color:var(--cyan)}.play-step-bar [data-state=current]{color:var(--yellow)}.play-step-bar [data-state=future]{color:var(--muted)}
 .hosted-flow #connect-step,.hosted-flow #go-live-step{text-align:center;max-width:900px;margin:auto}.hosted-flow #connect-step .step-number{display:none}.hosted-flow #twitch-connect,.hosted-flow #go-live{display:block;min-width:260px;min-height:64px;margin:24px auto;font-size:24px;font-weight:700}.hosted-flow #go-live{background:var(--pink);border-color:var(--pink);color:#0c0912}.hosted-flow #advanced-obs{text-align:left;border:1px solid var(--control-border);padding:16px;margin:20px 0;border-radius:12px}.hosted-flow #advanced-obs summary{cursor:pointer;min-height:44px}.hosted-flow #go-live-step .switch-row{justify-content:center}.hosted-flow #skip-live{color:var(--cyan)}
-.hosted-flow .play-source-legacy{display:none!important}.hosted-flow .defend-cards{display:grid;grid-template-columns:1fr 1fr;gap:24px}.hosted-flow .defend-cards button{display:grid;gap:14px;min-height:180px;background:#1d1629;border:2px solid #4a3f63;text-align:left}.hosted-flow .defend-cards strong{font:36px Anton,Impact,sans-serif;color:var(--yellow)}.hosted-flow .defend-cards small{color:var(--cyan);font-weight:700}.hosted-flow #play-more-options{margin-top:24px;border:1px solid var(--control-border);padding:16px;border-radius:12px}.hosted-flow #play-more-options summary{min-height:44px;cursor:pointer}.hosted-flow .webcam-checklist{display:none}.hosted-flow .play-calibration-groups{list-style:none;padding:0}.play-calibration-groups li{border:1px solid var(--control-border);padding:18px;margin-bottom:12px;font-weight:600}.play-calibration-groups .active{border-color:var(--yellow)}.play-calibration-groups .done{border-color:var(--cyan)}.play-calibration-groups small{display:block;font-size:14px;color:var(--muted);margin-top:8px}
+.hosted-flow .play-source-legacy{display:none!important}.hosted-flow .defend-cards{display:grid;grid-template-columns:1fr 1fr;gap:24px}.hosted-flow .defend-cards button{display:grid;gap:14px;min-height:180px;background:#1d1629;border:2px solid #4a3f63;text-align:left}.hosted-flow .defend-cards strong{font:36px Anton,Impact,sans-serif;color:var(--yellow)}.hosted-flow .defend-cards small{color:var(--cyan);font-weight:700}.hosted-flow #play-more-options{margin-top:24px;border:1px solid var(--control-border);padding:16px;border-radius:12px}.hosted-flow #play-more-options summary{min-height:44px;cursor:pointer}.hosted-flow .play-calibration-groups{list-style:none;padding:0}.play-calibration-groups li{border:1px solid var(--control-border);padding:18px;margin-bottom:12px;font-weight:600}.play-calibration-groups .active{border-color:var(--yellow)}.play-calibration-groups .done{border-color:var(--cyan)}.play-calibration-groups small{display:block;font-size:14px;color:var(--muted);margin-top:8px}
 .hosted-flow #broadcast-bar{display:flex;align-items:center;justify-content:space-between;background:#ff268a22;border:1px solid var(--pink);padding:12px;color:#ff82bb}.hosted-flow .broadcast-live,.hosted-flow .broadcast-dot{color:var(--pink);border-color:var(--pink)}.hosted-flow .stream-camera-bubble{position:absolute;inset:auto auto 3% 40%;width:20%;height:28%;object-fit:cover;border:3px solid var(--pink);border-radius:50%;transform:scaleX(-1);z-index:6;visibility:visible}.hosted-flow .chroma-green .stream-camera-bubble{visibility:visible}
 .hosted-flow[data-play-step=twitch] #fight-setup,.hosted-flow[data-play-step=twitch] #go-live-step,.hosted-flow[data-play-step=twitch] #stage,.hosted-flow[data-play-step=twitch] #how-to-play,.hosted-flow[data-play-step=twitch] #fight-screen-heading{display:none!important}
-.hosted-flow[data-play-step=live] #fight-setup,.hosted-flow[data-play-step=live]:not([data-broadcast-preparing=true]) #stage,.hosted-flow[data-play-step=live] #how-to-play,.hosted-flow[data-play-step=live] #fight-screen-heading{display:none!important}
+.hosted-flow[data-play-step=live] #fight-setup,.hosted-flow[data-play-step=live] #how-to-play,.hosted-flow[data-play-step=live] #fight-screen-heading{display:none!important}
 @media(max-width:700px){.hosted-flow .defend-cards{grid-template-columns:1fr}.hosted-flow .play-step-bar{gap:12px;font-size:16px}}
 .hosted-flow .demo-stage>#camera{visibility:hidden}
 .hosted-flow #webcam-preview>#camera{visibility:visible}
@@ -662,3 +662,86 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 /* Wrists out of view (demo/src/hands-warning.ts): the workout's line, between the combo call and the camera circle; setup step 1's rule. */
 .trainer-hands{position:absolute;left:50%;top:57cqh;transform:translateX(-50%);margin:0;padding:.8cqw 2cqw;background:#08050cf2;border:.3cqw solid var(--t-pink);color:#fff;font:400 2.6cqw/1.1 Anton,Impact,sans-serif;letter-spacing:.1cqw;white-space:nowrap;z-index:3}.trainer-hands[hidden]{display:none}
 #webcam-settings .webcam-instructions p.hands-rule{margin:6px 0 8px;padding:8px 12px;border-left:4px solid var(--yellow);background:#ffdc4314;color:#f5f2fa;font-size:17px;font-weight:700;line-height:1.35}#webcam-settings .webcam-instructions p.hands-rule.hands-missing{border-color:var(--pink);background:#ff268a1f}.hands-rule[hidden]{display:none}
+/* ── playsetup (2 Nov, Kash's approved mock): /play steps 2-3 and webcam setup.
+   1) The captured #stage stays rendered at its 1280x720 layout size and is scaled down with a CSS transform into a fixed
+      "ON STREAM NOW" preview top right; the setup column leaves room for it. Element Capture (go-live.ts restrictTo) keeps
+      capturing it (measured: the track follows the on-screen size and returns to full size when the fight view opens).
+   2) STARTING SOON card (starting-soon.ts) on the stage whenever nothing runs; sizes in cqw so the 36px floor holds at 1920.
+   3) How to play under the choices and under the camera, extras as one row of chips, one named next button. ── */
+.starting-soon{display:none}
+.hosted-flow:not(.fight-started) #stage>.starting-soon{display:grid}
+.starting-soon{position:absolute;inset:0;z-index:5;container-type:size;place-items:start center;padding-top:9cqh;box-sizing:border-box;text-align:center;background:radial-gradient(ellipse at 50% 28%,#3a2a52,#0c0912 72%);color:#f5f2fa;pointer-events:none}
+.starting-soon>div{width:90cqw}.starting-soon p{margin:0;overflow-wrap:anywhere}
+.starting-soon .starting-soon-title{font:400 9cqw/1 Anton,Impact,sans-serif;letter-spacing:.2cqw;color:var(--yellow)}
+.starting-soon .starting-soon-versus{margin-top:2.6cqh;font:400 4.4cqw/1.1 Anton,Impact,sans-serif}.starting-soon-versus i{padding:0 1cqw;font-style:normal;color:var(--pink)}
+.starting-soon .starting-soon-chat{margin-top:3.4cqh;font:700 2.4cqw/1.3 Barlow,system-ui,sans-serif}.starting-soon-chat em{font-style:normal;color:var(--cyan);white-space:nowrap}
+.starting-soon .starting-soon-warm{display:none;margin-top:2cqh;font:700 2cqw/1.3 Barlow,system-ui,sans-serif;color:#c2bdcd}
+.webcam-open #stage>.starting-soon .starting-soon-warm{display:block}
+.stage-preview{display:none}
+.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started){--pv-s:.28;--pv-w:calc(1280px*var(--pv-s));--pv-h:calc(720px*var(--pv-s));--pv-frame:min(calc(100vw - 48px),1240px);--pv-right:calc((100vw - var(--pv-frame))/2);--pv-top:132px;--pv-column:calc(var(--pv-frame) - var(--pv-w) - 28px)}
+@media(max-width:1439px){.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started){--pv-s:.24}}
+.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main>#stage{display:block!important;position:fixed;top:var(--pv-top);right:var(--pv-right);left:auto;z-index:40;box-sizing:border-box;width:1280px!important;max-width:none!important;height:720px;min-height:0;margin:0!important;transform:scale(var(--pv-s));transform-origin:top right;cursor:pointer}
+.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main>#stage *{pointer-events:none}
+.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main>#stage-preview{display:block!important;position:fixed;top:calc(var(--pv-top) - 34px);right:var(--pv-right);z-index:39;width:var(--pv-w)}
+.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main>#fight-screen-heading{display:none!important}
+.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main>#onboarding-row,.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started).webcam-open>main>#webcam-settings{box-sizing:border-box;width:var(--pv-column);max-width:none;margin-left:var(--pv-right);margin-right:0}
+.stage-preview p{margin:0}.stage-preview-label{height:28px;font:900 15px/28px Barlow,system-ui,sans-serif;letter-spacing:.12em;color:var(--pink)}
+.stage-preview [data-preview=live],.hosted-flow[data-play-step=fight] .stage-preview [data-preview=before]{display:none}.hosted-flow[data-play-step=fight] .stage-preview [data-preview=live]{display:inline}
+.stage-preview-frame{height:var(--pv-h);margin-top:6px;border-radius:4px;box-shadow:0 0 0 3px var(--pink);background:#0c0912}
+.stage-preview-note{margin-top:10px!important;font-size:14px;line-height:1.35;color:#c2bdcd}
+.stage-preview #stage-preview-open{min-height:44px;padding:0;background:transparent;border:0;color:var(--cyan);font-size:15px;text-decoration:underline;cursor:pointer}
+.hosted-flow[data-play-step=live] .stage-preview-note,.hosted-flow[data-play-step=live] #stage-preview-open,.hosted-flow.webcam-open #stage-preview-open{display:none}
+@media(max-width:760px){
+ .hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started){--pv-s:.15;--pv-right:12px}
+ .hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main>#stage{top:auto;bottom:12px;transform-origin:bottom right}
+ .hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main>#stage-preview{display:none!important}
+ .hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main>#onboarding-row,.hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started).webcam-open>main>#webcam-settings{width:calc(100% - 32px);margin-left:auto;margin-right:auto}
+ .hosted-flow:is([data-play-step=live],[data-play-step=fight]):not(.stream-compact):not(.fight-started)>main{padding-bottom:calc(var(--pv-h) + 64px)}
+}
+/* Step 3: defend cards show the pick; extras as chips (switch hidden over the chip, state as a dot); the next button. */
+.hosted-flow .defend-cards button.selected{border-color:var(--yellow);background:#3a2f12}
+.hosted-flow .play-chip-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:24px 0 0}
+.hosted-flow #fight-setup .play-chip-row>.stream-extras{display:contents}
+.hosted-flow #fight-setup .play-chip-row .stream-extras>h2,.hosted-flow #fight-setup .play-chip-row .extra-meaning,.hosted-flow #fight-setup .play-chip-row .extra-pill,.hosted-flow #fight-setup .play-chip-row .session-opt-in{display:none}
+.hosted-flow #fight-setup .play-chip-row .extras-grid{display:contents}
+.hosted-flow #fight-setup .play-chip-row .extra-tile{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:8px 16px;box-sizing:border-box;border:2px solid #4a3f63;border-radius:999px;background:#1d1629;color:#c2bdcd;cursor:pointer}
+.hosted-flow #fight-setup .play-chip-row .extra-title{font:600 16px/1.2 Barlow,system-ui,sans-serif;white-space:nowrap}
+.hosted-flow #fight-setup .play-chip-row .extra-tile::before{content:'○';color:#7a6a96}
+.hosted-flow #fight-setup .play-chip-row .extra-tile:has(input:checked){border-color:var(--cyan);color:#f5f2fa}.hosted-flow #fight-setup .play-chip-row .extra-tile:has(input:checked)::before{content:'●';color:var(--cyan)}
+.hosted-flow #fight-setup .play-chip-row .extra-tile:has(input:disabled){opacity:.55;cursor:not-allowed}
+.hosted-flow #fight-setup .play-chip-row .extra-tile:has(input:focus-visible){outline:3px solid var(--cyan);outline-offset:2px}
+.hosted-flow #fight-setup .play-chip-row .extra-tile input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:inherit}
+.hosted-flow #fight-setup .play-chip-row>#play-more-options{margin:0;padding:0;border:0;background:none}
+.hosted-flow #fight-setup .play-chip-row>#play-more-options>summary{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;box-sizing:border-box;border:2px dashed #4a3f63;border-radius:999px;font:600 16px/1.2 Barlow,system-ui,sans-serif;color:#c2bdcd;cursor:pointer;list-style:none}
+.hosted-flow #fight-setup .play-chip-row>#play-more-options>summary::-webkit-details-marker{display:none}
+.hosted-flow #fight-setup .play-chip-row>#play-more-options[open]{flex:0 0 100%;padding:0 0 8px}
+.hosted-flow #fight-setup .play-chip-row>#play-more-options[open]>summary{margin-bottom:12px;border-color:var(--cyan)}
+.hosted-flow .extras-explained{margin:18px 0 0;font-size:15px;line-height:1.45;color:#c2bdcd}.hosted-flow .extras-explained dt{margin-bottom:6px;font-weight:700;color:#f5f2fa}.hosted-flow .extras-explained dd{margin:0 0 6px}.hosted-flow .extras-explained strong{color:#f5f2fa}
+.hosted-flow .play-next{display:block;width:100%;min-height:64px;margin:22px 0 0;padding:12px 20px;border:0;border-radius:8px;background:var(--yellow);color:#0c0912;font:400 30px/1.1 Anton,Impact,sans-serif;letter-spacing:.02em;box-shadow:0 5px 0 #b8941a;cursor:pointer}
+.hosted-flow .play-next:active{transform:translateY(3px);box-shadow:0 2px 0 #b8941a}
+/* How to play (moved into step 3): four compact stick-figure cards; Crowd Trainer swaps in its four moves. */
+.hosted-flow #fight-setup>#how-to-play{margin:26px 0 0;padding:20px 0 0;background:none;border:0;border-top:1px solid #3a2f4d;border-radius:0}
+.hosted-flow #how-to-play .how-heading,.hosted-flow #how-to-play .bonus-strip{display:none}
+.hosted-flow .play-how-title{margin:0 0 12px;font:400 22px/1.1 Anton,Impact,sans-serif;letter-spacing:.02em;color:var(--yellow)}
+.hosted-flow .play-how-title [data-how=trainer],.hosted-flow.trainer-mode .play-how-title [data-how=boss]{display:none}.hosted-flow.trainer-mode .play-how-title [data-how=trainer]{display:inline}
+.hosted-flow .play-moves{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.hosted-flow .play-moves>#attack-rows{display:contents}
+.hosted-flow .play-trainer-moves,.hosted-flow.trainer-mode #how-to-play .play-moves:not(.play-trainer-moves){display:none}.hosted-flow.trainer-mode #how-to-play .play-trainer-moves{display:grid}
+.hosted-flow .play-moves .defence-card{padding:10px 12px;border-top-width:3px}
+.hosted-flow .play-moves .defence-picture{height:70px}.hosted-flow .play-moves .defence-picture svg{width:112px;height:70px}
+.hosted-flow .play-moves .defence-title{gap:8px;margin:6px 0 6px}.hosted-flow .play-moves .defence-title kbd{min-width:32px;height:32px;font-size:18px}.hosted-flow .play-moves .defence-title .pose-cue{font-size:13px}
+.hosted-flow .play-moves .defence-title h3{font-size:22px}
+.hosted-flow .play-moves .when-chat{display:none}.hosted-flow .play-moves .command-chips{gap:4px;min-height:0}.hosted-flow .play-moves .chat-chip{padding:2px 8px;font-size:14px}.hosted-flow .play-moves .chat-chip small{font-size:12px}
+.hosted-flow .play-moves .defence-card>p:last-child{margin:8px 0 0;font-size:14px;line-height:1.35}
+.hosted-flow .play-moves .defence-card[hidden]{display:none}
+/* Webcam setup: the same strip under the camera, text only (GUARD / LEAN / PUNCH / HANDS IN VIEW); the camera gives up its height so the 5 steps still fit 1280x720. */
+.play-webcam-moves{margin:10px 0 0}.play-webcam-moves .play-how-title{margin:0 0 6px;font:400 17px/1.1 Anton,Impact,sans-serif;letter-spacing:.02em;color:var(--yellow)}
+.play-webcam-moves .play-moves{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.play-webcam-moves .defence-card{padding:7px 10px;border-top-width:3px}.play-webcam-moves h3{margin:0;font:400 18px/1.1 Anton,Impact,sans-serif;color:var(--yellow)}
+.play-webcam-moves .defence-card>p:last-child{margin:3px 0 0;font-size:13px;line-height:1.3}
+@media(max-width:760px){.play-webcam-moves .play-moves{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:761px){.hosted-flow #webcam-settings .webcam-layout,.offline-demo-page #webcam-settings .webcam-layout{grid-template-columns:min(calc((100vh - 450px)*4/3),58%) minmax(0,1fr)}}
+.hosted-flow .play-moves .defence-title .pose-cue{display:none}
+.hosted-flow #fight-setup>#how-to-play{width:auto;max-width:none}
+@media(max-width:760px){.hosted-flow .play-moves{grid-template-columns:repeat(2,minmax(0,1fr))}.hosted-flow .play-next{font-size:24px}}
+/* ── end playsetup ── */

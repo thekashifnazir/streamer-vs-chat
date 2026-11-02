@@ -36,6 +36,8 @@ import { InputTutorial } from './tutorial';
 import { fightHelp, finisherHelp, poseGuide } from './defence-copy';
 import {startColdOpen,coldOpenStage} from './cold-open';
 import {mountStreamLayout} from './stream-layout';
+import {mountStartingSoon,startingSoonCopy} from './starting-soon';
+import {STAGE_PREVIEW} from './hosted-flow';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
@@ -160,6 +162,7 @@ function updateControlGuide() {
   const text=poseGuide({seated:posture.value==='seated',noPunch:noPunch.checked});if(moves.textContent!==text)moves.textContent=text;
 }
 function updateModes() {
+  paintStartingSoon();
   const seated=posture.value==='seated';
   hud.setModes({seated,noPunch:noPunch.checked,keyboard:source.value==='keyboard'});
   classifier.setPunchesEnabled(!noPunch.checked);
@@ -175,8 +178,12 @@ function updateModes() {
 
 function resize(){const scale=stage.clientWidth/1920;host.style.transform=`scale(${scale})`;if(scale>0)host.style.setProperty('--demo-hud-scale',String(scale));}
 new ResizeObserver(resize).observe(stage);resize();
+// /play: viewers see a STARTING SOON card whenever nothing runs on the stage (CSS keys it to .fight-started).
+const startingSoon=liveMode?mountStartingSoon(stage):null;
+function paintStartingSoon(){startingSoon?.update(startingSoonCopy({login:hosted?.login,boss:(game?.bossDef??pendingBoss)?.name,trainer:trainer.selected}));}
 function paint() {
   hosted?.observePhase();
+  paintStartingSoon();
   forgePanel?.update();
   hud.setForge(forgeSnapshot,!game||game.round.over);
   setup.commands(game?game.bossDef:pendingBoss);
@@ -472,6 +479,9 @@ if(liveMode){
     game=step(game,vote,performance.now());paint();
     return game.votes[vote.user]===vote.move;
   },onRaid:event=>{if(game){game=step(game,event,performance.now());paint();}},onControl:event=>{if(event.kind==='control'&&event.action==='resume'&&!safetyCleared())return;if(event.kind==='control'&&['stop','pause','veto'].includes(event.action))pauseReason=event.by==='capture'?'stream ended':'chat requested a pause';input(event);},onViewers:count=>{liveViewers=count;if(game)game=step(game,{kind:'viewers',count},performance.now());},onDisconnect:freeze,onSummary:()=>{if(trainer.running){trainer.stop();return;}showSessionSummary=true;freeze();}});
+  // The small stage preview on steps 2-3: on step 3 a click opens the fight-only view (Show full page comes back).
+  const openPreview=()=>{if(document.body.matches(STAGE_PREVIEW)&&document.body.dataset.playStep==='fight'&&!document.body.classList.contains('webcam-open'))streamLayout.collapse();};
+  stage.addEventListener('click',openPreview);document.getElementById('stage-preview-open')?.addEventListener('click',openPreview);
   crowdSize.closest('label')!.hidden=true;
   document.title='Streamer vs Chat · Twitch play';
 
