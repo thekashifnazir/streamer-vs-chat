@@ -17,7 +17,7 @@ Snapshot measured on Kash's Mac on **2 November 2026**, with entry `main` at `8c
 
 The scratch threads tested CLI resume behaviour, not entry code. The second contains the ONE, TWO and THREE reply probes. Subagent lanes are part of the main build's work; they are separate from those scratch probes.
 
-One main Codex thread wrote the entry's code up to its last turn, 13w (`3677761`): 57 code commits. Kash directed and approved every brief; the briefs were drafted with Claude Code from their notes and queued into the thread with `codex exec resume`, and Claude Code checked each result in a fresh clone and deployed. Codex planned each task, split it into subagent lanes, made the design calls inside the brief and wrote the code. Devin wrote task prompts and reviewed results until 30 October. From 31 October Claude Code writes the Markdown docs, to save Codex budget for the site. From 31 October, with the Codex weekly limit used up and its reset after the deadline, Claude Code also writes code, each a separate commit whose message starts "fix (Claude Code)" or "feat (Claude Code)". On 31 October and overnight that was polish and bug fixes from live tests. On 1 November it was larger: the Crowd Trainer mode, recorded voice lines, a homepage redesign, the 5-step webcam setup and a new straight-punch detector, plus a voice corner coach that is switched off for the submission. The README lists these commits under [Finished with Claude Code](../README.md#finished-with-claude-code). Kash supplied the live Twitch, camera and physical playtest checks. Codex reviewed each commit with an independent subagent pass, except some late small turns where Claude's fresh-clone and browser checks replaced it to save budget.
+One main Codex thread wrote the entry's code up to its last turn, 13w (`3677761`): 57 code commits. Kash directed and approved every brief; the briefs were drafted with Claude Code from their notes and queued into the thread with `codex exec resume`, and Claude Code checked each result in a fresh clone and deployed. Codex planned each task, split it into subagent lanes, made the design calls inside the brief and wrote the code. Devin wrote task prompts and reviewed results until 30 October. From 31 October Claude Code writes the Markdown docs, to save Codex budget for the site. From 31 October, with the Codex weekly limit used up and its reset after the deadline, Claude Code also writes code, each a separate commit whose message starts "fix (Claude Code)" or "feat (Claude Code)". On 31 October and overnight that was polish and bug fixes from live tests. On 1 November it was larger: the Crowd Trainer mode, recorded voice lines, a homepage redesign, the 5-step webcam setup and a new straight-punch detector, plus a voice corner coach that is switched off for the submission. The README lists these commits under [Claude Code commits](#claude-code-commits). Kash supplied the live Twitch, camera and physical playtest checks. Codex reviewed each commit with an independent subagent pass, except some late small turns where Claude's fresh-clone and browser checks replaced it to save budget.
 
 The end-to-end checks are local Playwright scripts in the owner's scratch folders, outside this repository, so they are described rather than linked. Demo flows include a full best-of-3 played by a bot that reads the callouts, and the webcam path driven by a recorded clip of Kash as a fake camera. The hosted `/play` journey mocks Twitch OAuth, Helix, EventSub, WHIP and the Worker inside the browser, with zero off-origin requests.
 
@@ -111,3 +111,45 @@ Kash approved this paragraph for the Devpost page on 31 October (the numbers in 
 > All of this was built on a Plus plan, and in the first iterations we burned through a load of credits I had from a previous OpenAI hackathon, and after that we used the weekly reset. There's only so much I'm able to do on a Plus account, so we tried to do as much as we can in Codex: 77 turns and 57 code commits in one thread.
 >
 > Near the end we had to be realistic if we wanted to get this finished. We were having to iterate quite a bit to fix problems that we kept seeing coming up in live tests, and so when the weekly limit ran out we finished it off with Claude Code (the last 16 fixes, listed below). Ideally I would have had a Pro Codex account to do this, and from doing this hackathon that's now something I want, because I really enjoyed working with Codex.
+
+## Claude Code commits
+
+104 labelled code commits after the last Codex turn (`git log --oneline 3677761..8c99b7e | grep -cE '(fix|feat) \(Claude Code\)'`). Sim output is identical and no golden vector changed, so no Boss Fight rules changed.
+
+**31 October to early 1 November: 30 fixes** from live tests, the end-to-end suites and an overnight audit (1,194 source lines added).
+
+- **Webcam:** `4f3c5ef` deep leans vs punch gate · `7c71f02` lean 48% / 170 ms · `8bbf47e` countdown clock · `e1bfd01` start on Easy · `8fe8952` clear-space pointer
+- **Twitch and `/play`:** `7348cf2` remember login · `7f06308` leave warning · `0ce1e42` no login flash · `ae39ec0` loading shell · `503ffd3` Disconnect notice · `6cc03bf` Reconnect card on expiry · `e4c0df8` real streamer name on the HUD
+- **Fight and results:** `b1c7b22` callouts name the defence · `4bfb1dc` Resume between rounds · `b3cac4d` no "Next round in 0 s" · `cb1f49b` rehearsal result · `f62dd87` M mutes · `8598a9b` pause reason, guard resumes · `3cce3b3` match score · `0c18238` rehearsal Resume · `4e448ad` results clear of rails · `9a16f04` SUPER READY banner
+- **Demo, phones, a11y:** `74cc38d` 24 px targets, focus trap · `8d66ecc` 390/768 layout · `b30bbc6` `?scout=fast` card in round 1 · `fe53547` Crowd selector · `e28c9d6` demo bar fits · `327d4b5` keyboard figure moves · `2f994ba` landing gameplay loop · `3dfc4df` 44 px phone buttons
+
+**1 November: 52 commits** (27 fix, 25 feat; 4,266 source lines added, 532 removed). Source lines added per group in brackets.
+
+- **Crowd Trainer, 8 (+1,045):** `d442bc6` the mode · `81dc4d4` Trainer punch/slip detector, phone layout · `e5c79ad` balanced simulated pace votes · `accd509` cues never dropped · `655a0b3` remembered mode and options · `86cc3c9` 1/2/S/G keys, Your keys card, key hints · `1a27787` keys card at 390 px · `d4b600b` TRY THE WORKOUT fits a phone
+- **Recorded voice lines, 3 (+804):** `0ba45d3` ElevenLabs voice bank (4 boss and 4 coach voices, 872 fixed lines; audio not counted) · `36002e4` boss taunts and voice picker · `eabc382` Trainer calls combos in the coach voice
+- **Homepage redesign and demo extras, 7 (+664):** `5e966ee` new hero · `1b5c667` SIMULATED CHAT panel, bot lines, simulated Chat MVP · `37458b6` PLAY ON YOUR TWITCH STREAM first, Try it now box · `e16f168` Back stays on the site · `2f5fb3b` larger chat panel · `394db11` webcam setup on one screen · `3221f1c` plain-words HUD labels
+- **Webcam setup and detection, 5 (+450):** `08e54fd` straight punches without turning the body · `384b0cf` 5-step setup, camera before the tick · `8cc1a5e` Skip punches clickable · `2f5f334` forearm foreshortening, capped setup thresholds · `f701e78` camera circle in fights, punch step without the tick
+- **Saved preferences, 4 (+274):** `2c0bb47` prefs store · `1f2baa0` `/` and `/play` remember settings · `b2a2141` Workout row · `bfc1c34` phone Workout row
+- **`/play` journey and clips, 7 (+196):** `d3898aa` loading screen · `4f0b383` permissions before Connect · `1a84210` mode first, What your stream gets · `075ab6d` mode cards on phones · `861a946` Chat MVP name, clearer labels · `51b153d` fight-only view, plainer bot error · `15b1ca3` clips 6 s after a KO, titled
+- **Fight and results polish from live tests, 8 (+266):** `9c8b84b` NEXT ROUND, no timer; practice teaches both leans · `e7f33bd` K.O. stamp · `f81938e` SUPER and FINISHER wording · `b1efa7f` stats from page load · `1faf00d` scoreboard results card · `ea8cd8e` End fight on cards, clip tiles · `d2cede9` camera bubble placement · `d083735` results card after 1.5 s
+- **Voice corner coach, now switched off, 10 (+567):** `25cb3ad` · `7068f56` · `08f6a9d` · `acb01b7` · `dcd6040` · `4831c77` · `5cfd2d2` · `482763c` · `85f33a8` · `6ad6ba0` (off for the submission; code kept, [docs/COACH.md](docs/COACH.md))
+
+**1 November night to 2 November: 22 commits** (12 fix, 10 feat; 1,685 source lines added, 200 removed) from Kash's live tests and punch-lab recordings.
+
+- **Fight screen:** `bc75b97` fixed fight-stage lanes · `e3a9c15` one camera circle, opt-in skeleton · `085a546` PUNCH! pop over the boss · `769cd55` compact join panel · `ab6e85b` workout summary fits · `e11235a` BLOCK HIT / DODGE HIT, STEP BACK hint · `cfc70fb` boss hits visible at stream size · `891061f` camera circle hit feedback
+- **Punch detection:** `0f9b2b9` Trainer counts straight jabs · `767e841` `?debug=pose` readout · `73f5cc0` hidden punch lab · `0929787` lab recording as a fixture · `5d9fe7c` Boss punch threshold 0.6 · `2274e59` the Trainer 2 is a cross · `8c99b7e` fast one-twos (Kash's drills 46 → 51 of 59)
+- **`/play` and webcam setup:** `0b4e907` no ElevenLabs hosts in the page policy · `9aa9f69` setup per Kash's mock, ON STREAM NOW preview · `4fc503a` holding cards on stream · `4dca3f7` camera tip and punch lab link · `8cf73b7` clickable lab link, shorter text
+- **Chat bot and Boss Forge:** `ca592e9` bot posts and clip links work in the Worker (every post had failed) · `ff882e8` Boss Forge announced in chat, on the results card and with a NEW BOSS banner
+
+### Who wrote the code (moved from the README)
+
+**Who wrote the code** (**MEASURED**, git at `8c99b7e`, the build deployed on 2 November (later commits not counted); source only, no docs or audio; [commands](codex-evidence.md#codex-vs-claude-code-split)):
+
+| | Codex, up to `3677761` | Claude Code, after it |
+|---|---|---|
+| Code commits | **57** | **104** (69 "fix", 35 "feat") |
+| App lines added / removed | **10,187** / 2,021 | **4,093** / 647 |
+| Test and fixture lines added / removed | **11,211** / 360 | **3,052** / 256 |
+| Share of source lines added | **75.0%** | **25.0%** |
+
+Most of the Claude Code share is 1 November and after: 52 of its 104 code commits and 4,266 of its 7,145 added lines on 1 November up to `ee1a6e2`, then 22 commits and 1,685 lines from 1 November night to 2 November. Plus 21 docs-only Claude Code commits after 13w. Lines added count edits as well as new code, so this is a size measure, not a value judgement.
