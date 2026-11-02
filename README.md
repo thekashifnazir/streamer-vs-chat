@@ -8,10 +8,13 @@
   <a href="https://streamervschat.kashifnazir.com"><b>Play now, no login</b></a> ·
   <a href="https://streamervschat.kashifnazir.com/play"><b>Play on your channel</b></a> ·
   <a href="https://youtu.be/d1ZewiNJvbE"><b>3-min demo</b></a> ·
+  <a href="docs/video/streamer-vs-chat-60s.mp4"><b>60-second cut</b></a> ·
   <a href="https://twitchcon-codex.devpost.com"><b>Hackathon</b></a>
 </p>
 
 <p align="center"><a href="https://youtu.be/d1ZewiNJvbE"><img src="docs/img/video-thumb.jpg" alt="Watch the 3-minute demo on YouTube: live on twitch.tv/kashruns with chat, a webcam Boss Fight, Crowd Trainer and Boss Forge" width="720"></a></p>
+
+<p align="center">▶ <a href="https://youtu.be/d1ZewiNJvbE"><b>Watch the 3-minute demo</b></a> · or the <a href="docs/video/streamer-vs-chat-60s.mp4"><b>60-second cut</b></a> (plays on GitHub)</p>
 
 <p align="center">
   <a href="https://streamervschat.kashifnazir.com"><img src="https://img.shields.io/badge/%E2%96%B6%20Play%20it%20now-streamervschat.kashifnazir.com-FF268A?style=for-the-badge" alt="Play it now: streamervschat.kashifnazir.com" height="44"></a>
