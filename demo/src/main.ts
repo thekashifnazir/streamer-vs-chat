@@ -38,6 +38,8 @@ import {startColdOpen,coldOpenStage} from './cold-open';
 import {mountStreamLayout} from './stream-layout';
 import {mountStartingSoon,startingSoonCopy,type HoldingState} from './starting-soon';
 import {STAGE_PREVIEW} from './hosted-flow';
+import {forgeResultsLine} from './forge-announce';
+import {isDefaultBoss} from '../../shared/src/boss-def';
 import {LocalPlaytestStats} from './playtest';
 import { summarizeGame } from '../../shared/src/highlights';
 import {mountTrainer,defaultCueSound} from './trainer-ui';
@@ -184,7 +186,7 @@ new ResizeObserver(resize).observe(stage);resize();
 // /play: viewers see a STARTING SOON card whenever nothing runs on the stage (CSS keys it to .fight-started).
 const startingSoon=liveMode?mountStartingSoon(stage):null;
 // Holding card state: whether a fight ran, the last finished match, and the last boss fought (so a forged boss is announced once).
-let fought=false,lastMatch:HoldingState['lastMatch']=null,lastFoughtBoss='';
+let fought=false,lastMatch:HoldingState['lastMatch']=null,lastFoughtBoss='',introducedBoss='';
 function paintStartingSoon(){if(!startingSoon)return;if(game){fought=true;lastFoughtBoss=game.bossDef?.name??'';if(game.match.winner)lastMatch={winner:game.match.winner,streamer:game.match.round_wins.streamer,boss:game.match.round_wins.boss};}
  startingSoon.update(startingSoonCopy({login:hosted?.login,boss:(game?.bossDef??pendingBoss)?.name,trainer:trainer.selected,fought,lastMatch,forging:!!hosted?.forgeBusy,forged:!!pendingBoss&&pendingBoss.name!==lastFoughtBoss}));}
 function paint() {
@@ -192,6 +194,9 @@ function paint() {
   paintStartingSoon();
   forgePanel?.update();
   hud.setForge(forgeSnapshot,!game||game.round.over);
+  fightUi?.setForgeLine(game?.round.over?forgeResultsLine(forgeSnapshot,pendingBoss,game.bossDef?.name??null):null);
+  // A chat-forged boss gets a NEW BOSS card the first time it is on stage.
+  if(game&&!game.round.over&&game.bossDef&&!isDefaultBoss(game.bossDef)&&game.bossDef.name!==introducedBoss){introducedBoss=game.bossDef.name;hud.introBoss(game.bossDef.name);}
   setup.commands(game?game.bossDef:pendingBoss);
   hud.setMemory(hosted?.memoryView()??null);
   document.querySelector<HTMLElement>('.chat-command-help')!.textContent=chatCommandLegend(game?.bossDef)+' · '+finisherHelp(source.value==='pose');

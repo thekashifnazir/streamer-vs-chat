@@ -14,7 +14,7 @@ export const botDropMessage=(reason:string)=>SERVICE_DROP.test(reason)?BOT_SEND_
 export function createHostedResults(options:{auth:Pick<BrowserAuth,'account'|'authenticated'|'backendRequest'>;fetch?:typeof fetch;getHealth?:HealthReader;onStatus:(message:string,detail?:string)=>void;setInterval?:typeof globalThis.setInterval;clearInterval?:typeof globalThis.clearInterval}){
  const request=options.fetch??globalThis.fetch.bind(globalThis),schedule=options.setInterval??globalThis.setInterval,cancel=options.clearInterval??globalThis.clearInterval;
  let available=false,enabled=false,disposed=false,polling=false,timer:ReturnType<typeof setInterval>|undefined;
- let observed:GameState|null=null;
+ let observed:GameState|null=null,lastForge='';
  const capable=()=>available&&!!options.auth.account?.scopes.includes('channel:bot');
  const report=(message:string,detail?:string)=>{if(!disposed){if(detail)options.onStatus(message,detail);else options.onStatus(message);}};
  const dropped=(reason:string)=>report(botDropMessage(reason),`Bot error code: ${reason}`);
@@ -33,6 +33,8 @@ export function createHostedResults(options:{auth:Pick<BrowserAuth,'account'|'au
   get enabled(){return enabled;},get available(){return available;},get capable(){return capable();},
   async initialize(){try{available=(await (options.getHealth??createHostedHealth(request).get)()).bot;}catch{available=false;}if(disposed)return;setEnabled(capable());if(available&&!capable())report('Reconnect to enable bot results (channel:bot).');else if(!available)report('Bot results are disabled on this host.');},
   setEnabled,status,
+  /** A forged boss passed the gate: the bot names it in chat, once per boss. */
+  postForge(bossName:string){if(enabled&&!disposed&&options.auth.authenticated&&bossName!==lastForge){lastForge=bossName;void send({kind:'forge',bossName});}},
   postClip(clipId:string){if(enabled&&!disposed&&options.auth.authenticated)void send({kind:'clip',clipId});},
   observeGame(state:GameState,hypeFull=false){
    const before=observed;observed=state;

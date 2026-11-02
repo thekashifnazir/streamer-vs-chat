@@ -26,3 +26,6 @@ export function formatRoundResult(result:ResultRoundData):string {
 }
 
 export function formatHypeFull():string {return 'HYPE is full! Type !s for the SUPER';}
+
+/** Boss Forge: a chat-built boss passed the balance gate and fights next round. */
+export function formatForgeReady(bossName:string):string {return `Boss Forge: chat built ${bossName}! It fights next round.`;}

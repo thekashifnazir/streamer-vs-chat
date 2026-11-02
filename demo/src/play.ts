@@ -39,7 +39,7 @@ export function mountHostedPlay(options:{getState:()=>GameState|null;coachOff?:(
  const botToggle=el<HTMLInputElement>('bot-results-toggle');
  const bot=createHostedResults({auth,getHealth:health.get,onStatus:(message,detail)=>{setHostedExtraNotice(panel,'bot-results',message.startsWith('Reconnect to enable')?'':message);if(!message.startsWith('Reconnect to enable'))options.onStatus?.(message,detail);refresh();}});
  const clips=createHostedClips({auth,getHealth:health.get,onStatus:message=>{setHostedExtraNotice(panel,'hosted-clips',message.startsWith('Reconnect to enable')?'':message);if(!message.startsWith('Reconnect to enable'))options.onStatus?.(message);},onChange:options.onHighlightsChange,onConfirmed:id=>bot.postClip(id)});
- const forge=createHostedForge({auth,getHealth:health.get,betweenRounds:options.betweenRounds,onAccepted:options.onForgeAccepted,onSnapshot:options.onForgeSnapshot,onStatus:message=>{setHostedExtraNotice(panel,'hosted-forge',auth.authenticated?message:'');if(auth.authenticated)options.onStatus?.(message);refresh();}});
+ const forge=createHostedForge({auth,getHealth:health.get,betweenRounds:options.betweenRounds,onAccepted:boss=>{if(boss)bot.postForge(boss.name);options.onForgeAccepted(boss);},onSnapshot:options.onForgeSnapshot,onStatus:message=>{setHostedExtraNotice(panel,'hosted-forge',auth.authenticated?message:'');if(auth.authenticated)options.onStatus?.(message);refresh();}});
  const memoryToggle=el<HTMLInputElement>('hosted-memory-toggle');
  // Boss Fight only: in Crowd Trainer the coach never sees a state, so it never starts and a live talk ends.
  const coach=mountCornerCoach(document,{auth,getHealth:health.get,getState:()=>options.coachOff?.()?null:options.getState(),onActive:options.onCoach});

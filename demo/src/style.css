@@ -764,3 +764,6 @@ body>main>.demo-controls{display:flex;width:var(--content-width);margin:auto;box
 /* camera tip under the webcam setup rule (2 Nov) */
 #webcam-settings .practise-link{display:flex;justify-content:center;margin-top:12px;font-size:15px}
 /* end camera tip */
+
+/* Boss Forge line on the round results card. */
+.round-results .result-forge{margin:10px 0 0;padding:8px 12px;border:2px solid #2ef2ff;border-radius:8px;color:#2ef2ff;font-weight:800;text-align:center;letter-spacing:.5px}.round-results .result-forge[hidden]{display:none}

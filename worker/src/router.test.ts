@@ -17,6 +17,7 @@ const post=(body:unknown,authorization='Bearer private-test-token')=>new Request
 describe('structured hosted results',()=>{
  it('accepts bounded round results and hype only, ignoring an untrusted channel field',()=>{
   expect(validateResult(round)).toEqual(round);expect(validateResult({kind:'hype-full',broadcaster_id:'victim'})).toEqual({kind:'hype-full'});
+  expect(validateResult({kind:'forge',bossName:'The Noodle Knight'})).toEqual({kind:'forge',bossName:'The Noodle Knight'});for(const bad of [{kind:'forge'},{kind:'forge',bossName:''},{kind:'forge',bossName:' '},{kind:'forge',bossName:'x'.repeat(41)},{kind:'forge',bossName:'<b>'},{kind:'forge',bossName:'ok',message:'spam'}])expect(validateResult(bad)).toBeNull();
   const value=validateResult({...round,broadcaster_id:'victim'});expect(value).toEqual(round);expect(value).not.toHaveProperty('broadcaster_id');
  });
  it.each([
@@ -24,7 +25,7 @@ describe('structured hosted results',()=>{
  ])('rejects malformed or out-of-range data %#',body=>expect(validateResult(body)).toBeNull());
  it('formats only validated data and routes exclusively to the token user ID',async()=>{
   const s=setup();const res=await s.route(post({...round,broadcaster_id:'999'}),s.env);expect(res.status).toBe(202);expect(s.idFromName).toHaveBeenCalledWith('123');expect(s.enqueue).toHaveBeenCalledWith('123',formatRoundResult(round));
-  await s.route(post({kind:'hype-full'}),s.env);expect(s.enqueue).toHaveBeenLastCalledWith('123',formatHypeFull());expect(s.fetcher).toHaveBeenCalledTimes(1);
+  await s.route(post({kind:'hype-full'}),s.env);expect(s.enqueue).toHaveBeenLastCalledWith('123',formatHypeFull());await s.route(post({kind:'forge',bossName:'The Noodle Knight'}),s.env);expect(s.enqueue).toHaveBeenLastCalledWith('123','Boss Forge: chat built The Noodle Knight! It fights next round.');expect(s.fetcher).toHaveBeenCalledTimes(1);
  });
  it('validates clip IDs, checks both flags and ignores submitted channels',async()=>{
   const s=setup();const clip={kind:'clip',clipId:'Clip_Slug-123',broadcaster_id:'999'};

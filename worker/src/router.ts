@@ -2,7 +2,7 @@ import {validateMemoryBatch,memoryOpaqueId,memoryUserId,type MemoryEvent,type Me
 import type {ForgeResponse} from '../../shared/src/forge-client';
 import {validateModeration,validateForgeRespond,type ForgeRespondBody} from './forge-validation';
 import type {ForgeReply} from './forge-service';
-import {formatHypeFull,formatRoundResult} from '../../shared/src/result-text';
+import {formatForgeReady,formatHypeFull,formatRoundResult} from '../../shared/src/result-text';
 import {ApiAuthError,createUserValidator} from './auth';
 import {readJson,validateResult,type JsonRequest} from './validation';
 import {coachDemoLimits,coachIpHash,coachLimits,fetchCoachToken,type CoachReply} from './coach';
@@ -88,7 +88,7 @@ export function createWorkerRouter(options:{fetch:typeof fetch;now:()=>number}){
    if(result.kind==='clip'&&env.HOSTED_CLIPS!=='on')return json({reason:'feature-off'},503);
    const hub=env.CHANNEL.get(env.CHANNEL.idFromName(user.userId));
    if(result.kind==='clip'){if(!await hub.enqueueClip(user.userId,result.clipId))return json({reason:'clip-not-found'},403);}
-   else await hub.enqueue(user.userId,result.kind==='round'?formatRoundResult(result):formatHypeFull());
+   else await hub.enqueue(user.userId,result.kind==='round'?formatRoundResult(result):result.kind==='forge'?formatForgeReady(result.bossName):formatHypeFull());
    return json({queued:true},202);
   }catch(error){return error instanceof ApiAuthError?json({reason:error.message},error.status):json({reason:'unavailable'},503);}
  };
